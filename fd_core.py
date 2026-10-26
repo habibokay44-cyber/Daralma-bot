@@ -1,615 +1,325 @@
-"""Fiyat Daralması v46 - TradingView Pine göstergesinin Python portu.
+#!/usr/bin/env python3
+"""BIST tarayıcı: Fiyat Daralması / Giriş sinyallerini bulur ve Telegram'a gönderir.
 
-Pine mantığı mum mum (durum makinesi olarak) birebir taşındı. Girdi: günlük OHLCV.
-Çıktı: "Fiyat Daralması" (etiket) ve "Giriş" olayları + geriye dönük test işlemleri.
+Örnekler:
+  python scan.py --dry-run                 # tüm BIST, Telegram'a göndermeden ekrana yaz
+  python scan.py                           # tara ve Telegram'a gönder
+  python scan.py --ticker THYAO --history  # tek hisse, tüm geçmiş sinyaller (TradingView ile karşılaştırmak için)
+  python scan.py --csv thyao.csv --history # TradingView'dan indirilen CSV ile
+  python scan.py --dry-run --backtest      # tüm BIST için geçmiş işlem istatistiği
 """
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass, field
-from types import SimpleNamespace
+import argparse
+import json
+import os
+import random
+import re
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
 
-NAN = float("nan")
+from fd_core import Params, run, summarize
 
+HERE = Path(__file__).resolve().parent
+STATE_FILE = HERE / "state" / "sent.json"
+FALLBACK_FILE = HERE / "tickers_fallback.txt"
+UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"}
+TR_TZ = timezone(timedelta(hours=3))
 
-def na(x) -> bool:
-    return x is None or x != x
-
-
-def nz(x, y=0.0):
-    return y if na(x) else x
-
-
-@dataclass
-class Params:
-    lookback: int = 40
-    minSpan: int = 6
-    minSpanH: int = 10
-    pvL: int = 2
-    pvR: int = 1
-    nC: int = 5
-    nS: int = 3
-    useShort: bool = True
-    tightS: float = 1.0
-    shrinkS: float = 0.85
-    boxS: float = 1.0
-    bodyADR: float = 0.1
-    maxViol: int = 0
-    violPct: float = 5.0
-    bodyPokeMax: float = 0.4
-    useBelow: bool = True
-    touchADR: float = 0.4
-    rankADR: float = 0.2
-    wickADR: float = 2.5
-    maxOv: float = 0.8
-    minTouches: int = 4
-    minClusters: int = 3
-    minTb: int = 3
-    tightADR: float = 1.0
-    shrink: float = 0.9
-    closeBoxADR: float = 1.2
-    useLows: bool = True
-    lowTolADR: float = 0.5
-    lowUpADR: float = 3.0
-    useLowsH: bool = False
-    lowUpH: float = 1.2
-    useRise: bool = True
-    riseMin: float = -0.4
-    riseMax: float = 0.4
-    riseMaxD: float = 1.0
-    useClose: bool = False
-    closeNearY: float = 1.0
-    useSlope: bool = True
-    slopeMin: float = -0.15
-    slopeMax: float = 0.4
-    slopeMinD: float = -0.4
-    slopeMaxD: float = 0.6
-    useCandle: bool = True
-    maxCandle: float = 1.0
-    minClosePos: float = 0.2
-    nearADR: float = 2.2
-    lastNear: float = 1.8
-    nearADRH: float = 1.2
-    lastNearH: float = 1.0
-    allowFlat: bool = False
-    allowDesc: bool = True
-    flatBand: float = 0.5
-    flatUp: float = 0.1
-    maxDesc: float = 3.0
-    allowHoriz: bool = True
-    modePref: str = "Otomatik"      # Otomatik / Düşen / Yatay
-    levelSrc: str = "Fitil"         # Fitil / Gövde
-    touchSpan: int = 4
-    lastTouchMax: int = 5
-    maxLineBack: int = 15
-    holdBars: int = 8
-    useTrend: bool = False
-    cooldown: int = 8
-    cancelBlock: int = 3
-    trigWin: int = 8
-    trigVol: float = 0.0
-    useStop: bool = True
-    stopBuf: float = 0.5
-    useRedKill: bool = True
-    redKillADR: float = 0.7
-    useDrop: bool = True
-    dropADR: float = 0.5
-    strongShrink: float = 0.75
-    strongBox: float = 0.9
-    onlyStrong: bool = False
-    tpMode: str = "SMC direnç"      # "SMC direnç" / "Sabit R"
-    tpMult: float = 2.0
-    smcL: int = 5
-    smcR: int = 5
-    smcLook: int = 250
-    minRR: float = 1.0
-    tpMaxR: float = 6.0
-    smcBufADR: float = 0.1
-    maxHold: int = 30
-    warmup: int = 70                # bu muma kadar sadece pivotlar toplanır
+_stat = {"ok": 0, "fail": 0}
+_codes: dict = {}
+DEADLINE = time.time() + 12 * 60
+HOSTS = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]
 
 
-# ---------------------------------------------------------------- yardımcılar
-def _sma(x: np.ndarray, n: int) -> np.ndarray:
-    return pd.Series(x).rolling(n).mean().to_numpy()
+# ------------------------------------------------------------------ hisse listesi
+def get_tickers() -> list[str]:
+    """TradingView tarayıcı uç noktasından BIST hisselerini al; olmazsa yedek listeyi kullan."""
+    try:
+        body = {
+            "filter": [
+                {"left": "type", "operation": "equal", "right": "stock"},
+                {"left": "exchange", "operation": "equal", "right": "BIST"},
+            ],
+            "options": {"lang": "tr"},
+            "columns": ["name", "type", "subtype"],
+            "sort": {"sortBy": "name", "sortOrder": "asc"},
+            "range": [0, 1500],
+        }
+        r = requests.post("https://scanner.tradingview.com/turkey/scan", json=body, headers=UA, timeout=30)
+        r.raise_for_status()
+        out = []
+        for row in r.json().get("data", []):
+            name = row["d"][0]
+            sub = row["d"][2] if len(row["d"]) > 2 else None
+            if re.fullmatch(r"[A-Z0-9]{3,6}", name or "") and sub in (None, "common", "preferred", ""):
+                out.append(name)
+        out = sorted(set(out))
+        if len(out) > 100:
+            return out
+        print(f"[uyarı] TradingView listesi kısa geldi ({len(out)}), yedek liste kullanılıyor", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001
+        print(f"[uyarı] hisse listesi alınamadı ({e}); yedek liste kullanılıyor", file=sys.stderr)
+    return [s.strip().upper() for s in FALLBACK_FILE.read_text().split() if s.strip()]
 
 
-def _highest(x: np.ndarray, n: int) -> np.ndarray:
-    return pd.Series(x).rolling(n).max().to_numpy()
+# ------------------------------------------------------------------ veri
+def fetch_yahoo(sym: str, rng: str = "2y", retries: int = 3) -> pd.DataFrame | None:
+    last_err = None
+    for k in range(retries):
+        # Yahoo tamamen engelliyorsa ya da süre dolduysa boşuna bekleme
+        if time.time() > DEADLINE or (_stat["ok"] == 0 and _stat["fail"] >= 40):
+            break
+        url = f"https://{HOSTS[k % 2]}/v8/finance/chart/{sym}.IS"
+        try:
+            r = requests.get(url, params={"range": rng, "interval": "1d", "includePrePost": "false"},
+                             headers=UA, timeout=15)
+            _codes[r.status_code] = _codes.get(r.status_code, 0) + 1
+            if r.status_code == 404:
+                return None
+            if r.status_code in (429, 403, 999):
+                time.sleep(1.5 * (k + 1) + random.random())
+                continue
+            r.raise_for_status()
+            res = r.json()["chart"]["result"]
+            if not res:
+                return None
+            res = res[0]
+            q = res["indicators"]["quote"][0]
+            idx = pd.to_datetime(res["timestamp"], unit="s", utc=True).tz_convert("Europe/Istanbul").tz_localize(None).normalize()
+            df = pd.DataFrame({"Open": q["open"], "High": q["high"], "Low": q["low"],
+                               "Close": q["close"], "Volume": q["volume"]}, index=idx)
+            df = df.dropna(subset=["Open", "High", "Low", "Close"])
+            df["Volume"] = df["Volume"].fillna(0)
+            df = df[~df.index.duplicated(keep="last")]
+            _stat["ok"] += 1
+            return df
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            time.sleep(0.5 + k)
+    _stat["fail"] += 1
+    return None
 
 
-def _lowest(x: np.ndarray, n: int) -> np.ndarray:
-    return pd.Series(x).rolling(n).min().to_numpy()
-
-
-def _shift(x: np.ndarray, k: int) -> np.ndarray:
-    out = np.full(len(x), np.nan)
-    if k < len(x):
-        out[k:] = x[: len(x) - k]
-    return out
-
-
-def _ema(x: np.ndarray, n: int) -> np.ndarray:
-    return pd.Series(x).ewm(span=n, adjust=False).mean().to_numpy()
-
-
-def _pivot_high(high: np.ndarray, left: int, right: int) -> np.ndarray:
-    """ta.pivothigh: sol taraf kesin küçük, sağ taraf küçük-eşit. Onay mumunda değer döner."""
-    n = len(high)
-    out = np.full(n, np.nan)
-    for t in range(left + right, n):
-        p = t - right
-        hp = high[p]
-        if hp > high[p - left:p].max() and hp >= high[p + 1:t + 1].max():
-            out[t] = hp
-    return out
-
-
-def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
-    o = df["Open"].to_numpy(float)
-    h = df["High"].to_numpy(float)
-    l = df["Low"].to_numpy(float)
-    c = df["Close"].to_numpy(float)
-    v = df["Volume"].to_numpy(float)
-    S = SimpleNamespace(o=o, h=h, l=l, c=c, v=v)
-    nC, nS = P.nC, P.nS
-
-    S.adr = (_sma(h / l, 20) - 1) * 100
-    S.ema50 = _ema(c, 50)
-    S.volAvg = _sma(v, 50)
-
-    rngPct = (h - l) / c * 100
-    recentRng = _sma(rngPct, nC)
-    priorRng = _shift(_sma(rngPct, 15), nC)
-    S.tightVal = recentRng / S.adr
-    S.shrinkVal = recentRng / priorRng
-    S.closeBoxVal = (_highest(c, nC) / _lowest(c, nC) - 1) * 100 / S.adr
-    lowNow = _lowest(l, nC)
-    lowPrev = _shift(_lowest(l, 10), nC)
-    S.lowDiff = (lowNow - lowPrev) / c * 100 / S.adr
-    if P.useLows:
-        S.lowsOk = (S.lowDiff >= -P.lowTolADR) & (S.lowDiff <= P.lowUpADR)
+def read_csv(path: str) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    cols = {c.lower(): c for c in df.columns}
+    tcol = cols.get("time") or cols.get("date") or cols.get("tarih")
+    if tcol is None:
+        raise SystemExit("CSV'de time/date sütunu yok")
+    t = df[tcol]
+    if np.issubdtype(t.dtype, np.number):
+        idx = pd.to_datetime(t, unit="s", utc=True).dt.tz_convert("Europe/Istanbul").dt.tz_localize(None).dt.normalize()
     else:
-        S.lowsOk = np.ones(len(c), bool)
-
-    sma3 = _sma(c, 3)
-    S.riseVal = (sma3 / _shift(sma3, nC) - 1) * 100 / S.adr
-    if P.useRise:
-        S.riseOkN = (S.riseVal >= P.riseMin) & (S.riseVal <= P.riseMax)
-        S.riseOkW = (S.riseVal >= P.riseMin) & (S.riseVal <= P.riseMaxD)
-    else:
-        S.riseOkN = S.riseOkW = np.ones(len(c), bool)
-    S.slopeVal = (sma3 / _shift(sma3, 3) - 1) * 100 / S.adr
-    if P.useSlope:
-        S.slopeOkN = (S.slopeVal >= P.slopeMin) & (S.slopeVal <= P.slopeMax)
-        S.slopeOkW = (S.slopeVal >= P.slopeMinD) & (S.slopeVal <= P.slopeMaxD)
-    else:
-        S.slopeOkN = S.slopeOkW = np.ones(len(c), bool)
-
-    S.candRng = (h - l) / c * 100 / S.adr
-    with np.errstate(divide="ignore", invalid="ignore"):
-        S.closePos = np.where(h > l, (c - l) / (h - l), 0.5)
-    if P.useCandle:
-        S.candOk = (S.candRng <= P.maxCandle) & (S.closePos >= P.minClosePos)
-    else:
-        S.candOk = np.ones(len(c), bool)
-
-    recentRngS = _sma(rngPct, nS)
-    priorRngS = _shift(_sma(rngPct, 15), nS)
-    S.tightValS = recentRngS / S.adr
-    S.shrinkValS = recentRngS / priorRngS
-    S.closeBoxValS = (_highest(c, nS) / _lowest(c, nS) - 1) * 100 / S.adr
-
-    tightLong = (S.tightVal <= P.tightADR) & (S.shrinkVal <= P.shrink) & (S.closeBoxVal <= P.closeBoxADR)
-    if P.useShort:
-        tightShort = (S.tightValS <= P.tightS) & (S.shrinkValS <= P.shrinkS) & (S.closeBoxValS <= P.boxS)
-    else:
-        tightShort = np.zeros(len(c), bool)
-    S.tightLong, S.tightShort = tightLong, tightShort
-    S.tightCore = (tightLong | tightShort) & S.lowsOk
-    S.tightOk = S.tightCore & S.riseOkW & S.slopeOkW
-    S.strong = (tightLong & (S.shrinkVal <= P.strongShrink) & (S.closeBoxVal <= P.strongBox)) | tightShort
-    S.entryTrendOk = (c > S.ema50) if P.useTrend else np.ones(len(c), bool)
-    S.stopLvl = _lowest(l, nC)
-
-    S.bodyTol = P.bodyADR * S.adr / 100 * c
-    S.touchTol = P.touchADR * S.adr / 100 * c
-    S.rankTol = P.rankADR * S.adr / 100 * c
-    S.wickAbs = P.wickADR * S.adr / 100 * c
-    S.bodyTop = np.maximum(o, c)
-    S.srcT = S.bodyTop if P.levelSrc == "Gövde" else h
-
-    S.ph = _pivot_high(h, P.pvL, P.pvR)
-    S.smcPh = _pivot_high(h, P.smcL, P.smcR)
-    return S
+        idx = pd.to_datetime(t, utc=True, errors="coerce").dt.tz_convert("Europe/Istanbul").dt.tz_localize(None).dt.normalize()
+    out = pd.DataFrame({
+        "Open": df[cols["open"]].astype(float), "High": df[cols["high"]].astype(float),
+        "Low": df[cols["low"]].astype(float), "Close": df[cols["close"]].astype(float),
+        "Volume": df[cols["volume"]].astype(float) if "volume" in cols else 0.0,
+    })
+    out.index = pd.DatetimeIndex(idx)
+    return out.dropna(subset=["Open", "High", "Low", "Close"])
 
 
-# ---------------------------------------------------------------- ana motor
-def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
-    """Tüm geçmişi mum mum işler. events: etiket ve Giriş olayları, trades: test işlemleri."""
-    P = P or Params()
-    n = len(df)
-    S = prepare(df, P)
-    o, h, l, c, v = S.o, S.h, S.l, S.c, S.v
-    dates = df.index
-    nC = P.nC
+# ------------------------------------------------------------------ analiz
+def analyze(sym: str, df: pd.DataFrame, days: int, history: bool) -> dict:
+    P = Params()
+    res = run(df, P)
+    n = res.n
+    ev = [e for e in res.events if e["type"] in ("setup", "giris")] if history else \
+         [e for e in res.events if e["type"] in ("setup", "giris") and e["t"] >= n - days]
+    return dict(sym=sym, n=n, last_date=df.index[-1], last_close=float(df["Close"].iloc[-1]),
+                events=ev, trades=res.trades, open_trade=res.open_trade)
 
-    events: list[dict] = []
-    trades: list[dict] = []
 
-    # --- durum değişkenleri (Pine "var") ---
-    pP: list[float] = []
-    pX: list[int] = []
-    sP: list[float] = []
-    sX: list[int] = []
+def analyze_args(a):
+    return analyze(*a)
 
-    hLock = NAN
-    hLockX = NAN
-    lastSetupBar = None
-    lastBreakBar = None
-    lastCancelBar = None
-    lblLive = False
-    dLockPA = NAN
-    dLockSl = NAN
-    dLockXA = None
-    lblBar = None
-    lblStop = NAN
-    lblClose = NAN
-    armed = False
-    lnY = NAN
-    lnSl = NAN
-    lnBar = None
 
-    tInTrade = False
-    tEntry = tSL = tTP = tPlanR = NAN
-    tBar = None
-    tDate = None
+# ------------------------------------------------------------------ mesajlar
+def link(sym: str) -> str:
+    return f"https://tr.tradingview.com/chart/?symbol=BIST%3A{sym}"
 
-    # --------- yatay seviye taraması ---------
-    def f_hor(t: int, L: float):
-        maxI = min(P.lookback, t - 1)
-        if maxI < 1:
-            return 0, 0, 0, -1, -1, NAN, NAN, NAN, 0
-        idx = t - np.arange(1, maxI + 1)
-        bad = (S.bodyTop[idx] > L + S.bodyTol[t]) | (h[idx] > L + S.wickAbs[t])
-        span = int(np.argmax(bad)) if bad.any() else maxI
-        tc = tb = cl = 0
-        firstT = lastT = -1
-        if span > 0:
-            d = np.abs(S.srcT[idx[:span]] - L)
-            isT = d <= S.touchTol[t]
-            tc = int(isT.sum())
-            if tc > 0:
-                prev = np.concatenate(([False], isT[:-1]))
-                cl = int(np.count_nonzero(isT & ~prev))
-                pos = np.flatnonzero(isT)
-                lastT = int(pos[0]) + 1
-                firstT = int(pos[-1]) + 1
-            tb = int((d <= S.rankTol[t]).sum())
-        mxH = L
-        if firstT >= 0:
-            mxH = max(mxH, float(h[t - firstT:t + 1].max()))
-        cl_ = c[t - nC + 1:t + 1]
-        gs = float(((L - cl_) / cl_ * 100).sum())
-        aG = gs / nC / S.adr[t]
-        lG = (L - c[t]) / c[t] * 100 / S.adr[t]
-        ov = (mxH - L) / c[t] * 100 / S.adr[t]
-        return span, tc, tb, firstT, lastT, aG, lG, ov, cl
 
-    def f_ok(sp, tc, ft, lt, aG, lG, ov, cl, tb) -> bool:
-        return (P.allowHoriz and sp >= P.minSpanH and tc >= P.minTouches and lt >= 0
-                and lt <= P.lastTouchMax and (ft - lt) >= P.touchSpan and aG <= P.nearADRH
-                and lG <= P.lastNearH and lG >= 0 and ov <= P.maxOv
-                and cl >= P.minClusters and tb >= P.minTb)
+def fmt_event(sym: str, e: dict) -> str:
+    d = e["date"].strftime("%d.%m.%Y")
+    if e["type"] == "setup":
+        dist = (e["line"] / e["close"] - 1) * 100
+        tag = " | güçlü" if e["strong"] else ""
+        tag += " | kısa" if e["short"] else ""
+        return (f"🟠 FİYAT DARALMASI · {sym} · {d}\n"
+                f"Kapanış {e['close']:.2f} | {e['mode']} direnç {e['line']:.2f} (+%{dist:.1f}){tag}\n"
+                f"Stop bölgesi (sıkışma dibi) {e['stop']:.2f}\n{link(sym)}")
+    return (f"🟢 GİRİŞ · {sym} · {d}\n"
+            f"Giriş {e['close']:.2f} | SL {e['sl']:.2f} (-%{e['riskPct']:.1f}) | "
+            f"TP {e['tp']:.2f} (+%{e['tpPct']:.1f}, {e['tpR']:.1f}R{' SMC' if e['smc'] else ''})\n{link(sym)}")
 
-    def hor_best(t: int):
-        r = dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN)
-        for k in range(1, max(nC, P.lastTouchMax) + 10):
-            if k < t:
-                cand = float(S.srcT[t - k])
-                sp, tc, tb, ft, lt, ag, lg, ov, cl = f_hor(t, cand)
-                if f_ok(sp, tc, ft, lt, ag, lg, ov, cl, tb) and (
-                        tb > r["hTb"] or (tb == r["hTb"] and cand > nz(r["hL"], 0.0))):
-                    r.update(hL=cand, hSpan=sp, hTc=tc, hTb=tb, hFirst=ft, hLt=lt, hCl=cl, hOv=ov)
-        return r
 
-    # --------- düşen çizgi taraması ---------
-    def falling_best(t: int):
-        pPt = list(pP)
-        pXt = list(pX)
-        if h[t] >= h[t - 1]:
-            pPt.append(float(h[t]))
-            pXt.append(t)
-        best = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN)
-        m = len(pPt)
-        adr_t, c_t = S.adr[t], c[t]
-        for ia in range(0, m - 1):
-            for ib in range(ia + 1, m):
-                xA, xB = pXt[ia], pXt[ib]
-                if not (xB - xA >= P.minSpan and t - xA <= P.lookback):
-                    continue
-                pa, pb = pPt[ia], pPt[ib]
-                sl = (pb - pa) / (xB - xA)
-                ii = np.arange(0, t - xA + 1)
-                bars = t - ii
-                lv = pb + sl * (t - ii - xB)
-                hh = h[bars]
-                if (hh > lv + S.wickAbs[t]).any():
-                    continue  # iğne çok taşıyor
-                mxOv = max(0.0, float(((hh - lv) / c_t * 100 / adr_t).max()))
-                bt = S.bodyTop[bars]
-                mxBody = max(0.0, float(((bt - lv) / c_t * 100 / adr_t).max()))
-                viol = int((bt > lv + S.bodyTol[t]).sum())
-                tc = int((hh >= lv - S.touchTol[t]).sum())
-                tcT = int((np.abs(hh - lv) <= S.rankTol[t]).sum())
-                lineLen = t - xA + 1
-                violBad = viol > P.maxViol or (viol / lineLen * 100 > P.violPct) or mxBody > P.bodyPokeMax
-                belowBad = False
-                if P.useBelow:
-                    for i in range(0, 5):
-                        lvB = pb + sl * (t - i - xB)
-                        if lvB < S.bodyTop[t - i] - S.bodyTol[t]:
-                            belowBad = True
-                            break
-                if violBad or belowBad:
-                    continue
-                lnN = pb + sl * (t - xB)
-                cl_ = c[t - nC + 1:t + 1]
-                lvl_ = pb + sl * (t - np.arange(0, nC) - xB)  # i = 0..nC-1 -> c[t-i]
-                gs = float(((lvl_ - c[t - np.arange(0, nC)]) / c[t - np.arange(0, nC)] * 100).sum())
-                aG = gs / nC / adr_t
-                lG = (lnN - c_t) / c_t * 100 / adr_t
-                sN = sl * (xB - xA) / pa * 100 / adr_t
-                cTouch = tc >= P.minTouches
-                cType = (P.allowFlat and -P.flatBand <= sN <= P.flatUp) or (
-                    P.allowDesc and sN < -P.flatBand and sN >= -P.maxDesc)
-                cAvg = aG <= P.nearADR
-                cLast = lG <= P.lastNear and lG >= 0
-                score = int(cTouch) + int(cType) + int(cAvg) + int(cLast)
-                if score == 4 and mxOv <= P.maxOv:
-                    if na(best["pa"]) or tcT > best["tcT"] or (tcT == best["tcT"] and pa > best["pa"]):
-                        best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv)
-        return best
+def load_state() -> dict:
+    try:
+        return json.loads(STATE_FILE.read_text())
+    except Exception:  # noqa: BLE001
+        return {}
 
-    # ================================================================ döngü
-    for t in range(n):
-        # --- pivotlar (Pine'da tüm mumlarda toplanır) ---
-        if not na(S.ph[t]):
-            pP.append(float(S.ph[t]))
-            pX.append(t - P.pvR)
-            if len(pP) > 20:
-                pP.pop(0)
-                pX.pop(0)
 
-        # --- SMC swing tepeleri: alınmış / eski olanları sil, yenisini ekle ---
-        if sP:
-            keep = [i for i in range(len(sP)) if not (h[t] > sP[i] or t - sX[i] > P.smcLook)]
-            sP = [sP[i] for i in keep]
-            sX = [sX[i] for i in keep]
-        if not na(S.smcPh[t]):
-            sP.append(float(S.smcPh[t]))
-            sX.append(t - P.smcR)
-            if len(sP) > 60:
-                sP.pop(0)
-                sX.pop(0)
+def save_state(st: dict) -> None:
+    cutoff = (datetime.now() - timedelta(days=120)).strftime("%Y-%m-%d")
+    st = {k: v for k, v in st.items() if v >= cutoff}
+    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    STATE_FILE.write_text(json.dumps(st, indent=0, sort_keys=True))
 
-        if t < P.warmup:
+
+def telegram_send(text: str) -> None:
+    token = os.environ.get("TELEGRAM_TOKEN")
+    chat = os.environ.get("TELEGRAM_CHAT_ID")
+    if not token or not chat:
+        raise SystemExit("TELEGRAM_TOKEN ve TELEGRAM_CHAT_ID ortam değişkenleri gerekli")
+    chunks, cur = [], ""
+    for block in text.split("\n\n"):
+        if len(cur) + len(block) + 2 > 3800:
+            chunks.append(cur)
+            cur = ""
+        cur += ("\n\n" if cur else "") + block
+    if cur:
+        chunks.append(cur)
+    for ch in chunks:
+        r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
+                          json={"chat_id": chat, "text": ch, "disable_web_page_preview": True}, timeout=30)
+        if not r.ok:
+            raise SystemExit(f"Telegram hatası: {r.status_code} {r.text}")
+        time.sleep(0.5)
+
+
+def print_stats(trades: list[dict], title: str) -> None:
+    s = summarize(trades)
+    print(f"\n=== {title} ===")
+    if s["n"] == 0:
+        print("işlem yok")
+        return
+    pf = "∞" if s["profitFactor"] == float("inf") else f"{s['profitFactor']:.2f}"
+    print(f"İşlem {s['n']} | Kazanma %{s['winRate']:.0f} (başa baş %{s['breakEven']:.0f}) | "
+          f"TP/STOP/SÜRE {s['tp']}/{s['sl']}/{s['time']}")
+    print(f"Ort. getiri %{s['avgRet']:.2f} | Ort. R {s['avgR']:.2f} | Profit factor {pf} | Ort. hedef {s['avgPlanR']:.2f}R")
+
+
+# ------------------------------------------------------------------ ana
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--days", type=int, default=2, help="son kaç mumdaki sinyaller bildirilsin (varsayılan 2)")
+    ap.add_argument("--ticker", help="tek hisse (örn. THYAO)")
+    ap.add_argument("--csv", help="TradingView CSV dosyası")
+    ap.add_argument("--history", action="store_true", help="tüm geçmiş sinyalleri yaz (Telegram'a göndermez)")
+    ap.add_argument("--dry-run", action="store_true", help="Telegram'a gönderme, ekrana yaz")
+    ap.add_argument("--backtest", action="store_true", help="tüm hisselerin geçmiş işlem istatistiğini yaz")
+    ap.add_argument("--limit", type=int, default=0, help="test için ilk N hisse")
+    ap.add_argument("--workers", type=int, default=5, help="paralel veri indirme sayısı")
+    ap.add_argument("--min-turnover", type=float, default=0.0, help="son 20 mum ort. günlük işlem hacmi (TL) alt sınırı")
+    ap.add_argument("--max-stale-days", type=int, default=6, help="son mum bundan eskiyse hisseyi atla")
+    ap.add_argument("--heartbeat", action="store_true", help="sinyal olmasa da özet mesajı gönder")
+    ap.add_argument("--range", default="2y", help="Yahoo veri aralığı (varsayılan 2y)")
+    args = ap.parse_args()
+
+    # ---- tek hisse / csv ----
+    if args.csv:
+        df = read_csv(args.csv)
+        r = analyze(args.ticker or Path(args.csv).stem.upper(), df, args.days, True)
+        for e in r["events"]:
+            print(fmt_event(r["sym"], e), "\n")
+        print_stats(r["trades"], f"{r['sym']} geçmiş test")
+        return
+    if args.ticker:
+        df = fetch_yahoo(args.ticker.upper(), args.range)
+        if df is None:
+            raise SystemExit("veri alınamadı")
+        r = analyze(args.ticker.upper(), df, args.days, args.history)
+        for e in r["events"]:
+            print(fmt_event(r["sym"], e), "\n")
+        print_stats(r["trades"], f"{r['sym']} geçmiş test")
+        return
+
+    # ---- tüm BIST ----
+    t0 = time.time()
+    tickers = get_tickers()
+    if args.limit:
+        tickers = tickers[: args.limit]
+    print(f"{len(tickers)} hisse taranacak")
+
+    frames: dict[str, pd.DataFrame] = {}
+    with ThreadPoolExecutor(max_workers=args.workers) as ex:
+        futs = {ex.submit(fetch_yahoo, s, args.range): s for s in tickers}
+        for f in as_completed(futs):
+            df = f.result()
+            if df is not None and len(df) >= 120:
+                frames[futs[f]] = df
+    print(f"{len(frames)} hisse için veri alındı ({time.time() - t0:.0f} sn)")
+    print(f"Yahoo HTTP durumları: {_codes}")
+    if len(frames) < max(5, len(tickers) // 4):
+        raise SystemExit("Çok az hisse için veri alınabildi; Yahoo erişimi bozuk olabilir. Sinyal gönderilmedi.")
+
+    today = pd.Timestamp(datetime.now(TR_TZ).date())
+    jobs = []
+    for s, df in frames.items():
+        if (today - df.index[-1]).days > args.max_stale_days:
             continue
+        if args.min_turnover > 0 and (df["Close"] * df["Volume"]).tail(20).mean() < args.min_turnover:
+            continue
+        jobs.append((s, df, args.days, False))
 
-        adr_t = S.adr[t]
-        close_t = c[t]
-        bodyTol_t = S.bodyTol[t]
+    results = []
+    with ProcessPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
+        for r in ex.map(analyze_args, jobs, chunksize=4):
+            results.append(r)
+    print(f"analiz bitti ({time.time() - t0:.0f} sn)")
 
-        # --- aday çizgiler ---
-        hz = hor_best(t) if S.tightCore[t] else dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN)
-        fb = falling_best(t) if S.tightOk[t] else dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN,
-                                                       ag=NAN, lg=NAN, sn=NAN, ov=NAN)
-        hL, hSpan, hTb, hFirst = hz["hL"], hz["hSpan"], hz["hTb"], hz["hFirst"]
-        bestTc, bestTcT, bestXA = fb["tc"], fb["tcT"], fb["xA"]
-        bestPA, bestSl, bestLn, bestSN = fb["pa"], fb["sl"], fb["ln"], fb["sn"]
+    if args.backtest:
+        allt = [t for r in results for t in r["trades"]]
+        print_stats(allt, f"Tüm BIST geçmiş test ({len(results)} hisse)")
+        by = sorted(((r["sym"], summarize(r["trades"])) for r in results if r["trades"]), key=lambda x: -x[1]["n"])
+        print("\nEn çok işlem olan hisseler:")
+        for s, st in by[:15]:
+            print(f"  {s:7s} işlem {st['n']:3d}  kazanma %{st['winRate']:.0f}  ortR {st['avgR']:+.2f}")
+        return
 
-        foundD = bestTc > 0
-        foundH = hSpan > 0
-        found = foundD or foundH
-        flatD = foundD and abs(nz(bestSN)) <= P.flatBand
+    # ---- sinyaller ----
+    state = load_state()
+    new_msgs_giris, new_msgs_setup = [], []
+    n_setup = n_giris = 0
+    for r in results:
+        for e in r["events"]:
+            key = f"{r['sym']}|{e['type']}|{e['date']:%Y-%m-%d}"
+            if key in state:
+                continue
+            state[key] = e["date"].strftime("%Y-%m-%d")
+            if e["type"] == "giris":
+                n_giris += 1
+                new_msgs_giris.append(fmt_event(r["sym"], e))
+            else:
+                n_setup += 1
+                new_msgs_setup.append(fmt_event(r["sym"], e))
 
-        # --- kilitler ve kırılımlar ---
-        brokeOut = (not na(hLock)) and close_t > hLock + bodyTol_t
-        if brokeOut:
-            lastBreakBar = t
-        stale = (not na(hLock)) and lastSetupBar is not None and t - lastSetupBar > P.holdBars
-        if brokeOut or stale:
-            hLock = NAN
-            hLockX = NAN
+    last_dates = pd.Series([r["last_date"] for r in results])
+    ref = last_dates.mode().iloc[0] if len(last_dates) else today
+    head = f"📊 BIST taraması · veri tarihi {ref:%d.%m.%Y} · {len(results)} hisse · {n_setup} daralma · {n_giris} giriş"
+    body = new_msgs_giris + new_msgs_setup
+    print(head)
+    for m in body:
+        print("\n" + m)
 
-        dLn = NAN
-        if not na(dLockPA):
-            dLn = dLockPA + dLockSl * (t - dLockXA)
-        dBroke = (not na(dLn)) and close_t > dLn + bodyTol_t
-        if dBroke:
-            lastBreakBar = t
-        dStale = (not na(dLn)) and lastSetupBar is not None and t - lastSetupBar > P.holdBars
-        if dBroke or dStale:
-            dLockPA = NAN
-            dLockSl = NAN
-            dLockXA = None
-            dLn = NAN
-
-        # --- mod seçimi ---
-        if not na(hLock):
-            useH = True
-        elif not na(dLockPA):
-            useH = False
-        elif P.modePref == "Düşen":
-            useH = foundH and not foundD
-        elif P.modePref == "Yatay":
-            useH = foundH
-        else:
-            useH = foundH and ((not foundD) or flatD or hTb > bestTcT)
-
-        riseOkSel = S.riseOkN[t] if useH else S.riseOkW[t]
-        slopeOkSel = S.slopeOkN[t] if useH else S.slopeOkW[t]
-        modeOk = bool(riseOkSel) and bool(slopeOkSel)
-
-        lnForY = nz(hLock, hL) if useH else nz(dLn, bestLn)
-        yVal = (lnForY - close_t) / close_t * 100 / adr_t
-        yOk = (not P.useClose) or na(yVal) or yVal <= P.closeNearY
-        dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
-
-        setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t]))
-        blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
-                   or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
-                   or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
-        strong = bool(S.strong[t])
-        setup = setupRaw and (not brokeOut) and (not blocked) and ((not P.onlyStrong) or strong)
-
-        if setup and useH and na(hLock):
-            hLock = hL
-            hLockX = t - min(hFirst, P.maxLineBack)
-        if setup and (not useH) and na(dLockPA):
-            dLockPA = bestPA
-            dLockSl = bestSl
-            dLockXA = bestXA
-            dLn = bestLn
-
-        selLn = nz(hLock, hL) if useH else nz(dLn, bestLn)
-        selSl = 0.0 if useH else nz(dLockSl, bestSl)
-
-        # --- iptal ve tetik ---
-        stopInv = NAN if na(lblStop) else lblStop - P.stopBuf * adr_t / 100 * close_t
-        redBody = (o[t] - close_t) / close_t * 100 / adr_t
-        stopHit = P.useStop and (not na(stopInv)) and close_t < stopInv
-        redHit = P.useRedKill and lblBar is not None and t > lblBar and redBody >= P.redKillADR
-        dropHit = (P.useDrop and (not na(lblClose)) and lblBar is not None and t > lblBar
-                   and (lblClose - close_t) / close_t * 100 / adr_t >= P.dropADR)
-        invalid = armed and (stopHit or redHit or dropHit)
-
-        if invalid:
-            armed = False
-            hLock = NAN
-            hLockX = NAN
-            dLockPA = NAN
-            dLockSl = NAN
-            dLockXA = None
-            lastCancelBar = t
-            lblLive = False
-            events.append(dict(type="iptal", t=t, date=dates[t], close=float(close_t)))
-
-        projNow = lnY + lnSl * (t - lnBar) if lnBar is not None else NAN
-        inWin = armed and lblBar is not None and t > lblBar and t - lblBar <= P.trigWin
-        trigger = (inWin and (not invalid) and close_t > projNow and bool(S.entryTrendOk[t])
-                   and (P.trigVol == 0 or v[t] > S.volAvg[t] * P.trigVol))
-        if trigger:
-            armed = False
-            lastBreakBar = t
-        if armed and lblBar is not None and t - lblBar >= P.trigWin:
-            armed = False
-
-        # --- setup kaydı ---
-        newSetup = setup and (not invalid) and (lastSetupBar is None or t - lastSetupBar > P.cooldown)
-        if setup and not invalid:
-            lastSetupBar = t
-            lnY = selLn
-            lnSl = selSl
-            lnBar = t
-            if newSetup:
-                lblBar = t
-                lblStop = float(S.stopLvl[t])
-                lblClose = float(close_t)
-                lblLive = True
-                armed = True
-        if newSetup:
-            events.append(dict(
-                type="setup", t=t, date=dates[t], close=float(close_t),
-                mode="Yatay" if useH else "Düşen", line=float(selLn), strong=strong,
-                short=bool(S.tightShort[t] and not S.tightLong[t]),
-                r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]),
-                touches=int(hz["hTc"] if useH else bestTc), adr=float(adr_t),
-                stop=float(S.stopLvl[t]),
-            ))
-
-        # --- Giriş: SL / TP ---
-        entryRisk = close_t - l[t]
-        entryTP = close_t + P.tpMult * entryRisk
-        tpIsSmc = False
-        if trigger and entryRisk > 0 and P.tpMode == "SMC direnç" and sP:
-            smcBuf = P.smcBufADR * adr_t / 100 * close_t
-            bestTP = NAN
-            for lvl in sP:
-                lvlTP = lvl - smcBuf
-                if lvlTP - close_t >= P.minRR * entryRisk and (na(bestTP) or lvlTP < bestTP):
-                    bestTP = lvlTP
-            if not na(bestTP):
-                entryTP = min(bestTP, close_t + P.tpMaxR * entryRisk) if P.tpMaxR > 0 else bestTP
-                tpIsSmc = True
-        entryRiskPct = entryRisk / close_t * 100
-        entryTpPct = (entryTP / close_t - 1) * 100
-        entryTpR = (entryTP - close_t) / entryRisk if entryRisk > 0 else NAN
-
-        if trigger and entryRisk > 0:
-            events.append(dict(
-                type="giris", t=t, date=dates[t], close=float(close_t), sl=float(l[t]),
-                tp=float(entryTP), riskPct=float(entryRiskPct), tpPct=float(entryTpPct),
-                tpR=float(entryTpR), smc=tpIsSmc, line=float(nz(lnY, NAN)),
-                mode="Yatay" if lnSl == 0 else "Düşen",
-            ))
-
-        # --- geriye dönük test ---
-        if tInTrade and t > tBar:
-            exitPx = NAN
-            why = 0
-            if o[t] <= tSL:
-                exitPx, why = o[t], 2
-            elif o[t] >= tTP:
-                exitPx, why = o[t], 1
-            elif l[t] <= tSL:
-                exitPx, why = tSL, 2
-            elif h[t] >= tTP:
-                exitPx, why = tTP, 1
-            elif t - tBar >= P.maxHold:
-                exitPx, why = close_t, 3
-            if not na(exitPx):
-                rr = (exitPx - tEntry) / (tEntry - tSL)
-                trades.append(dict(entry_date=tDate, exit_date=dates[t], entry=tEntry, exit=float(exitPx),
-                                   sl=tSL, tp=tTP, planR=tPlanR, R=float(rr), why=why,
-                                   ret=float((exitPx / tEntry - 1) * 100), bars=t - tBar))
-                tInTrade = False
-
-        if trigger and entryRisk > 0 and not tInTrade:
-            tInTrade = True
-            tEntry = float(close_t)
-            tSL = float(l[t])
-            tTP = float(entryTP)
-            tPlanR = float(entryTpR)
-            tBar = t
-            tDate = dates[t]
-
-    return SimpleNamespace(events=events, trades=trades, n=n, open_trade=tInTrade,
-                           S=S, dates=dates)
+    if args.dry_run:
+        print("\n(dry-run: Telegram'a gönderilmedi, durum dosyası güncellenmedi)")
+        return
+    if body or args.heartbeat:
+        telegram_send(head + ("\n\n" + "\n\n".join(body) if body else "\n\nYeni sinyal yok."))
+    save_state(state)
 
 
-def summarize(trades: list[dict]) -> dict:
-    """Tablodaki satırların aynısı."""
-    k = len(trades)
-    if k == 0:
-        return dict(n=0)
-    R = np.array([t["R"] for t in trades])
-    win = R > 0
-    gWin = R[win].sum()
-    gLoss = -R[~win].sum()
-    plan = np.nanmean([t["planR"] for t in trades])
-    return dict(
-        n=k,
-        winRate=float(win.mean() * 100),
-        tp=sum(t["why"] == 1 for t in trades),
-        sl=sum(t["why"] == 2 for t in trades),
-        time=sum(t["why"] == 3 for t in trades),
-        avgRet=float(np.mean([t["ret"] for t in trades])),
-        avgR=float(R.mean()),
-        profitFactor=float(gWin / gLoss) if gLoss > 0 else float("inf"),
-        avgPlanR=float(plan),
-        breakEven=float(100 / (1 + plan)),
-    )
+if __name__ == "__main__":
+    main()
+
