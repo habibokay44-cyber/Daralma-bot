@@ -1,4 +1,4 @@
-"""Fiyat Daralması v47 - TradingView Pine göstergesinin Python portu.
+"""Fiyat Daralması v48 - TradingView Pine göstergesinin Python portu.
 
 Pine mantığı mum mum (durum makinesi olarak) birebir taşındı. Girdi: günlük OHLCV.
 Çıktı: "Fiyat Daralması" (etiket) ve "Giriş" olayları + geriye dönük test işlemleri.
@@ -77,7 +77,10 @@ class Params:
     useVolSig: bool = True
     volMaxX: float = 1.3            # sinyal mumu hacmi / 20 mum ort. hacim (max)
     useRedSig: bool = True
-    sigRedMax: float = 0.3         # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
+    sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
+    useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
+    emaSlopeMin: float = -0.2       # EMA21'in 10 mumluk eğimi (ADR katı) min.
+    emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -168,6 +171,9 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
 
     S.adr = (_sma(h / l, 20) - 1) * 100
     S.ema50 = _ema(c, 50)
+    S.ema21 = _ema(c, 21)
+    S.emaSlope = (S.ema21 / _shift(S.ema21, 10) - 1) * 100 / S.adr
+    S.emaDist = (c - S.ema21) / c * 100 / S.adr
     S.volAvg = _sma(v, 50)
 
     rngPct = (h - l) / c * 100
@@ -212,6 +218,11 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
         S.volRatio = np.where(vsma > 0, v / vsma, np.nan)
     S.redSig = (o - c) / c * 100 / S.adr
     S.redOk = (S.redSig <= P.sigRedMax) if P.useRedSig else np.ones(len(c), bool)
+    if P.useEmaTr:
+        S.emaOk = (S.emaSlope >= P.emaSlopeMin) & (S.emaDist >= -P.emaBelowMax)
+        S.emaOk = S.emaOk | np.isnan(S.emaSlope)
+    else:
+        S.emaOk = np.ones(len(c), bool)
     S.jumpOk = ((S.jump <= P.jumpMax) | np.isnan(S.jump)) if P.useJump else np.ones(len(c), bool)
     S.volOk = ((S.volRatio <= P.volMaxX) | np.isnan(S.volRatio)) if P.useVolSig else np.ones(len(c), bool)
 
@@ -258,6 +269,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
 
     events: list[dict] = []
     trades: list[dict] = []
+    diag: dict[int, str] = {}       # mum -> "neden sinyal yok" harfleri (Pine hata ayıklama ile aynı)
 
     # --- durum değişkenleri (Pine "var") ---
     pP: list[float] = []
@@ -480,12 +492,46 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
         setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
-                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]))
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
+        why = []
+        if not (S.tightLong[t] or S.tightShort[t]):
+            if S.tightVal[t] > P.tightADR:
+                why.append("m")
+            if S.shrinkVal[t] > P.shrink:
+                why.append("r")
+            if S.closeBoxVal[t] > P.closeBoxADR:
+                why.append("k")
+        if not S.lowsOk[t]:
+            why.append(f"d{S.lowDiff[t]:.2f}")
+        if not riseOkSel:
+            why.append(f"u{S.riseVal[t]:.2f}")
+        if not slopeOkSel:
+            why.append(f"s{S.slopeVal[t]:.2f}")
+        if not yOk:
+            why.append(f"y{yVal:.2f}")
+        if not dOkH:
+            why.append("D")
+        if not S.candOk[t]:
+            why.append(f"c{S.candRng[t]:.2f}/p{S.closePos[t]:.2f}")
+        if not S.jumpOk[t]:
+            why.append(f"j{S.jump[t]:.2f}")
+        if not S.volOk[t]:
+            why.append(f"v{S.volRatio[t]:.2f}")
+        if not S.redOk[t]:
+            why.append(f"g{S.redSig[t]:.2f}")
+        if not S.emaOk[t]:
+            why.append(f"e{S.emaSlope[t]:.2f}/{S.emaDist[t]:.2f}")
+        if S.tightOk[t] and not found:
+            why.append("L")
         strong = bool(S.strong[t])
         setup = setupRaw and (not brokeOut) and (not blocked) and ((not P.onlyStrong) or strong)
+
+        if setupRaw and (blocked or brokeOut):
+            why.append("B")
+        diag[t] = " ".join(why)
 
         if setup and useH and na(hLock):
             hLock = hL
@@ -619,7 +665,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             tDate = dates[t]
 
     return SimpleNamespace(events=events, trades=trades, n=n, open_trade=tInTrade,
-                           S=S, dates=dates)
+                           S=S, dates=dates, diag=diag)
 
 
 def summarize(trades: list[dict]) -> dict:
