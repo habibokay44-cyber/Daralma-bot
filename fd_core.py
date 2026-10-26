@@ -1,4 +1,4 @@
-"""Fiyat Daralması v46 - TradingView Pine göstergesinin Python portu.
+"""Fiyat Daralması v47 - TradingView Pine göstergesinin Python portu.
 
 Pine mantığı mum mum (durum makinesi olarak) birebir taşındı. Girdi: günlük OHLCV.
 Çıktı: "Fiyat Daralması" (etiket) ve "Giriş" olayları + geriye dönük test işlemleri.
@@ -37,6 +37,7 @@ class Params:
     shrinkS: float = 0.85
     boxS: float = 1.0
     bodyADR: float = 0.1
+    bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
     maxViol: int = 0
     violPct: float = 5.0
     bodyPokeMax: float = 0.4
@@ -48,12 +49,13 @@ class Params:
     minTouches: int = 4
     minClusters: int = 3
     minTb: int = 3
+    minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     tightADR: float = 1.0
     shrink: float = 0.9
     closeBoxADR: float = 1.2
     useLows: bool = True
     lowTolADR: float = 0.5
-    lowUpADR: float = 3.0
+    lowUpADR: float = 2.0
     useLowsH: bool = False
     lowUpH: float = 1.2
     useRise: bool = True
@@ -70,6 +72,10 @@ class Params:
     useCandle: bool = True
     maxCandle: float = 1.0
     minClosePos: float = 0.2
+    useJump: bool = True
+    jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
+    useVolSig: bool = True
+    volMaxX: float = 1.3            # sinyal mumu hacmi / 20 mum ort. hacim (max)
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -97,6 +103,7 @@ class Params:
     redKillADR: float = 0.7
     useDrop: bool = True
     dropADR: float = 0.5
+    useAboveLbl: bool = True        # Giriş: kapanış etiket kapanışının üstünde olsun
     strongShrink: float = 0.75
     strongBox: float = 0.9
     onlyStrong: bool = False
@@ -196,6 +203,13 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
         S.candOk = (S.candRng <= P.maxCandle) & (S.closePos >= P.minClosePos)
     else:
         S.candOk = np.ones(len(c), bool)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        prevC = _shift(c, 1)
+        S.jump = np.abs(c - prevC) / prevC * 100 / S.adr
+        vsma = _sma(v, 20)
+        S.volRatio = np.where(vsma > 0, v / vsma, np.nan)
+    S.jumpOk = ((S.jump <= P.jumpMax) | np.isnan(S.jump)) if P.useJump else np.ones(len(c), bool)
+    S.volOk = ((S.volRatio <= P.volMaxX) | np.isnan(S.volRatio)) if P.useVolSig else np.ones(len(c), bool)
 
     recentRngS = _sma(rngPct, nS)
     priorRngS = _shift(_sma(rngPct, 15), nS)
@@ -216,6 +230,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.stopLvl = _lowest(l, nC)
 
     S.bodyTol = P.bodyADR * S.adr / 100 * c
+    S.bodyTolD = P.bodyADRD * S.adr / 100 * c
     S.touchTol = P.touchADR * S.adr / 100 * c
     S.rankTol = P.rankADR * S.adr / 100 * c
     S.wickAbs = P.wickADR * S.adr / 100 * c
@@ -259,6 +274,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
     lblStop = NAN
     lblClose = NAN
     armed = False
+    curSetupEv = None
     lnY = NAN
     lnSl = NAN
     lnBar = None
@@ -342,7 +358,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 mxOv = max(0.0, float(((hh - lv) / c_t * 100 / adr_t).max()))
                 bt = S.bodyTop[bars]
                 mxBody = max(0.0, float(((bt - lv) / c_t * 100 / adr_t).max()))
-                viol = int((bt > lv + S.bodyTol[t]).sum())
+                viol = int((bt > lv + S.bodyTolD[t]).sum())
                 tc = int((hh >= lv - S.touchTol[t]).sum())
                 tcT = int((np.abs(hh - lv) <= S.rankTol[t]).sum())
                 lineLen = t - xA + 1
@@ -351,7 +367,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 if P.useBelow:
                     for i in range(0, 5):
                         lvB = pb + sl * (t - i - xB)
-                        if lvB < S.bodyTop[t - i] - S.bodyTol[t]:
+                        if lvB < S.bodyTop[t - i] - S.bodyTolD[t]:
                             belowBad = True
                             break
                 if violBad or belowBad:
@@ -369,7 +385,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 cAvg = aG <= P.nearADR
                 cLast = lG <= P.lastNear and lG >= 0
                 score = int(cTouch) + int(cType) + int(cAvg) + int(cLast)
-                if score == 4 and mxOv <= P.maxOv:
+                if score == 4 and mxOv <= P.maxOv and tcT >= P.minTcD:
                     if na(best["pa"]) or tcT > best["tcT"] or (tcT == best["tcT"] and pa > best["pa"]):
                         best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv)
         return best
@@ -459,7 +475,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         yOk = (not P.useClose) or na(yVal) or yVal <= P.closeNearY
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
-        setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t]))
+        setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -496,15 +513,22 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             dLockXA = None
             lastCancelBar = t
             lblLive = False
-            events.append(dict(type="iptal", t=t, date=dates[t], close=float(close_t)))
+            sd = curSetupEv["date"] if curSetupEv is not None else None
+            if curSetupEv is not None:
+                curSetupEv["cancelled"] = True
+                curSetupEv["cancel_t"] = t
+            events.append(dict(type="iptal", t=t, date=dates[t], close=float(close_t), setup_date=sd))
 
         projNow = lnY + lnSl * (t - lnBar) if lnBar is not None else NAN
         inWin = armed and lblBar is not None and t > lblBar and t - lblBar <= P.trigWin
         trigger = (inWin and (not invalid) and close_t > projNow and bool(S.entryTrendOk[t])
+                   and ((not P.useAboveLbl) or close_t > nz(lblClose, 0.0))
                    and (P.trigVol == 0 or v[t] > S.volAvg[t] * P.trigVol))
         if trigger:
             armed = False
             lastBreakBar = t
+            if curSetupEv is not None:
+                curSetupEv["triggered"] = True
         if armed and lblBar is not None and t - lblBar >= P.trigWin:
             armed = False
 
@@ -522,14 +546,16 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 lblLive = True
                 armed = True
         if newSetup:
-            events.append(dict(
+            curSetupEv = dict(
                 type="setup", t=t, date=dates[t], close=float(close_t),
                 mode="Yatay" if useH else "Düşen", line=float(selLn), strong=strong,
                 short=bool(S.tightShort[t] and not S.tightLong[t]),
-                r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]),
-                touches=int(hz["hTc"] if useH else bestTc), adr=float(adr_t),
-                stop=float(S.stopLvl[t]),
-            ))
+                r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]), m=float(S.tightVal[t]),
+                touches=int(hz["hTc"] if useH else bestTc), dt=int(hTb if useH else bestTcT),
+                v=float(nz(S.volRatio[t], 0.0)), j=float(nz(S.jump[t], 0.0)), adr=float(adr_t),
+                stop=float(S.stopLvl[t]), cancelled=False, triggered=False,
+            )
+            events.append(curSetupEv)
 
         # --- Giriş: SL / TP ---
         entryRisk = close_t - l[t]
@@ -555,6 +581,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 tp=float(entryTP), riskPct=float(entryRiskPct), tpPct=float(entryTpPct),
                 tpR=float(entryTpR), smc=tpIsSmc, line=float(nz(lnY, NAN)),
                 mode="Yatay" if lnSl == 0 else "Düşen",
+                setup_date=curSetupEv["date"] if curSetupEv is not None else None,
             ))
 
         # --- geriye dönük test ---
