@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
+from dataclasses import replace
 
 import pandas as pd
 
@@ -69,12 +71,57 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             rows.append((len(why.split()), i, why))
         rows.sort()
         best = " | ".join(f"{df.index[i]:%d.%m} {w[:38]}" for _, i, w in rows[:4]) or "-"
-        extra = " (etiket çıkıp iptal oldu)" if setups else ""
+        extra = (" (etiket çıkıp iptal oldu: " + ", ".join(f"{e['date']:%d.%m} {e.get('cancel_reason', '?')}" for e in setups[:3]) + ")") if setups else ""
         return False, f"❌ {head}\n  sinyal yok{extra} [{px}]\n  en yakın mumlar: {best}"
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']}" for e in live[:3])
         return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}]"
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}]"
+
+
+VARIANTS = [
+    ("mevcut", {}),
+    ("EMA kapalı", dict(useEmaTr=False)),
+    ("EMA eğim -0.6", dict(emaSlopeMin=-0.6)),
+    ("EMA eğim -1.0", dict(emaSlopeMin=-1.0)),
+    ("EMA eğim -1.5", dict(emaSlopeMin=-1.5)),
+    ("EMA -1.0 alt -1.0", dict(emaSlopeMin=-1.0, emaBelowMax=1.0)),
+    ("EMA -1.5 alt -1.5", dict(emaSlopeMin=-1.5, emaBelowMax=1.5)),
+    ("sıçrama 0.9", dict(jumpMax=0.9)),
+    ("EMA -1.0 + sıçrama 0.9", dict(emaSlopeMin=-1.0, jumpMax=0.9)),
+    ("EMA -1.5/-1.5 + sıçrama 0.9", dict(emaSlopeMin=-1.5, emaBelowMax=1.5, jumpMax=0.9)),
+]
+
+
+def sweep(frames: dict) -> str:
+    """Aynı veriyle birkaç eşik kombinasyonunu dener: kaç doğru örnek yakalandı, kaç yanlış örnekte sinyal çıktı."""
+    rows = []
+    for name, kw in VARIANTS:
+        P = replace(Params(), **kw)
+        hit = miss = bad = 0
+        missed, badl = [], []
+        cache: dict = {}
+        for sym, a, b, expect, note in EXAMPLES:
+            df = frames.get(sym)
+            if df is None:
+                continue
+            if sym not in cache:
+                cache[sym] = run(df, P)
+            res = cache[sym]
+            ta, tb = pd.Timestamp(a), pd.Timestamp(b)
+            sset = {i for i, d in enumerate(df.index) if ta <= d <= tb}
+            live = [e for e in res.events if e["type"] == "setup" and e["t"] in sset and not e.get("cancelled")]
+            if expect:
+                if live:
+                    hit += 1
+                else:
+                    miss += 1
+                    missed.append(f"{sym}{a[5:7]}{a[8:]}")
+            elif live:
+                bad += 1
+                badl.append(f"{sym}{a[5:7]}{a[8:]}")
+        rows.append(f"• {name}: doğru {hit}, kaçan {miss}, YANLIŞ sinyal {bad}" + (f" ({', '.join(badl)})" if badl else ""))
+    return "🔬 Eşik denemesi:\n" + "\n".join(rows)
 
 
 def main() -> None:
@@ -84,6 +131,13 @@ def main() -> None:
 
     syms = sorted({e[0] for e in EXAMPLES})
     frames = fetch_tv_all(syms, n_bars=1800, budget=15 * 60)
+    for _ in range(3):  # eksik kalanları tekrar dene
+        miss = [s for s in syms if s not in frames]
+        if not miss:
+            break
+        time.sleep(3)
+        frames.update(fetch_tv_all(miss, n_bars=1800, budget=5 * 60))
+    sweep_txt = sweep(frames)
     P = Params()
     lines, ok = [], 0
     for sym, a, b, expect, note in EXAMPLES:
@@ -95,7 +149,7 @@ def main() -> None:
         ok += int(good)
         lines.append(txt)
     summary = f"🧪 Kalibrasyon: {ok}/{len(EXAMPLES)} örnek beklendiği gibi"
-    out = summary + "\n\n" + "\n\n".join(lines)
+    out = summary + "\n\n" + sweep_txt + "\n\n" + "\n\n".join(lines)
     print(out)
     if args.telegram:
         telegram_send(out)
