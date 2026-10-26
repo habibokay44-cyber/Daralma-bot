@@ -55,7 +55,7 @@ class Params:
     closeBoxADR: float = 1.2
     useLows: bool = True
     lowTolADR: float = 0.5
-    lowUpADR: float = 2.0
+    lowUpADR: float = 2.8
     useLowsH: bool = False
     lowUpH: float = 1.2
     useRise: bool = True
@@ -77,7 +77,7 @@ class Params:
     useVolSig: bool = True
     volMaxX: float = 1.3            # sinyal mumu hacmi / 20 mum ort. hacim (max)
     useRedSig: bool = True
-    sigRedMax: float = 0.1          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
+    sigRedMax: float = 0.3         # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
