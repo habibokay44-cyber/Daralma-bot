@@ -22,7 +22,7 @@ from scan import fetch_tv_all, telegram_send
 # (hisse, pencere başı, pencere sonu, doğru örnek mi?, not)
 # Tarihler grafik görüntülerinden tahmindir; pencere yanlışsa "pencerede mum yok / fiyatlar şöyle" yazar.
 EXAMPLES = [
-    ("ANEL", "2026-09-08", "2026-09-18", True, "taban, küçük beyaz mum"),
+    ("ANELE", "2026-09-08", "2026-09-18", True, "taban, küçük beyaz mum"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
     ("RYSAS", "2025-04-24", "2025-05-09", True, "düşen çizgi altı daralma"),
     ("DCTTR", "2024-11-18", "2024-12-04", True, "yatay taban sonu"),
@@ -41,7 +41,7 @@ EXAMPLES = [
     ("JANTS", "2024-01-25", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
     ("TRCAS", "2025-05-26", "2025-06-02", True, "kırmızı ok bölgesi"),
-    ("METGUN", "2026-10-14", "2026-10-26", False, "düşüş trendinde V dönüşü"),
+    ("METEN", "2026-10-14", "2026-10-26", False, "düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
 ]
 
@@ -79,17 +79,22 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}]"
 
 
+E1 = dict(emaSlopeMin=-1.5, emaBelowMax=1.5, jumpMax=0.9)
+LOOSE = dict(E1, riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2, riseMax=0.8, slopeMin=-0.5,
+             slopeMax=0.9, maxCandle=1.3, minClosePos=0.0, shrink=1.0, closeBoxADR=1.5, minTcD=2, volMaxX=1.8)
 VARIANTS = [
     ("mevcut", {}),
-    ("EMA kapalı", dict(useEmaTr=False)),
-    ("EMA eğim -0.6", dict(emaSlopeMin=-0.6)),
-    ("EMA eğim -1.0", dict(emaSlopeMin=-1.0)),
-    ("EMA eğim -1.5", dict(emaSlopeMin=-1.5)),
-    ("EMA -1.0 alt -1.0", dict(emaSlopeMin=-1.0, emaBelowMax=1.0)),
-    ("EMA -1.5 alt -1.5", dict(emaSlopeMin=-1.5, emaBelowMax=1.5)),
-    ("sıçrama 0.9", dict(jumpMax=0.9)),
-    ("EMA -1.0 + sıçrama 0.9", dict(emaSlopeMin=-1.0, jumpMax=0.9)),
-    ("EMA -1.5/-1.5 + sıçrama 0.9", dict(emaSlopeMin=-1.5, emaBelowMax=1.5, jumpMax=0.9)),
+    ("EMA -1.5/-1.5 + sıçrama 0.9", E1),
+    ("+ u üst 1.5, u alt -1.0", dict(E1, riseMaxD=1.5, riseMin=-1.0)),
+    ("+ eğim s -0.8..1.2 (düşen)", dict(E1, slopeMinD=-0.8, slopeMaxD=1.2)),
+    ("+ u ve s gevşek", dict(E1, riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2)),
+    ("+ yatay u/s gevşek", dict(E1, riseMax=0.8, riseMin=-1.0, slopeMin=-0.5, slopeMax=0.9)),
+    ("+ mum c 1.3, p 0", dict(E1, maxCandle=1.3, minClosePos=0.0)),
+    ("+ r 1.0, k 1.5", dict(E1, shrink=1.0, closeBoxADR=1.5)),
+    ("+ dt 2", dict(E1, minTcD=2)),
+    ("+ hacim 1.8", dict(E1, volMaxX=1.8)),
+    ("hepsi gevşek", LOOSE),
+    ("hepsi gevşek, EMA kapalı", dict(LOOSE, useEmaTr=False)),
 ]
 
 
