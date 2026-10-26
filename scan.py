@@ -203,8 +203,18 @@ def analyze(sym: str, df: pd.DataFrame, days: int, history: bool) -> dict:
     P = Params()
     res = run(df, P)
     n = res.n
-    ev = [e for e in res.events if e["type"] in ("setup", "giris")] if history else \
-         [e for e in res.events if e["type"] in ("setup", "giris") and e["t"] >= n - days]
+    ev = []
+    for e in res.events:
+        if history:
+            if e["type"] != "iptal":          # geçmiş listesinde iptal olanlar etikette işaretlenir
+                ev.append(e)
+            continue
+        if e["t"] < n - days:
+            continue
+        # iptal olan daralma sinyali bildirilmez (grafikte etiketi silinir); iptal haberi ayrı gider
+        if e["type"] == "setup" and e.get("cancelled"):
+            continue
+        ev.append(e)
     return dict(sym=sym, n=n, last_date=df.index[-1], last_close=float(df["Close"].iloc[-1]),
                 events=ev, trades=res.trades, open_trade=res.open_trade)
 
@@ -224,12 +234,20 @@ def fmt_event(sym: str, e: dict) -> str:
         dist = (e["line"] / e["close"] - 1) * 100
         tag = " | güçlü" if e["strong"] else ""
         tag += " | kısa" if e["short"] else ""
+        tag += " | İPTAL EDİLDİ" if e.get("cancelled") else ""
         return (f"🟠 FİYAT DARALMASI · {sym} · {d}\n"
                 f"Kapanış {e['close']:.2f} | {e['mode']} direnç {e['line']:.2f} (+%{dist:.1f}){tag}\n"
-                f"Stop bölgesi (sıkışma dibi) {e['stop']:.2f}\n{link(sym)}")
+                f"Stop bölgesi (sıkışma dibi) {e['stop']:.2f}\n"
+                f"r{e['r']:.2f} k{e['k']:.2f} m{e['m']:.2f} dt{e['dt']} v{e['v']:.1f} j{e['j']:.2f}\n{link(sym)}")
+    if e["type"] == "iptal":
+        sd = e["setup_date"].strftime("%d.%m.%Y") if e.get("setup_date") is not None else "?"
+        return (f"❌ İPTAL · {sym} · {d}\n"
+                f"{sd} tarihli daralma sinyali geçersiz oldu (sert düşüş / stop). Kapanış {e['close']:.2f}\n{link(sym)}")
+    sd = e["setup_date"].strftime("%d.%m.%Y") if e.get("setup_date") is not None else "?"
     return (f"🟢 GİRİŞ · {sym} · {d}\n"
             f"Giriş {e['close']:.2f} | SL {e['sl']:.2f} (-%{e['riskPct']:.1f}) | "
-            f"TP {e['tp']:.2f} (+%{e['tpPct']:.1f}, {e['tpR']:.1f}R{' SMC' if e['smc'] else ''})\n{link(sym)}")
+            f"TP {e['tp']:.2f} (+%{e['tpPct']:.1f}, {e['tpR']:.1f}R{' SMC' if e['smc'] else ''})\n"
+            f"Daralma sinyali: {sd}\n{link(sym)}")
 
 
 def load_state() -> dict:
@@ -358,25 +376,31 @@ def main() -> None:
 
     # ---- sinyaller ----
     state = load_state()
-    new_msgs_giris, new_msgs_setup = [], []
-    n_setup = n_giris = 0
+    m_giris, m_setup, m_iptal = [], [], []
     for r in results:
+        sym = r["sym"]
         for e in r["events"]:
-            key = f"{r['sym']}|{e['type']}|{e['date']:%Y-%m-%d}"
+            dstr = e["date"].strftime("%Y-%m-%d")
+            if e["type"] == "iptal":
+                # sadece daha önce bildirdiğimiz bir daralma sinyali iptal olduysa haber ver
+                sd = e.get("setup_date")
+                sent_before = sd is not None and f"{sym}|setup|{sd:%Y-%m-%d}" in state
+                key = f"{sym}|iptal|{dstr}"
+                if sent_before and key not in state:
+                    state[key] = dstr
+                    m_iptal.append(fmt_event(sym, e))
+                continue
+            key = f"{sym}|{e['type']}|{dstr}"
             if key in state:
                 continue
-            state[key] = e["date"].strftime("%Y-%m-%d")
-            if e["type"] == "giris":
-                n_giris += 1
-                new_msgs_giris.append(fmt_event(r["sym"], e))
-            else:
-                n_setup += 1
-                new_msgs_setup.append(fmt_event(r["sym"], e))
+            state[key] = dstr
+            (m_giris if e["type"] == "giris" else m_setup).append(fmt_event(sym, e))
 
     last_dates = pd.Series([r["last_date"] for r in results])
     ref = last_dates.mode().iloc[0] if len(last_dates) else today
-    head = f"📊 BIST taraması · veri tarihi {ref:%d.%m.%Y} · {len(results)} hisse · {n_setup} daralma · {n_giris} giriş"
-    body = new_msgs_giris + new_msgs_setup
+    head = (f"📊 BIST taraması · veri tarihi {ref:%d.%m.%Y} · {len(results)} hisse · "
+            f"{len(m_setup)} daralma · {len(m_giris)} giriş · {len(m_iptal)} iptal")
+    body = m_giris + m_setup + m_iptal
     print(head)
     for m in body:
         print("\n" + m)
