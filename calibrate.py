@@ -20,16 +20,15 @@ from fd_core import Params, run
 from scan import fetch_tv_all, telegram_send
 
 # (hisse, pencere başı, pencere sonu, doğru örnek mi?, not)
-# Tarihler grafik görüntülerinden tahmindir; pencere yanlışsa "pencerede mum yok / fiyatlar şöyle" yazar.
 EXAMPLES = [
-    ("ANELE", "2026-09-08", "2026-09-18", True, "taban, küçük beyaz mum"),
+    ("ANELE", "2025-08-13", "2025-08-18", True, "taban, küçük beyaz mum"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
-    ("RYSAS", "2025-04-24", "2025-05-09", True, "düşen çizgi altı daralma"),
+    ("RYSAS", "2024-05-03", "2024-05-08", True, "düşen çizgi altı daralma"),
     ("DCTTR", "2024-11-18", "2024-12-04", True, "yatay taban sonu"),
     ("DCTTR", "2024-12-26", "2025-01-17", True, "ikinci daralma"),
     ("DCTTR", "2025-04-24", "2025-05-09", True, "üçüncü daralma"),
     ("DOBUR", "2023-07-10", "2023-08-10", True, "EMA yukarı eğimli"),
-    ("DOBUR", "2024-01-25", "2024-02-15", True, "ikinci doğru daralma"),
+    ("DOBUR", "2024-02-09", "2024-02-15", True, "ikinci doğru daralma"),
     ("DOBUR", "2023-09-25", "2023-10-15", False, "EMA düz/aşağı, çalışmayan daralma"),
     ("IEYHO", "2024-03-18", "2024-04-08", True, "direnç altı daralma"),
     ("LOGO", "2024-01-08", "2024-01-19", True, "düşen çizgi altı"),
@@ -38,10 +37,10 @@ EXAMPLES = [
     ("IDGYO", "2024-03-08", "2024-03-22", True, "ikinci daralma"),
     ("BMSTL", "2024-10-21", "2024-11-11", True, "yatay direnç altı"),
     ("TKNSA", "2023-08-14", "2023-09-08", True, "yükselen üçgen"),
-    ("JANTS", "2024-01-25", "2024-02-08", True, "giriş (a)"),
+    ("JANTS", "2024-02-02", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
-    ("TRCAS", "2025-05-26", "2025-06-02", True, "kırmızı ok bölgesi"),
-    ("METEN", "2026-10-14", "2026-10-26", False, "düşüş trendinde V dönüşü"),
+    ("TRCAS", "2024-07-09", "2024-07-16", True, "kırmızı ok bölgesi"),
+    ("METEN", "2026-10-14", "2026-10-26", False, "yeni halka arz, düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
 ]
 
@@ -114,7 +113,12 @@ def sweep(frames: dict) -> str:
             if df is None:
                 continue
             if sym not in cache:
-                cache[sym] = run(df, P)
+                try:
+                    cache[sym] = run(df, P)
+                except Exception:  # noqa: BLE001
+                    cache[sym] = None
+            if cache[sym] is None:
+                continue
             res = cache[sym]
             ta, tb = pd.Timestamp(a), pd.Timestamp(b)
             sset = {i for i, d in enumerate(df.index) if ta <= d <= tb}
@@ -145,6 +149,18 @@ def main() -> None:
             break
         time.sleep(3)
         frames.update(fetch_tv_all(miss, n_bars=1800, budget=5 * 60))
+    # yeni halka arzlar: scan.py 120 mumdan kısa geçmişi eler, burada kısa olanı da al
+    for s_ in syms:
+        if s_ not in frames:
+            try:
+                from scan import _tv_df
+                from tvDatafeed import TvDatafeed
+                d_ = _tv_df(TvDatafeed(), s_, 1800)
+                if d_ is not None and len(d_) >= 30:
+                    frames[s_] = d_
+                    print(f"[bilgi] {s_}: sadece {len(d_)} mum var (yeni halka arz)")
+            except Exception as e:  # noqa: BLE001
+                print(f"[uyarı] {s_}: {e}", file=sys.stderr)
     notfound = []
     for s_ in syms:
         if s_ not in frames:
@@ -164,7 +180,11 @@ def main() -> None:
         if df is None:
             lines.append(f"⚠️ {sym} {a}..{b}: veri alınamadı")
             continue
-        good, txt = evaluate(sym, df, a, b, expect, note, P)
+        try:
+            good, txt = evaluate(sym, df, a, b, expect, note, P)
+        except Exception as e:  # noqa: BLE001
+            lines.append(f"⚠️ {sym}: hesaplanamadı ({len(df)} mum): {e}")
+            continue
         ok += int(good)
         lines.append(txt)
     summary = f"🧪 Kalibrasyon: {ok}/{len(EXAMPLES)} örnek beklendiği gibi"
