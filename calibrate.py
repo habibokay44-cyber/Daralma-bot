@@ -72,7 +72,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
         rows.sort()
         best = " | ".join(f"{df.index[i]:%d.%m} {w[:38]}" for _, i, w in rows[:4]) or "-"
         extra = (" (etiket çıkıp iptal oldu: " + ", ".join(f"{e['date']:%d.%m} {e.get('cancel_reason', '?')}" for e in setups[:3]) + ")") if setups else ""
-        return False, f"❌ {head}\n  sinyal yok{extra} [{px}]\n  en yakın mumlar: {best}"
+        lo_d, hi_d = ta - pd.Timedelta(days=25), tb + pd.Timedelta(days=25)
+        near = [e for e in res.events if e["type"] == "setup" and not e.get("cancelled") and lo_d <= e["date"] <= hi_d]
+        nr = (" | pencere dışı yakın sinyal: " + ", ".join(f"{e['date']:%d.%m.%Y}" for e in near[:4])) if near else ""
+        return False, f"❌ {head}\n  sinyal yok{extra} [{px}]{nr}\n  en yakın mumlar: {best}"
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']}" for e in live[:3])
         return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}]"
@@ -142,7 +145,18 @@ def main() -> None:
             break
         time.sleep(3)
         frames.update(fetch_tv_all(miss, n_bars=1800, budget=5 * 60))
-    sweep_txt = sweep(frames)
+    notfound = []
+    for s_ in syms:
+        if s_ not in frames:
+            cand = ""
+            try:
+                from tvDatafeed import TvDatafeed
+                r = TvDatafeed().search_symbol(s_[:4], "BIST") or []
+                cand = ", ".join(f"{x.get('symbol')} ({str(x.get('description', ''))[:22]})" for x in r[:8])
+            except Exception as e:  # noqa: BLE001
+                cand = f"arama yapılamadı: {e}"
+            notfound.append(f"🔎 {s_} bulunamadı. Benzer: {cand or '-'}")
+    sweep_txt = sweep(frames) + ("\n" + "\n".join(notfound) if notfound else "")
     P = Params()
     lines, ok = [], 0
     for sym, a, b, expect, note in EXAMPLES:
