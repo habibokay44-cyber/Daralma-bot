@@ -23,7 +23,7 @@ concurrency:
 jobs:
   tara:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +33,10 @@ jobs:
           cache: pip
 
       - run: pip install -r requirements.txt
+
+      - name: TradingView veri kütüphanesi
+        continue-on-error: true
+        run: pip install --no-cache-dir git+https://github.com/rongardF/tvdatafeed.git
 
       - name: Tara ve Telegram'a gönder
         env:
@@ -52,5 +56,6 @@ jobs:
           git add state/sent.json || true
           if ! git diff --cached --quiet; then
             git commit -m "tarama durumu"
+            git pull --rebase
             git push
           fi
