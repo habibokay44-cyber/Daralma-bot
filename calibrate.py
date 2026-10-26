@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Kalibrasyon: senin doğru / yanlış örneklerin üzerinde göstergeyi çalıştırır.
+
+Her örnek için verilen tarih penceresinde sinyal çıkıp çıkmadığını yazar. Çıkmadıysa
+her mumun neden elendiğini (Pine'daki hata ayıklama harfleri) en yakın mumlar için gösterir.
+Sonuç ekrana yazılır; --telegram ile Telegram'a da gider.
+
+  python calibrate.py --telegram
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+
+import pandas as pd
+
+from fd_core import Params, run
+from scan import fetch_tv_all, telegram_send
+
+# (hisse, pencere başı, pencere sonu, doğru örnek mi?, not)
+# Tarihler grafik görüntülerinden tahmindir; pencere yanlışsa "pencerede mum yok / fiyatlar şöyle" yazar.
+EXAMPLES = [
+    ("ANEL", "2026-09-08", "2026-09-18", True, "taban, küçük beyaz mum"),
+    ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
+    ("RYSAS", "2025-04-24", "2025-05-09", True, "düşen çizgi altı daralma"),
+    ("DCTTR", "2024-11-18", "2024-12-04", True, "yatay taban sonu"),
+    ("DCTTR", "2024-12-26", "2025-01-17", True, "ikinci daralma"),
+    ("DCTTR", "2025-04-24", "2025-05-09", True, "üçüncü daralma"),
+    ("DOBUR", "2023-07-10", "2023-08-10", True, "EMA yukarı eğimli"),
+    ("DOBUR", "2024-01-25", "2024-02-15", True, "ikinci doğru daralma"),
+    ("DOBUR", "2023-09-25", "2023-10-15", False, "EMA düz/aşağı, çalışmayan daralma"),
+    ("IEYHO", "2024-03-18", "2024-04-08", True, "direnç altı daralma"),
+    ("LOGO", "2024-01-08", "2024-01-19", True, "düşen çizgi altı"),
+    ("YAYLA", "2024-01-02", "2024-01-12", True, "düşen çizgi altı"),
+    ("IDGYO", "2024-01-29", "2024-02-12", True, "ilk daralma"),
+    ("IDGYO", "2024-03-08", "2024-03-22", True, "ikinci daralma"),
+    ("BMSTL", "2024-10-21", "2024-11-11", True, "yatay direnç altı"),
+    ("TKNSA", "2023-08-14", "2023-09-08", True, "yükselen üçgen"),
+    ("JANTS", "2024-01-25", "2024-02-08", True, "giriş (a)"),
+    ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
+    ("TRCAS", "2025-05-26", "2025-06-02", True, "kırmızı ok bölgesi"),
+    ("METGUN", "2026-10-14", "2026-10-26", False, "düşüş trendinde V dönüşü"),
+    ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
+]
+
+
+def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
+    res = run(df, P)
+    ta, tb = pd.Timestamp(a), pd.Timestamp(b)
+    idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
+    head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
+    if not idx:
+        return False, (f"⚠️ {head}\n  pencerede mum yok. Veri {df.index[0]:%d.%m.%Y}–{df.index[-1]:%d.%m.%Y}")
+    lo = float(df["Close"].iloc[idx].min())
+    hi = float(df["Close"].iloc[idx].max())
+    px = f"kapanış {lo:.2f}–{hi:.2f}, {len(idx)} mum"
+    sset = set(idx)
+    setups = [e for e in res.events if e["type"] == "setup" and e["t"] in sset]
+    live = [e for e in setups if not e.get("cancelled")]
+    if expect:
+        if live:
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} v{e['v']:.1f} j{e['j']:.2f}" for e in live[:3])
+            return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
+        rows = []
+        for i in idx:
+            why = res.diag.get(i)
+            if why is None:
+                continue
+            rows.append((len(why.split()), i, why))
+        rows.sort()
+        best = " | ".join(f"{df.index[i]:%d.%m} {w[:38]}" for _, i, w in rows[:4]) or "-"
+        extra = " (etiket çıkıp iptal oldu)" if setups else ""
+        return False, f"❌ {head}\n  sinyal yok{extra} [{px}]\n  en yakın mumlar: {best}"
+    if live:
+        det = ", ".join(f"{e['date']:%d.%m} {e['mode']}" for e in live[:3])
+        return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}]"
+    return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}]"
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--telegram", action="store_true", help="sonucu Telegram'a da gönder")
+    args = ap.parse_args()
+
+    syms = sorted({e[0] for e in EXAMPLES})
+    frames = fetch_tv_all(syms, n_bars=1800, budget=15 * 60)
+    P = Params()
+    lines, ok = [], 0
+    for sym, a, b, expect, note in EXAMPLES:
+        df = frames.get(sym)
+        if df is None:
+            lines.append(f"⚠️ {sym} {a}..{b}: veri alınamadı")
+            continue
+        good, txt = evaluate(sym, df, a, b, expect, note, P)
+        ok += int(good)
+        lines.append(txt)
+    summary = f"🧪 Kalibrasyon: {ok}/{len(EXAMPLES)} örnek beklendiği gibi"
+    out = summary + "\n\n" + "\n\n".join(lines)
+    print(out)
+    if args.telegram:
+        telegram_send(out)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
