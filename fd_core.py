@@ -76,6 +76,8 @@ class Params:
     jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
     useVolSig: bool = True
     volMaxX: float = 1.3            # sinyal mumu hacmi / 20 mum ort. hacim (max)
+    useRedSig: bool = True
+    sigRedMax: float = 0.1          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -208,6 +210,8 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
         S.jump = np.abs(c - prevC) / prevC * 100 / S.adr
         vsma = _sma(v, 20)
         S.volRatio = np.where(vsma > 0, v / vsma, np.nan)
+    S.redSig = (o - c) / c * 100 / S.adr
+    S.redOk = (S.redSig <= P.sigRedMax) if P.useRedSig else np.ones(len(c), bool)
     S.jumpOk = ((S.jump <= P.jumpMax) | np.isnan(S.jump)) if P.useJump else np.ones(len(c), bool)
     S.volOk = ((S.volRatio <= P.volMaxX) | np.isnan(S.volRatio)) if P.useVolSig else np.ones(len(c), bool)
 
@@ -476,7 +480,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
         setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
-                    and bool(S.jumpOk[t]) and bool(S.volOk[t]))
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
