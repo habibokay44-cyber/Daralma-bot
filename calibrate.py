@@ -146,11 +146,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("yatay taban en az 9 mum", dict(minSpanH=9)),
-    ("yatay taban en az 8 mum", dict(minSpanH=8)),
-    ("yatay taban en az 7 mum", dict(minSpanH=7)),
+    ("p en fazla 0.90", dict(maxClosePos=0.90)),
+    ("p en fazla 0.85", dict(maxClosePos=0.85)),
+    ("p en fazla 0.80", dict(maxClosePos=0.80)),
 ]
-
 
 
 
