@@ -27,7 +27,7 @@ def nz(x, y=0.0):
 class Params:
     lookback: int = 40
     minSpan: int = 6
-    minSpanH: int = 10
+    minSpanH: int = 9
     pvL: int = 2
     pvR: int = 1
     nC: int = 5
