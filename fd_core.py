@@ -32,7 +32,7 @@ class Params:
     pvR: int = 1
     nC: int = 5
     nS: int = 3
-    useShort: bool = True
+    useShort: bool = False
     tightS: float = 1.0
     shrinkS: float = 0.85
     boxS: float = 1.0
