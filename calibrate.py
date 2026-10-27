@@ -45,9 +45,9 @@ EXAMPLES = [
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
     ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden"),
     ("GMTAS", "2026-07-08", "2026-07-20", False, "temmuz: daralma yok, fiyat aşağı kayıyor"),
-    ("GMTAS", "2026-08-01", "2026-08-10", False, "ağustos: çizgi yanlış, daralma yok"),
+    ("GMTAS", "2026-08-01", "2026-08-10", False, "ağustos: çizgi doğru ama yatay savrulma, fitilli dojiler, daralma yok"),
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
-    ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket: büyük fitilli mumlar, düşüş trendi, daralma yok (tarihi bu çıktıdan öğreneceğiz)"),
+    ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
 ]
 
 
@@ -55,7 +55,7 @@ EXAMPLES = [
 MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen"}
 
 # aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
-CAND = dict(minClD=2, emaBelowMax=0.5)
+CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False)
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
@@ -64,19 +64,20 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p."""
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, gövde/aralık bf."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f}]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f}]")
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     P = fitP(df, P)
     res = run(df, P)
-    for e_ in res.events:  # etikete u/s/c/p ölçülerini ekle (sadece gösterim için)
+    for e_ in res.events:  # etikete u/s/c/p/bf ölçülerini ekle (sadece gösterim için)
         if e_["type"] == "setup":
             t_ = e_["t"]
             e_["u"], e_["s"] = float(res.S.riseVal[t_]), float(res.S.slopeVal[t_])
             e_["c"], e_["p"] = float(res.S.candRng[t_]), float(res.S.closePos[t_])
+            e_["bf"] = float(res.S.bodyFr[t_])
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
     head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
@@ -135,16 +136,17 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("ADAY (küme≥2 + EMA altı ≤0.5)", {}),
-    ("kısa pencere (3 mum) kapalı", dict(useShort=False)),
-    ("kısa: önceki mumlara oran ≤0.7", dict(shrinkS=0.7)),
-    ("kısa: kapanış kutusu ≤0.7", dict(boxS=0.7)),
-    ("kısa: mum aralığı ≤0.8", dict(tightS=0.8)),
-    ("kısa: oran ≤0.7 + aralık ≤0.8", dict(shrinkS=0.7, tightS=0.8)),
+    ("ADAY (küme≥2 + EMA altı ≤0.5 + kısa kapalı)", {}),
+    ("kısa pencere açık", dict(useShort=True)),
     ("uzun: oran ≤0.8", dict(shrink=0.8)),
     ("tepeden düşüş ≤3.5", dict(ddMax=3.5)),
     ("EMA21 eğim min -0.5", dict(emaSlopeMin=-0.5)),
     ("kapanış kutusu ≤1.0", dict(closeBoxADR=1.0)),
+    ("gövde/aralık ≥0.20", dict(bodyFrac=0.20)),
+    ("gövde/aralık ≥0.25", dict(bodyFrac=0.25)),
+    ("gövde/aralık ≥0.30", dict(bodyFrac=0.30)),
+    ("gövde/aralık ≥0.35", dict(bodyFrac=0.35)),
+    ("gövde/aralık ≥0.40", dict(bodyFrac=0.40)),
 ]
 
 
