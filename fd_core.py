@@ -684,6 +684,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]), m=float(S.tightVal[t]),
                 touches=int(hz["hTc"] if useH else bestTc), dt=int(hTb if useH else bestTcT),
                 dcl=int(0 if useH else fb.get("cl", 0)), sn=float(nz(bestSN, 0.0)),
+                hnear=str(hz.get("near", "")),
                 es=float(nz(S.emaSlope[t], 0.0)), ed=float(nz(S.emaDist[t], 0.0)), dd=float(nz(S.dd40[t], 0.0)),
                 e50=float(nz(S.e50d[t], 0.0)), la=int(nz(S.lowAge[t], 0)),
                 v=float(nz(S.volRatio[t], 0.0)), j=float(nz(S.jump[t], 0.0)), adr=float(adr_t),
