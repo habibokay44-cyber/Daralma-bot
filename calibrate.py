@@ -49,6 +49,7 @@ EXAMPLES = [
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
     ("BIGEN", "2026-08-03", "2026-08-11", True, "yeşil kutu: büyük beyaz mum sonrası küçük mumlar, direnç büyük mumun tepesi"),
     ("BIGEN", "2026-08-14", "2026-08-24", False, "turuncu çizgi uzak zirveden, fiyat sert yükselirken etiket, daralma yok"),
+    ("KONTR", "2021-11-22", "2021-12-02", True, "yatay daralma ~2.19 altı: MAVİ YATAY olmalı (düşen çizgi yanlış)"),
     ("BAHKM", "2026-08-03", "2026-08-26", True, "ağustos: düşen çizgi altında bariz daralma, sonra yukarı kırılım (etiket olmalı)"),
     ("ATAKP", "2026-10-20", "2026-10-27", False, "kısa etiket: büyük beyaz mum sonrası daralma mumları henüz oluşmadı (1-2 küçük mum daha gerekli)"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
@@ -56,7 +57,7 @@ EXAMPLES = [
 
 
 # bu pencerede çıkan etiket bu modda olmalı (DCTTR ocak: yatay çizgi, düşen değil)
-MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen"}
+MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen", ("KONTR", "2021-11-22"): "Yatay"}
 
 # aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
 CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0, bodyFrac=0.18)
@@ -143,15 +144,14 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("gövde/aralık kapalı", dict(bodyFrac=0.0)),
-    ("rallide yok kapalı", dict(rallyU=0.0)),
-    ("ikisi de kapalı", dict(bodyFrac=0.0, rallyU=0.0)),
-    ("gövde/aralık ≥0.12", dict(bodyFrac=0.12)),
-    ("gövde/aralık ≥0.15", dict(bodyFrac=0.15)),
-    ("rallide yok: u>1.2 ve tepe<2.0", dict(rallyU=1.2)),
-    ("düşen: yükseliş alt sınırı -1.5", dict(riseMin=-1.5)),
+    ("yatay tercih: eğim <0.8 ise yatay", dict(flatPrefer=0.8)),
+    ("yatay tercih: eğim <1.0 ise yatay", dict(flatPrefer=1.0)),
+    ("yatay tercih: eğim <1.5 ise yatay", dict(flatPrefer=1.5)),
+    ("yatay tercih: yatay temas +1", dict(hPrefer=1)),
+    ("yatay tercih: yatay temas +2", dict(hPrefer=2)),
+    ("düşen en az 4 dar temas", dict(dMinWithH=4)),
+    ("düşen en az 5 dar temas", dict(dMinWithH=5)),
 ]
-
 
 
 
