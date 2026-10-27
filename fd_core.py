@@ -81,6 +81,7 @@ class Params:
     useCandle: bool = True
     maxCandle: float = 1.3
     minClosePos: float = 0.0
+    maxClosePos: float = 1.0
     useJump: bool = True
     jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
     useVolSig: bool = True
@@ -219,7 +220,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     with np.errstate(divide="ignore", invalid="ignore"):
         S.closePos = np.where(h > l, (c - l) / (h - l), 0.5)
     if P.useCandle:
-        S.candOk = (S.candRng <= P.maxCandle) & (S.closePos >= P.minClosePos)
+        S.candOk = (S.candRng <= P.maxCandle) & (S.closePos >= P.minClosePos) & (S.closePos <= P.maxClosePos)
     else:
         S.candOk = np.ones(len(c), bool)
     with np.errstate(divide="ignore", invalid="ignore"):
