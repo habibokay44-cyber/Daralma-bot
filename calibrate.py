@@ -139,19 +139,18 @@ EXTRA = {
 }
 # v50: trend / sıkılaştırma varyantları
 TIGHT = {
-    "EMA orta": dict(emaSlopeMin=-0.8, emaBelowMax=1.0),
-    "yatay varsa dt4 + dönüş + EMA orta": dict(dMinWithH=4, fallbackD=True, emaSlopeMin=-0.8, emaBelowMax=1.0),
-    "tepe düşüşü ≤3": dict(ddMax=3.0),
+    "yatay tercih |eğim|<1.5": dict(flatPrefer=1.5),
+    "yatay tercih |eğim|<2.0": dict(flatPrefer=2.0),
+    "yatay tercih |eğim|<2.5": dict(flatPrefer=2.5),
     "tepe düşüşü ≤4": dict(ddMax=4.0),
-    "tepe düşüşü ≤5": dict(ddMax=5.0),
-    "tepe düşüşü ≤6": dict(ddMax=6.0),
-    "tepe düşüşü ≤8": dict(ddMax=8.0),
-    "EMA orta + tepe ≤4": dict(emaSlopeMin=-0.8, emaBelowMax=1.0, ddMax=4.0),
-    "EMA orta + tepe ≤6": dict(emaSlopeMin=-0.8, emaBelowMax=1.0, ddMax=6.0),
-    "EMA orta + dt4 + 2 küme + tepe ≤5": dict(emaSlopeMin=-0.8, emaBelowMax=1.0, minTcD=4, minClD=2, ddMax=5.0),
+    "tepe düşüşü ≤7": dict(ddMax=7.0),
+    "EMA daha sıkı (-0.5/0.6)": dict(emaSlopeMin=-0.5, emaBelowMax=0.6),
+    "yatay tercih 2.0 + dt4 + 2 küme": dict(flatPrefer=2.0, minTcD=4, minClD=2),
+    "yatay tercih 2.0 + yatay varsa dt4": dict(flatPrefer=2.0, dMinWithH=4),
 }
 VARIANTS = [
-    ("YENİ varsayılan (v49)", {}),
+    ("YENİ varsayılan (v50)", {}),
+    ("v49 (gevşek, trend filtresiz)", dict(emaSlopeMin=-1.5, emaBelowMax=1.5, ddMax=0.0)),
     ("ESKİ varsayılan (v48)", dict(OLD)),
     ("yeni, ama iptal sonrası eski bekleme", dict(cancelClearsCooldown=False)),
 ]
