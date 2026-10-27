@@ -81,7 +81,7 @@ class Params:
     useCandle: bool = True
     maxCandle: float = 1.3
     minClosePos: float = 0.0
-    maxClosePos: float = 1.0
+    maxClosePos: float = 0.85
     useJump: bool = True
     jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
     useVolSig: bool = True
