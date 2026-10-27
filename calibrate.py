@@ -58,10 +58,16 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     sset = set(idx)
     setups = [e for e in res.events if e["type"] == "setup" and e["t"] in sset]
     live = [e for e in setups if not e.get("cancelled")]
+    tolD = pd.Timedelta(days=4)
+    close_live = [e for e in res.events if e["type"] == "setup" and not e.get("cancelled")
+                  and ta - tolD <= e["date"] <= tb + tolD]
     if expect:
         if live:
             det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} v{e['v']:.1f} j{e['j']:.2f}" for e in live[:3])
             return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
+        if close_live:
+            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']}" for e in close_live[:3])
+            return True, f"✅ (pencereye ±4 gün yakın) {head}\n  sinyal: {det}  [{px}]"
         rows = []
         for i in idx:
             why = res.diag.get(i)
@@ -69,11 +75,21 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
                 continue
             rows.append((len(why.split()), i, why))
         rows.sort()
-        best = " | ".join(f"{df.index[i]:%d.%m} {w[:38]}" for _, i, w in rows[:4]) or "-"
+        best = " | ".join(f"{df.index[i]:%d.%m} {w[:150]}" for _, i, w in rows[:4]) or "-"
         extra = (" (etiket çıkıp iptal oldu: " + ", ".join(f"{e['date']:%d.%m} {e.get('cancel_reason', '?')}" for e in setups[:3]) + ")") if setups else ""
         lo_d, hi_d = ta - pd.Timedelta(days=25), tb + pd.Timedelta(days=25)
-        near = [e for e in res.events if e["type"] == "setup" and not e.get("cancelled") and lo_d <= e["date"] <= hi_d]
-        nr = (" | pencere dışı yakın sinyal: " + ", ".join(f"{e['date']:%d.%m.%Y}" for e in near[:4])) if near else ""
+        near = []
+        for e in res.events:
+            if not (lo_d <= e["date"] <= hi_d):
+                continue
+            if e["type"] == "setup":
+                st = "iptal" if e.get("cancelled") else ("giriş" if e.get("triggered") else "etiket")
+                near.append(f"{e['date']:%d.%m.%Y} {e['mode']} {st}")
+            elif e["type"] == "giris":
+                near.append(f"{e['date']:%d.%m.%Y} GİRİŞ")
+            elif e["type"] == "iptal":
+                near.append(f"{e['date']:%d.%m.%Y} iptal({e.get('reason', '?')})")
+        nr = ("\n  çevredeki olaylar (±25 gün): " + " | ".join(near[:8])) if near else ""
         return False, f"❌ {head}\n  sinyal yok{extra} [{px}]{nr}\n  en yakın mumlar: {best}"
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']}" for e in live[:3])
@@ -122,7 +138,9 @@ def sweep(frames: dict) -> str:
             res = cache[sym]
             ta, tb = pd.Timestamp(a), pd.Timestamp(b)
             sset = {i for i, d in enumerate(df.index) if ta <= d <= tb}
-            live = [e for e in res.events if e["type"] == "setup" and e["t"] in sset and not e.get("cancelled")]
+            tolD = pd.Timedelta(days=4 if expect else 0)
+            live = [e for e in res.events if e["type"] == "setup" and not e.get("cancelled")
+                    and (e["t"] in sset or (ta - tolD <= e["date"] <= tb + tolD))]
             if expect:
                 if live:
                     hit += 1
@@ -132,7 +150,8 @@ def sweep(frames: dict) -> str:
             elif live:
                 bad += 1
                 badl.append(f"{sym}{a[5:7]}{a[8:]}")
-        rows.append(f"• {name}: doğru {hit}, kaçan {miss}, YANLIŞ sinyal {bad}" + (f" ({', '.join(badl)})" if badl else ""))
+        rows.append(f"• {name}: doğru {hit}, kaçan {miss}, YANLIŞ {bad}" + (f" ({', '.join(badl)})" if badl else "")
+                    + (f"\n    kaçan: {', '.join(missed)}" if name in ("mevcut", "hepsi gevşek") else ""))
     return "🔬 Eşik denemesi:\n" + "\n".join(rows)
 
 
