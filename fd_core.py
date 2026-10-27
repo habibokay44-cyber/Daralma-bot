@@ -85,6 +85,7 @@ class Params:
     useEmaTr: bool = True
     emaSlopeMin: float = -1.5
     emaBelowMax: float = 1.5
+    ddMax: float = 0.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -246,6 +247,9 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.tightCore = (tightLong | tightShort) & S.lowsOk
     S.tightOk = S.tightCore & S.riseOkW & S.slopeOkW
     S.strong = (tightLong & (S.shrinkVal <= P.strongShrink) & (S.closeBoxVal <= P.strongBox)) | tightShort
+    S.dd40 = (_highest(c, 40) - c) / c * 100 / S.adr          # 40 mumluk tepeden uzaklık (ADR katı)
+    S.e50d = (c - S.ema50) / c * 100 / S.adr                  # EMA50'ye uzaklık (ADR katı)
+    S.lowAge = pd.Series(l).rolling(40, min_periods=10).apply(lambda w: len(w) - 1 - int(np.argmin(w)), raw=True).to_numpy()
     S.entryTrendOk = (c > S.ema50) if P.useTrend else np.ones(len(c), bool)
     S.stopLvl = _lowest(l, nC)
 
@@ -542,8 +546,9 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         yOk = (not P.useClose) or na(yVal) or yVal <= P.closeNearY
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
+        ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
         setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
-                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]))
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and ddOk)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -575,6 +580,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"g{S.redSig[t]:.2f}")
         if not S.emaOk[t]:
             why.append(f"e{S.emaSlope[t]:.2f}/{S.emaDist[t]:.2f}")
+        if not ddOk:
+            why.append(f"T{S.dd40[t]:.1f}")
         if S.tightOk[t] and not found:
             why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
         strong = bool(S.strong[t])
@@ -657,6 +664,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]), m=float(S.tightVal[t]),
                 touches=int(hz["hTc"] if useH else bestTc), dt=int(hTb if useH else bestTcT),
                 dcl=int(0 if useH else fb.get("cl", 0)), sn=float(nz(bestSN, 0.0)),
+                es=float(nz(S.emaSlope[t], 0.0)), ed=float(nz(S.emaDist[t], 0.0)), dd=float(nz(S.dd40[t], 0.0)),
+                e50=float(nz(S.e50d[t], 0.0)), la=int(nz(S.lowAge[t], 0)),
                 v=float(nz(S.volRatio[t], 0.0)), j=float(nz(S.jump[t], 0.0)), adr=float(adr_t),
                 stop=float(S.stopLvl[t]), cancelled=False, triggered=False,
             )
@@ -743,4 +752,6 @@ def summarize(trades: list[dict]) -> dict:
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
     )
+
+
 
