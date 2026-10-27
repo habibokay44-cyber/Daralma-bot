@@ -223,13 +223,13 @@ def sweep(frames: dict) -> str:
 
 
 def send_long(text: str) -> None:
-    """Telegram 4096 karakter sınırı: boş satırlardan parçalara böl."""
+    """Telegram 4096 karakter sınırı: satır satır parçalara böl (her parça en çok ~3500 karakter)."""
     parts, cur = [], ""
-    for blk in text.split("\n\n"):
-        if cur and len(cur) + len(blk) + 2 > 3500:
+    for line in text.split("\n"):
+        if cur and len(cur) + len(line) + 1 > 3500:
             parts.append(cur)
             cur = ""
-        cur = (cur + "\n\n" + blk) if cur else blk
+        cur = (cur + "\n" + line) if cur else line
     if cur:
         parts.append(cur)
     for i, p in enumerate(parts, 1):
