@@ -16,7 +16,7 @@ from dataclasses import replace
 
 import pandas as pd
 
-from fd_core import Params, run
+from fd_core import Params, run, summarize
 from scan import fetch_tv_all, telegram_send
 
 # (hisse, pencere başı, pencere sonu, doğru örnek mi?, not)
@@ -95,63 +95,100 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}]"
 
 
-E1 = dict(emaSlopeMin=-1.5, emaBelowMax=1.5, jumpMax=0.9)
-LOOSE = dict(E1, riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2, riseMax=0.8, slopeMin=-0.5,
-             slopeMax=0.9, maxCandle=1.3, minClosePos=0.0, shrink=1.0, closeBoxADR=1.5, minTcD=2, volMaxX=1.8)
+COMPS = {
+    "EMA": dict(emaSlopeMin=-1.5, emaBelowMax=1.5),
+    "sıçrama0.9": dict(jumpMax=0.9),
+    "u/s düşen": dict(riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2),
+    "u/s yatay": dict(riseMax=0.8, slopeMin=-0.5, slopeMax=0.9),
+    "mum c1.3 p0": dict(maxCandle=1.3, minClosePos=0.0),
+    "r1.0 k1.5": dict(shrink=1.0, closeBoxADR=1.5),
+    "dt2": dict(minTcD=2),
+    "hacim1.8": dict(volMaxX=1.8),
+    "yatay 3/2/2": dict(minTouches=3, minClusters=2, minTb=2),
+    "eğim4": dict(maxDesc=4.0),
+}
 VARIANTS = [
     ("mevcut", {}),
     ("eski iptal bekleme", dict(cancelClearsCooldown=False)),
-    ("EMA -1.5/-1.5 + sıçrama 0.9", E1),
-    ("+ u ve s gevşek", dict(E1, riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2)),
-    ("+ mum c 1.3, p 0", dict(E1, maxCandle=1.3, minClosePos=0.0)),
-    ("+ yatay kümeler 2", dict(E1, minClusters=2)),
-    ("+ yatay kümeler 2, dar temas 2", dict(E1, minClusters=2, minTb=2)),
-    ("+ yatay temas 3, küme 2, dar 2", dict(E1, minTouches=3, minClusters=2, minTb=2)),
-    ("+ düşüş eğimi max 4", dict(E1, maxDesc=4.0)),
-    ("+ dt 2", dict(E1, minTcD=2)),
-    ("+ hacim 1.8", dict(E1, volMaxX=1.8)),
-    ("hepsi gevşek", LOOSE),
-    ("hepsi gevşek + yatay 3/2/2 + eğim 4", dict(LOOSE, minTouches=3, minClusters=2, minTb=2, maxDesc=4.0)),
+    ("hepsi gevşek", {k: v for d in COMPS.values() for k, v in d.items()}),
 ]
 
 
-def sweep(frames: dict) -> str:
-    """Aynı veriyle birkaç eşik kombinasyonunu dener: kaç doğru örnek yakalandı, kaç yanlış örnekte sinyal çıktı."""
-    rows = []
-    for name, kw in VARIANTS:
-        P = replace(Params(), **kw)
-        hit = miss = bad = 0
-        missed, badl = [], []
-        cache: dict = {}
-        for sym, a, b, expect, note in EXAMPLES:
-            df = frames.get(sym)
-            if df is None:
+def score(frames: dict, kw: dict) -> dict:
+    """Bir ayar için: kaç doğru örnek yakalandı, hangi yanlışlar çıktı, etiket yoğunluğu, geriye dönük test."""
+    P = replace(Params(), **kw)
+    hit = 0
+    missed, badl = [], []
+    nlab = bars = 0
+    trades: list = []
+    for sym in sorted({e[0] for e in EXAMPLES}):
+        df = frames.get(sym)
+        if df is None:
+            continue
+        try:
+            res = run(df, P)
+        except Exception:  # noqa: BLE001
+            continue
+        bars += len(df)
+        nlab += sum(1 for e in res.events if e["type"] == "setup" and not e.get("cancelled"))
+        trades += res.trades
+        for s2, a, b, expect, note in EXAMPLES:
+            if s2 != sym:
                 continue
-            if sym not in cache:
-                try:
-                    cache[sym] = run(df, P)
-                except Exception:  # noqa: BLE001
-                    cache[sym] = None
-            if cache[sym] is None:
-                continue
-            res = cache[sym]
             ta, tb = pd.Timestamp(a), pd.Timestamp(b)
-            sset = {i for i, d in enumerate(df.index) if ta <= d <= tb}
             tolD = pd.Timedelta(days=4 if expect else 0)
             live = [e for e in res.events if e["type"] == "setup" and not e.get("cancelled")
-                    and (e["t"] in sset or (ta - tolD <= e["date"] <= tb + tolD))]
+                    and ta - tolD <= e["date"] <= tb + tolD]
+            tag = f"{sym}{a[5:7]}{a[8:]}"
             if expect:
                 if live:
                     hit += 1
                 else:
-                    miss += 1
-                    missed.append(f"{sym}{a[5:7]}{a[8:]}")
+                    missed.append(tag)
             elif live:
-                bad += 1
-                badl.append(f"{sym}{a[5:7]}{a[8:]}")
-        rows.append(f"• {name}: doğru {hit}, kaçan {miss}, YANLIŞ {bad}" + (f" ({', '.join(badl)})" if badl else "")
-                    + f"\n    kaçan: {', '.join(missed) or '-'}")
-    return "🔬 Eşik denemesi:\n" + "\n".join(rows)
+                badl.append(tag)
+    st = summarize(trades)
+    return dict(hit=hit, missed=missed, bad=badl, dens=(nlab / bars * 1000 if bars else 0.0), nlab=nlab, st=st)
+
+
+def fmt(name: str, r: dict) -> str:
+    st = r["st"]
+    tr = (f" | işlem {st['n']} kazanma %{st['winRate']:.0f} R{st['avgR']:+.2f} PF{st['profitFactor']:.2f}"
+          if st.get("n") else " | işlem 0")
+    return (f"• {name}: doğru {r['hit']}/{r['hit'] + len(r['missed'])}, YANLIŞ {len(r['bad'])}"
+            + (f" ({', '.join(r['bad'])})" if r["bad"] else "")
+            + f" | etiket/1000 mum {r['dens']:.1f}{tr}\n    kaçan: {', '.join(r['missed']) or '-'}")
+
+
+def sweep(frames: dict, budget: int = 40 * 60) -> str:
+    t0 = time.time()
+    rows = [fmt(n, score(frames, kw)) for n, kw in VARIANTS]
+    # açgözlü seçim: her adımda yanlış sinyal artmadan en çok doğru örneği kazandıran gevşetmeyi ekle
+    cur: dict = {}
+    names: list[str] = []
+    base = score(frames, cur)
+    path = [f"başlangıç: doğru {base['hit']}, yanlış {len(base['bad'])}, etiket/1000 {base['dens']:.1f}"]
+    left = dict(COMPS)
+    while left and time.time() - t0 < budget:
+        best = None
+        for n, d in left.items():
+            r = score(frames, dict(cur, **d))
+            if len(r["bad"]) > len(base["bad"]):
+                continue
+            key = (r["hit"], -r["dens"])
+            if best is None or key > best[0]:
+                best = (key, n, d, r)
+        if best is None or best[3]["hit"] <= base["hit"]:
+            break
+        _, n, d, r = best
+        cur.update(d)
+        names.append(n)
+        left.pop(n)
+        base = r
+        path.append(f"+ {n}: doğru {r['hit']}, yanlış {len(r['bad'])}, etiket/1000 {r['dens']:.1f}, kaçan: {', '.join(r['missed']) or '-'}")
+    rows.append(fmt("SEÇİLEN (" + " + ".join(names) + ")", base))
+    rows.append("seçilen ayarlar: " + repr(cur))
+    return "🔬 Eşik denemesi:\n" + "\n".join(rows) + "\n\n🧭 Adım adım seçim:\n" + "\n".join(path)
 
 
 def main() -> None:
