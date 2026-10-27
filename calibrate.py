@@ -95,23 +95,35 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}]"
 
 
-COMPS = {
-    "EMA": dict(emaSlopeMin=-1.5, emaBelowMax=1.5),
-    "sıçrama0.9": dict(jumpMax=0.9),
-    "u/s düşen": dict(riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2),
-    "u/s yatay": dict(riseMax=0.8, slopeMin=-0.5, slopeMax=0.9),
-    "mum c1.3 p0": dict(maxCandle=1.3, minClosePos=0.0),
+# v48 (eski) varsayılanlar: yeni varsayılanlarla karşılaştırmak için
+OLD = dict(emaSlopeMin=-0.2, emaBelowMax=0.5, riseMaxD=1.0, riseMin=-0.4, slopeMinD=-0.4, slopeMaxD=0.6,
+           riseMax=0.4, slopeMin=-0.15, slopeMax=0.4, maxCandle=1.0, minClosePos=0.2, volMaxX=1.3,
+           minTouches=4, minClusters=3, minTb=3, maxDesc=3.0, shrink=0.9, closeBoxADR=1.2, minTcD=3, jumpMax=0.6)
+# yeni varsayılana giren gevşetmeler (anahtar -> eski değer geri döner)
+ADOPTED = {
+    "EMA": ("emaSlopeMin", "emaBelowMax"),
+    "u/s düşen": ("riseMaxD", "riseMin", "slopeMinD", "slopeMaxD"),
+    "u/s yatay": ("riseMax", "slopeMin", "slopeMax"),
+    "mum c1.3 p0": ("maxCandle", "minClosePos"),
+    "hacim1.8": ("volMaxX",),
+    "yatay 3/2/2": ("minTouches", "minClusters", "minTb"),
+    "eğim4": ("maxDesc",),
+}
+# denenip gerek görülmeyenler: yeni varsayılana ek olarak denenir
+EXTRA = {
     "r1.0 k1.5": dict(shrink=1.0, closeBoxADR=1.5),
     "dt2": dict(minTcD=2),
-    "hacim1.8": dict(volMaxX=1.8),
-    "yatay 3/2/2": dict(minTouches=3, minClusters=2, minTb=2),
-    "eğim4": dict(maxDesc=4.0),
+    "sıçrama0.9": dict(jumpMax=0.9),
 }
 VARIANTS = [
-    ("mevcut", {}),
-    ("eski iptal bekleme", dict(cancelClearsCooldown=False)),
-    ("hepsi gevşek", {k: v for d in COMPS.values() for k, v in d.items()}),
+    ("YENİ varsayılan (v49)", {}),
+    ("ESKİ varsayılan (v48)", dict(OLD)),
+    ("yeni, ama iptal sonrası eski bekleme", dict(cancelClearsCooldown=False)),
 ]
+for _n, _keys in ADOPTED.items():
+    VARIANTS.append((f"yeni, ama {_n} eski değerde", {k: OLD[k] for k in _keys}))
+for _n, _kw in EXTRA.items():
+    VARIANTS.append((f"yeni + ek gevşetme {_n}", dict(_kw)))
 
 
 def score(frames: dict, kw: dict) -> dict:
@@ -160,47 +172,9 @@ def fmt(name: str, r: dict) -> str:
             + f" | etiket/1000 mum {r['dens']:.1f}{tr}\n    kaçan: {', '.join(r['missed']) or '-'}")
 
 
-def merged(names: list[str]) -> dict:
-    d: dict = {}
-    for n in names:
-        d.update(COMPS[n])
-    return d
-
-
-def sweep(frames: dict, budget: int = 40 * 60) -> str:
-    """Geriye doğru eleme: hepsi gevşekken başla, doğru örnek sayısı düşmeyen ve yoğunluğu en çok azaltan gevşetmeyi çıkar."""
-    t0 = time.time()
+def sweep(frames: dict) -> str:
     rows = [fmt(n, score(frames, kw)) for n, kw in VARIANTS]
-    active = list(COMPS)
-    base = score(frames, merged(active))
-    path = [f"başlangıç (hepsi gevşek): doğru {base['hit']}, yanlış {len(base['bad'])}, etiket/1000 {base['dens']:.1f}, kaçan: {', '.join(base['missed']) or '-'}"]
-    while active and time.time() - t0 < budget:
-        best = None
-        for n in active:
-            rest = [x for x in active if x != n]
-            r = score(frames, merged(rest))
-            if len(r["bad"]) > len(base["bad"]) or r["hit"] < base["hit"]:
-                continue
-            key = (r["hit"], -r["dens"])
-            if best is None or key > best[0]:
-                best = (key, n, rest, r)
-        if best is None:
-            break
-        _, n, rest, r = best
-        active, base = rest, r
-        st = r["st"]
-        pf = f" PF{st['profitFactor']:.2f} işlem {st['n']}" if st.get("n") else ""
-        path.append(f"- {n} çıkarıldı: doğru {r['hit']}, yanlış {len(r['bad'])}, etiket/1000 {r['dens']:.1f}{pf}")
-    contrib = []
-    for n in active:
-        if time.time() - t0 > budget + 600:
-            break
-        r = score(frames, merged([x for x in active if x != n]))
-        contrib.append(f"  {n}: çıkarılırsa doğru {r['hit']} (şimdi {base['hit']}), kaçan: {', '.join(r['missed']) or '-'}, etiket/1000 {r['dens']:.1f}")
-    rows.append(fmt("SEÇİLEN (" + " + ".join(active) + ")", base))
-    rows.append("seçilen ayarlar: " + repr(merged(active)))
-    return ("🔬 Eşik denemesi:\n" + "\n".join(rows) + "\n\n🧭 Geriye doğru eleme:\n" + "\n".join(path)
-            + "\n\n🔎 Kalan gevşetmelerin katkısı:\n" + ("\n".join(contrib) or "  -"))
+    return "🔬 Eşik denemesi (her satır yeni varsayılandan bir şeyi değiştirir):\n" + "\n".join(rows)
 
 
 def main() -> None:
