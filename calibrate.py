@@ -38,23 +38,27 @@ EXAMPLES = [
     ("JANTS", "2024-02-02", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
     ("TRCAS", "2024-07-09", "2024-07-16", True, "kırmızı ok bölgesi"),
-    ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü"),
+    ("KONTR", "2020-11-24", "2020-11-30", True, "ilk daralma, turuncu düşen çizgi doğru"),
+    ("KONTR", "2020-12-10", "2020-12-16", True, "ikinci daralma: MAVİ YATAY olmalı, düşen yanlış"),
+    ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü / daralma yok, direkt kırıyor"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
+    ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden, direnç altı sıkışma yok"),
+
 ]
 
 
-# bu pencerede çıkan etiket bu modda olmalı (DCTTR ocak: yatay çizgi, düşen değil)
-MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay"}
+# bu pencerede çıkan etiket bu modda olmalı
+MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-10"): "Yatay", ("KONTR", "2020-11-24"): "Düşen"}
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
-    """Ayar aynen kullanılır: geçmişi ısınma süresinden (warmup mum) kısa hisselerde sinyal çıkmaz (Pine'da da aynı şart olacak)."""
+    """Ayar aynen kullanılır."""
     return P
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun trend ölçüleri: EMA21 eğim/uzaklık, 40 mum tepesinden düşüş, EMA50 uzaklık, son dip kaç mum önce."""
-    return (f"[ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, 40 mum tepesinden düşüş, EMA50 uzaklık, son dip kaç mum önce."""
+    return (f"[r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
             f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f}]")
 
 
@@ -110,7 +114,7 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
         nr = ("\n  çevredeki olaylar (±25 gün): " + " | ".join(near[:8])) if near else ""
         return False, f"❌ {head}\n  sinyal yok{extra} [{px}]{nr}\n  en yakın mumlar: {best}"
     info = f"veri {len(df)} mum ({df.index[0]:%d.%m.%Y}–{df.index[-1]:%d.%m.%Y})"
-    short = f"\n  ℹ️ geçmiş {len(df)} mum < {P.warmup}+: yeni halka arzda sinyal çıkmaz (ısınma şartı), test bu yüzden bir şey kanıtlamaz" if len(df) < P.warmup + 20 else ""
+    short = f"\n  ℹ️ geçmiş {len(df)} mum, ısınma {P.warmup}: kısa geçmişte test zayıf" if len(df) < P.warmup + 20 else ""
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:6])
         return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]{short}"
@@ -139,12 +143,15 @@ EXTRA = {
 }
 # v50: trend / sıkılaştırma varyantları
 TIGHT = {
-    "yatay tercih 2.0 + dönüş": dict(flatPrefer=2.0, fallbackD=True),
-    "yatay tercih 2.5 + dönüş": dict(flatPrefer=2.5, fallbackD=True),
-    "yatay tercih 3.0 + dönüş": dict(flatPrefer=3.0, fallbackD=True),
-    "yatay tercih 2.0 + dönüş + tepe ≤4": dict(flatPrefer=2.0, fallbackD=True, ddMax=4.0),
-    "yatay tercih 2.0 + dönüş + EMA sıkı": dict(flatPrefer=2.0, fallbackD=True, emaSlopeMin=-0.5, emaBelowMax=0.6),
-    "yatay tercih 2.0 + dönüş + dt4 yatay varsa": dict(flatPrefer=2.0, fallbackD=True, dMinWithH=4),
+    "yatay tercih 2.0 (dönüşsüz)": dict(flatPrefer=2.0),
+    "yatay tercih 2.5 (dönüşsüz)": dict(flatPrefer=2.5),
+    "yatay tercih 2.0 + dönüş dt≥5": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=5),
+    "yatay tercih 2.0 + dönüş dt≥6": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=6),
+    "yatay tercih 2.0 + dönüş dt≥8": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=8),
+    "yatay tercih 2.5 + dönüş dt≥6": dict(flatPrefer=2.5, fallbackD=True, fbMinDt=6),
+    "yatay tercih 3.0 + dönüş dt≥6": dict(flatPrefer=3.0, fallbackD=True, fbMinDt=6),
+    "ısınma 45": dict(warmup=45),
+    "ısınma 70": dict(warmup=70),
 }
 VARIANTS = [
     ("YENİ varsayılan (v50)", {}),
