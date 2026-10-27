@@ -1,4 +1,4 @@
-"""Fiyat Daralması v50 - TradingView Pine göstergesinin Python portu.
+"""Fiyat Daralması v50- TradingView Pine göstergesinin Python portu.
 
 Pine mantığı mum mum (durum makinesi olarak) birebir taşındı. Girdi: günlük OHLCV.
 Çıktı: "Fiyat Daralması" (etiket) ve "Giriş" olayları + geriye dönük test işlemleri.
@@ -35,6 +35,7 @@ class Params:
     useShort: bool = False
     tightS: float = 1.0
     shrinkS: float = 0.85
+    bodyFrac: float = 0.0
     boxS: float = 1.0
     bodyADR: float = 0.1
     bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
@@ -55,7 +56,7 @@ class Params:
     flatPrefer: float = 0.0         # yatay seviye de varsa ve düşen çizgi eğimi (|sn|) bundan küçükse yatayı seç (0 = kapalı)
     fbMinDt: int = 0                # fallbackD sadece düşen çizgi en az bu kadar dar-bant temaslıysa (dt) devreye girer
     fallbackD: bool = False         # yatay seçilirse ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
-    minClD: int = 2              # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
+    minClD: int = 2                 # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
     closeBoxADR: float = 1.2
@@ -86,7 +87,7 @@ class Params:
     sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
     useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
     emaSlopeMin: float = -0.8       # EMA21'in 10 mumluk eğimi (ADR katı) min.
-    emaBelowMax: float = 0.5      # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
+    emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     nearADR: float = 2.2
     lastNear: float = 1.8
@@ -246,7 +247,9 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     else:
         tightShort = np.zeros(len(c), bool)
     S.tightLong, S.tightShort = tightLong, tightShort
-    S.tightCore = (tightLong | tightShort) & S.lowsOk
+    rngAbs = np.where(h > l, h - l, np.nan)
+    S.bodyFr = _sma(np.nan_to_num(np.abs(c - o) / rngAbs, nan=0.5), nC)   # son nC mumda gövde/aralık ortalaması
+    S.tightCore = (tightLong | tightShort) & S.lowsOk & ((S.bodyFr >= P.bodyFrac) | np.isnan(S.bodyFr))
     S.tightOk = S.tightCore & S.riseOkW & S.slopeOkW
     S.strong = (tightLong & (S.shrinkVal <= P.strongShrink) & (S.closeBoxVal <= P.strongBox)) | tightShort
     S.dd40 = (_highest(c, 40) - c) / c * 100 / S.adr          # 40 mumluk tepeden uzaklık (ADR katı)
@@ -254,7 +257,6 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.lowAge = pd.Series(l).rolling(40, min_periods=10).apply(lambda w: len(w) - 1 - int(np.argmin(w)), raw=True).to_numpy()
     S.entryTrendOk = (c > S.ema50) if P.useTrend else np.ones(len(c), bool)
     S.stopLvl = _lowest(l, nC)
-
     S.bodyTol = P.bodyADR * S.adr / 100 * c
     S.bodyTolD = P.bodyADRD * S.adr / 100 * c
     S.touchTol = P.touchADR * S.adr / 100 * c
@@ -266,7 +268,6 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.ph = _pivot_high(h, P.pvL, P.pvR)
     S.smcPh = _pivot_high(h, P.smcL, P.smcR)
     return S
-
 
 
 # ---------------------------------------------------------------- ana motor
@@ -467,6 +468,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                         best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv, cl=clD)
         best["info"] = f"D:eleme iğne{rejW} gövde{rejB} " + (f"en iyi aday {dInfo}" if dSc >= 0 else "aday yok")
         return best
+
 
     # ================================================================ döngü
     for t in range(n):
@@ -766,4 +768,6 @@ def summarize(trades: list[dict]) -> dict:
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
     )
+
+
 
