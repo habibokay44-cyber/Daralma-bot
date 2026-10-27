@@ -47,7 +47,13 @@ EXAMPLES = [
 MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay"}
 
 
+def fitP(df: pd.DataFrame, P: Params) -> Params:
+    """Yeni halka arz: geçmiş kısaysa ısınma süresini düşür (Pine'da ısınma yok)."""
+    return replace(P, warmup=30) if len(df) < P.warmup + 60 else P
+
+
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
+    P = fitP(df, P)
     res = run(df, P)
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
@@ -98,10 +104,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
         nr = ("\n  çevredeki olaylar (±25 gün): " + " | ".join(near[:8])) if near else ""
         return False, f"❌ {head}\n  sinyal yok{extra} [{px}]{nr}\n  en yakın mumlar: {best}"
     info = f"veri {len(df)} mum ({df.index[0]:%d.%m.%Y}–{df.index[-1]:%d.%m.%Y})"
-    short = f"\n  ⚠️ geçmiş kısa (ısınma {P.warmup} mum): test anlamsız olabilir" if len(df) < P.warmup + 30 else ""
+    short = f"\n  ℹ️ geçmiş kısa: ısınma {P.warmup} muma indirildi" if P.warmup < 70 else ""
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:6])
-        return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]"
+        return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]{short}"
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}; {info}]{short}"
 
 
@@ -127,14 +133,12 @@ EXTRA = {
 }
 # v50: düşen çizgi sıkılaştırma varyantları
 TIGHT = {
-    "yatay varsa düşen dt4": dict(dMinWithH=4),
-    "yatay varsa düşen dt5": dict(dMinWithH=5),
-    "yatay varsa dt4 + 2 küme": dict(dMinWithH=4, minClD=2),
-    "yatay varsa dt4 + dt4 hep": dict(dMinWithH=4, minTcD=4),
-    "yatay varsa dt4 + EMA orta": dict(dMinWithH=4, emaSlopeMin=-0.8, emaBelowMax=1.0),
-    "yatay varsa dt4 + 2 küme + EMA orta": dict(dMinWithH=4, minClD=2, emaSlopeMin=-0.8, emaBelowMax=1.0),
-    "düşen dt4 + 2 küme": dict(minTcD=4, minClD=2),
-    "düşen dt4 + 2 küme + EMA orta": dict(minTcD=4, minClD=2, emaSlopeMin=-0.8, emaBelowMax=1.0),
+    "yatay varsa dt4 + dönüş": dict(dMinWithH=4, fallbackD=True),
+    "yatay varsa dt5 + dönüş": dict(dMinWithH=5, fallbackD=True),
+    "yatay varsa dt4 + dönüş + 2 küme": dict(dMinWithH=4, fallbackD=True, minClD=2),
+    "yatay varsa dt4 + dönüş + EMA orta": dict(dMinWithH=4, fallbackD=True, emaSlopeMin=-0.8, emaBelowMax=1.0),
+    "yatay varsa dt4 + dönüş + 2 küme + EMA orta": dict(dMinWithH=4, fallbackD=True, minClD=2, emaSlopeMin=-0.8, emaBelowMax=1.0),
+    "yatay varsa dt4 (dönüşsüz) + 2 küme + EMA orta": dict(dMinWithH=4, minClD=2, emaSlopeMin=-0.8, emaBelowMax=1.0),
 }
 VARIANTS = [
     ("YENİ varsayılan (v49)", {}),
@@ -161,7 +165,7 @@ def score(frames: dict, kw: dict) -> dict:
         if df is None:
             continue
         try:
-            res = run(df, P)
+            res = run(df, fitP(df, P))
         except Exception:  # noqa: BLE001
             continue
         bars += len(df)
