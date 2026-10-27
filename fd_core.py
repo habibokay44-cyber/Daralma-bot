@@ -338,14 +338,37 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 and cl >= P.minClusters and tb >= P.minTb)
 
     def hor_best(t: int):
-        r = dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN)
+        r = dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN, near="")
+        nearFail = None
         for k in range(1, max(nC, P.lastTouchMax) + 10):
             if k < t:
                 cand = float(S.srcT[t - k])
                 sp, tc, tb, ft, lt, ag, lg, ov, cl = f_hor(t, cand)
+                fl = []
+                if sp < P.minSpanH:
+                    fl.append(f"sp{sp}")
+                if tc < P.minTouches:
+                    fl.append(f"tc{tc}")
+                if lt < 0 or lt > P.lastTouchMax:
+                    fl.append(f"lt{lt}")
+                if (ft - lt) < P.touchSpan:
+                    fl.append(f"rg{ft - lt}")
+                if not (ag <= P.nearADRH):
+                    fl.append(f"ag{ag:.1f}")
+                if not (lg <= P.lastNearH and lg >= 0):
+                    fl.append(f"lg{lg:.1f}")
+                if not (ov <= P.maxOv):
+                    fl.append(f"ov{ov:.1f}")
+                if cl < P.minClusters:
+                    fl.append(f"cl{cl}")
+                if tb < P.minTb:
+                    fl.append(f"tb{tb}")
+                if nearFail is None or len(fl) < len(nearFail):
+                    nearFail = fl
                 if f_ok(sp, tc, ft, lt, ag, lg, ov, cl, tb) and (
                         tb > r["hTb"] or (tb == r["hTb"] and cand > nz(r["hL"], 0.0))):
                     r.update(hL=cand, hSpan=sp, hTc=tc, hTb=tb, hFirst=ft, hLt=lt, hCl=cl, hOv=ov)
+        r["near"] = "H:" + ",".join(nearFail or ["-"])
         return r
 
     # --------- düşen çizgi taraması ---------
@@ -355,7 +378,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if h[t] >= h[t - 1]:
             pPt.append(float(h[t]))
             pXt.append(t)
-        best = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN)
+        best = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, info="")
+        rejW = rejB = 0
+        dInfo = ""
+        dSc = -1
         m = len(pPt)
         adr_t, c_t = S.adr[t], c[t]
         for ia in range(0, m - 1):
@@ -370,6 +396,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 lv = pb + sl * (t - ii - xB)
                 hh = h[bars]
                 if (hh > lv + S.wickAbs[t]).any():
+                    rejW += 1
                     continue  # iğne çok taşıyor
                 mxOv = max(0.0, float(((hh - lv) / c_t * 100 / adr_t).max()))
                 bt = S.bodyTop[bars]
@@ -387,6 +414,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                             belowBad = True
                             break
                 if violBad or belowBad:
+                    rejB += 1
                     continue
                 lnN = pb + sl * (t - xB)
                 cl_ = c[t - nC + 1:t + 1]
@@ -401,9 +429,26 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 cAvg = aG <= P.nearADR
                 cLast = lG <= P.lastNear and lG >= 0
                 score = int(cTouch) + int(cType) + int(cAvg) + int(cLast)
+                if score > dSc:
+                    dSc = score
+                    flz = []
+                    if not cTouch:
+                        flz.append(f"t{tc}")
+                    if not cType:
+                        flz.append(f"sn{sN:.1f}")
+                    if not cAvg:
+                        flz.append(f"ag{aG:.1f}")
+                    if not cLast:
+                        flz.append(f"lg{lG:.1f}")
+                    if mxOv > P.maxOv:
+                        flz.append(f"w{mxOv:.1f}")
+                    if tcT < P.minTcD:
+                        flz.append(f"dt{tcT}")
+                    dInfo = ",".join(flz) or "-"
                 if score == 4 and mxOv <= P.maxOv and tcT >= P.minTcD:
                     if na(best["pa"]) or tcT > best["tcT"] or (tcT == best["tcT"] and pa > best["pa"]):
                         best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv)
+        best["info"] = f"D:eleme iğne{rejW} gövde{rejB} " + (f"en iyi aday {dInfo}" if dSc >= 0 else "aday yok")
         return best
 
     # ================================================================ döngü
@@ -525,7 +570,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if not S.emaOk[t]:
             why.append(f"e{S.emaSlope[t]:.2f}/{S.emaDist[t]:.2f}")
         if S.tightOk[t] and not found:
-            why.append("L")
+            why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
         strong = bool(S.strong[t])
         setup = setupRaw and (not brokeOut) and (not blocked) and ((not P.onlyStrong) or strong)
 
@@ -567,7 +612,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             if curSetupEv is not None:
                 curSetupEv["cancelled"] = True
                 curSetupEv["cancel_t"] = t
-            events.append(dict(type="iptal", t=t, date=dates[t], close=float(close_t), setup_date=sd))
+            reason = "stop" if stopHit else ("kırmızı mum" if redHit else "düşüş")
+            if curSetupEv is not None:
+                curSetupEv["cancel_reason"] = reason
+            events.append(dict(type="iptal", t=t, date=dates[t], close=float(close_t), setup_date=sd, reason=reason))
 
         projNow = lnY + lnSl * (t - lnBar) if lnBar is not None else NAN
         inWin = armed and lblBar is not None and t > lblBar and t - lblBar <= P.trigWin
