@@ -49,6 +49,7 @@ EXAMPLES = [
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
     ("BIGEN", "2026-08-03", "2026-08-11", True, "yeşil kutu: büyük beyaz mum sonrası küçük mumlar, direnç büyük mumun tepesi"),
     ("BIGEN", "2026-08-14", "2026-08-24", False, "turuncu çizgi uzak zirveden, fiyat sert yükselirken etiket, daralma yok"),
+    ("BAHKM", "2026-08-03", "2026-08-26", True, "ağustos: düşen çizgi altında bariz daralma, sonra yukarı kırılım (etiket olmalı)"),
     ("ATAKP", "2026-10-20", "2026-10-27", False, "kısa etiket: büyük beyaz mum sonrası daralma mumları henüz oluşmadı (1-2 küçük mum daha gerekli)"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
 ]
@@ -58,7 +59,8 @@ EXAMPLES = [
 MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen"}
 
 # aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
-CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0)
+CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0, bodyFrac=0.18)
+
 
 
 
@@ -140,14 +142,14 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("ADAY (küme≥2 + EMA altı ≤0.5 + kısa kapalı + rallide yok)", {}),
-    ("gövde/aralık ≥0.16", dict(bodyFrac=0.16)),
-    ("gövde/aralık ≥0.18", dict(bodyFrac=0.18)),
-    ("gövde/aralık ≥0.20", dict(bodyFrac=0.20)),
-    ("gövde/aralık ≥0.22", dict(bodyFrac=0.22)),
+    ("ADAY (hepsi açık)", {}),
+    ("gövde/aralık kapalı", dict(bodyFrac=0.0)),
     ("rallide yok kapalı", dict(rallyU=0.0)),
-    ("rallide yok: u>0.9 ve tepe<2.5", dict(rallyDd=2.5)),
-    ("yükseliş alt sınırı -1.5", dict(riseMin=-1.5)),
+    ("ikisi de kapalı", dict(bodyFrac=0.0, rallyU=0.0)),
+    ("gövde/aralık ≥0.12", dict(bodyFrac=0.12)),
+    ("gövde/aralık ≥0.15", dict(bodyFrac=0.15)),
+    ("rallide yok: u>1.2 ve tepe<2.0", dict(rallyU=1.2)),
+    ("düşen: yükseliş alt sınırı -1.5", dict(riseMin=-1.5)),
 ]
 
 
