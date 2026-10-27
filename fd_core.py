@@ -110,7 +110,7 @@ class Params:
     holdBars: int = 8
     useTrend: bool = False
     cooldown: int = 8
-    cancelBlock: int = 3
+    cancelBlock: int = 0
     cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
     trigWin: int = 8
     trigVol: float = 0.0
