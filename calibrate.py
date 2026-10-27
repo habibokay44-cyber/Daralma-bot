@@ -58,7 +58,8 @@ EXAMPLES = [
 MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen"}
 
 # aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
-CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False)
+CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0)
+
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
@@ -139,15 +140,16 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("ADAY (küme≥2 + EMA altı ≤0.5 + kısa kapalı)", {}),
-    ("rallide yok: u>0.9 ve tepe<1.5", dict(rallyU=0.9, rallyDd=1.5)),
-    ("rallide yok: u>0.9 ve tepe<2.0", dict(rallyU=0.9, rallyDd=2.0)),
-    ("rallide yok: u>1.0 ve tepe<1.5", dict(rallyU=1.0, rallyDd=1.5)),
-    ("rallide yok: u>0.8 ve tepe<1.5", dict(rallyU=0.8, rallyDd=1.5)),
+    ("ADAY (küme≥2 + EMA altı ≤0.5 + kısa kapalı + rallide yok)", {}),
+    ("gövde/aralık ≥0.16", dict(bodyFrac=0.16)),
+    ("gövde/aralık ≥0.18", dict(bodyFrac=0.18)),
+    ("gövde/aralık ≥0.20", dict(bodyFrac=0.20)),
+    ("gövde/aralık ≥0.22", dict(bodyFrac=0.22)),
+    ("rallide yok kapalı", dict(rallyU=0.0)),
+    ("rallide yok: u>0.9 ve tepe<2.5", dict(rallyDd=2.5)),
     ("yükseliş alt sınırı -1.5", dict(riseMin=-1.5)),
-    ("yükseliş alt sınırı -2.2", dict(riseMin=-2.2)),
-    ("düşen: yükseliş ≤1.0", dict(riseMaxD=1.0)),
 ]
+
 
 
 
