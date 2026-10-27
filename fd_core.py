@@ -55,7 +55,7 @@ class Params:
     flatPrefer: float = 0.0         # yatay seviye de varsa ve düşen çizgi eğimi (|sn|) bundan küçükse yatayı seç (0 = kapalı)
     fbMinDt: int = 0                # fallbackD sadece düşen çizgi en az bu kadar dar-bant temaslıysa (dt) devreye girer
     fallbackD: bool = False         # yatay seçilirse ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
-    minClD: int = 0                 # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
+    minClD: int = 2              # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
     closeBoxADR: float = 1.2
