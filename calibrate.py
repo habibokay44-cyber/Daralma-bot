@@ -3,7 +3,7 @@
 
 Her örnek için verilen tarih penceresinde sinyal çıkıp çıkmadığını yazar. Çıkmadıysa
 her mumun neden elendiğini (Pine'daki hata ayıklama harfleri) en yakın mumlar için gösterir.
-Sonuç ekrana yazılır; --telegram ile Telegram'a da gider.
+Sonuç ekrana yazılır; --telegram ile Telegram'a da gider (uzunsa parçalanır).
 
   python calibrate.py --telegram
 """
@@ -43,7 +43,6 @@ EXAMPLES = [
     ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü / daralma yok, direkt kırıyor"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
     ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden, direnç altı sıkışma yok"),
-
 ]
 
 
@@ -85,10 +84,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:3])
             return False, f"❌ {head}\n  etiket var ama mod yanlış ({rq} olmalı): {det}  [{px}]"
         if live:
-            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} {mt(e)}" for e in live[:3])
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:3])
             return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
         if close_live:
-            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']} {mt(e)}" for e in close_live[:3])
+            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in close_live[:3])
             return True, f"✅ (pencereye ±4 gün yakın) {head}\n  sinyal: {det}  [{px}]"
         rows = []
         for i in idx:
@@ -150,6 +149,8 @@ TIGHT = {
     "yatay tercih 2.0 + dönüş dt≥8": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=8),
     "yatay tercih 2.5 + dönüş dt≥6": dict(flatPrefer=2.5, fallbackD=True, fbMinDt=6),
     "yatay tercih 3.0 + dönüş dt≥6": dict(flatPrefer=3.0, fallbackD=True, fbMinDt=6),
+    "çizgi küme≥2": dict(minClD=2),
+    "çizgi küme≥2 + yatay tercih 2.0 + dönüş dt≥6": dict(minClD=2, flatPrefer=2.0, fallbackD=True, fbMinDt=6),
     "ısınma 45": dict(warmup=45),
     "ısınma 70": dict(warmup=70),
 }
@@ -221,6 +222,21 @@ def sweep(frames: dict) -> str:
     return "🔬 Eşik denemesi (her satır yeni varsayılandan bir şeyi değiştirir):\n" + "\n".join(rows)
 
 
+def send_long(text: str) -> None:
+    """Telegram 4096 karakter sınırı: boş satırlardan parçalara böl."""
+    parts, cur = [], ""
+    for blk in text.split("\n\n"):
+        if cur and len(cur) + len(blk) + 2 > 3500:
+            parts.append(cur)
+            cur = ""
+        cur = (cur + "\n\n" + blk) if cur else blk
+    if cur:
+        parts.append(cur)
+    for i, p in enumerate(parts, 1):
+        telegram_send(f"({i}/{len(parts)})\n" + p[:3900])
+        time.sleep(1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--telegram", action="store_true", help="sonucu Telegram'a da gönder")
@@ -276,7 +292,7 @@ def main() -> None:
     out = summary + "\n\n" + sweep_txt + "\n\n" + "\n\n".join(lines)
     print(out)
     if args.telegram:
-        telegram_send(out)
+        send_long(out)
 
 
 if __name__ == "__main__":
