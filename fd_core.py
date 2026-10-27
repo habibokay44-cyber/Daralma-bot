@@ -562,9 +562,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
         ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
-        setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
-                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and bool(S.emaOk[t]) and ddOk and bool(S.rallyOk[t]))
-)
+                setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and ddOk and bool(S.rallyOk[t]))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
