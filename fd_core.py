@@ -37,6 +37,8 @@ class Params:
     shrinkS: float = 0.85
     bodyFrac: float = 0.0
     boxS: float = 1.0
+    rallyU: float = 0.0             # rallide etiket yok: son 5 mum yükselişi (u) bundan büyük VE tepeye yakınsa (rallyDd) (0 = kapalı)
+    rallyDd: float = 0.0            # 40 mumluk tepeden uzaklık (ADR katı) bundan küçükse rallide sayılır
     bodyADR: float = 0.1
     bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
     maxViol: int = 0
@@ -253,6 +255,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.tightOk = S.tightCore & S.riseOkW & S.slopeOkW
     S.strong = (tightLong & (S.shrinkVal <= P.strongShrink) & (S.closeBoxVal <= P.strongBox)) | tightShort
     S.dd40 = (_highest(c, 40) - c) / c * 100 / S.adr          # 40 mumluk tepeden uzaklık (ADR katı)
+    S.rallyOk = ~((S.riseVal > P.rallyU) & (S.dd40 < P.rallyDd)) if P.rallyU > 0 else np.ones(len(c), bool)
     S.e50d = (c - S.ema50) / c * 100 / S.adr                  # EMA50'ye uzaklık (ADR katı)
     S.lowAge = pd.Series(l).rolling(40, min_periods=10).apply(lambda w: len(w) - 1 - int(np.argmin(w)), raw=True).to_numpy()
     S.entryTrendOk = (c > S.ema50) if P.useTrend else np.ones(len(c), bool)
@@ -560,7 +563,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
 
         ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
         setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
-                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and ddOk)
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and bool(S.emaOk[t]) and ddOk and bool(S.rallyOk[t]))
+)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -593,7 +597,9 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if not S.emaOk[t]:
             why.append(f"e{S.emaSlope[t]:.2f}/{S.emaDist[t]:.2f}")
         if not ddOk:
-            why.append(f"T{S.dd40[t]:.1f}")
+            why.append(f"T{S.dd40[t]:.1f}")       
+        if not S.rallyOk[t]:
+            why.append("R")
         if S.tightOk[t] and not found:
             why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
         strong = bool(S.strong[t])
