@@ -51,6 +51,7 @@ class Params:
     minTb: int = 2
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     hPrefer: int = 0                # yatay da geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
+    dMinWithH: int = 0              # geçerli yatay seviye varsa düşen çizgi en az bu kadar temaslı olmalı (yoksa yatay seçilir)
     minClD: int = 0                 # düşen çizgi: ayrı temas kümesi min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
@@ -372,7 +373,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                     r.update(hL=cand, hSpan=sp, hTc=tc, hTb=tb, hFirst=ft, hLt=lt, hCl=cl, hOv=ov)
         r["near"] = "H:" + ",".join(nearFail or ["-"])
         return r
-            # --------- düşen çizgi taraması ---------
+
+    # --------- düşen çizgi taraması ---------
     def falling_best(t: int):
         pPt = list(pP)
         pXt = list(pX)
@@ -526,7 +528,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         elif P.modePref == "Yatay":
             useH = foundH
         else:
-            useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT)
+            useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT or bestTcT < P.dMinWithH)
 
         riseOkSel = S.riseOkN[t] if useH else S.riseOkW[t]
         slopeOkSel = S.slopeOkN[t] if useH else S.slopeOkW[t]
