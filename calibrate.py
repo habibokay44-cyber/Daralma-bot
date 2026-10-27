@@ -32,6 +32,8 @@ EXAMPLES = [
     ("DOBUR", "2023-09-25", "2023-10-15", False, "EMA düz/aşağı, çalışmayan daralma"),
     ("LOGO", "2024-01-08", "2024-01-19", True, "düşen çizgi altı"),
     ("YAYLA", "2024-01-02", "2024-01-12", True, "düşen çizgi altı"),
+    ("YAYLA", "2023-11-06", "2023-11-08", False, "7 Kasım: breakout mumunda etiket, daralma olamaz"),
+    ("YAYLA", "2023-11-14", "2023-11-21", True, "doğru daralma (ok), çizgi ana tepeden"),
     ("IDGYO", "2024-02-06", "2024-02-09", True, "ilk daralma"),
     ("IDGYO", "2024-04-04", "2024-04-16", True, "ikinci daralma"),
     ("BMSTL", "2024-10-21", "2024-11-11", True, "yatay direnç altı"),
