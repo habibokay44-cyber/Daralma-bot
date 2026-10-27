@@ -38,8 +38,7 @@ EXAMPLES = [
     ("JANTS", "2024-02-02", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
     ("TRCAS", "2024-07-09", "2024-07-16", True, "kırmızı ok bölgesi"),
-    ("METGUN", "2026-09-28", "2026-10-09", False, "düşüş trendinde V dönüşü (1)"),
-    ("METGUN", "2026-10-16", "2026-10-26", False, "düşüş trendinde V dönüşü (2)"),
+    ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
 ]
 
@@ -99,7 +98,7 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
         nr = ("\n  çevredeki olaylar (±25 gün): " + " | ".join(near[:8])) if near else ""
         return False, f"❌ {head}\n  sinyal yok{extra} [{px}]{nr}\n  en yakın mumlar: {best}"
     if live:
-        det = ", ".join(f"{e['date']:%d.%m} {e['mode']}" for e in live[:3])
+        det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:6])
         return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}]"
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}]"
 
@@ -126,17 +125,15 @@ EXTRA = {
 }
 # v50: düşen çizgi sıkılaştırma varyantları
 TIGHT = {
-    "yatay öncelik+2": dict(hPrefer=2),
-    "yatay öncelik+4": dict(hPrefer=4),
     "düşen dt4": dict(minTcD=4),
-    "düşen dt5": dict(minTcD=5),
-    "düşen 2 küme": dict(minClD=2),
-    "düşen 3 küme": dict(minClD=3),
-    "düşen dt4 + yatay+2": dict(minTcD=4, hPrefer=2),
-    "düşen 2 küme + yatay+2": dict(minClD=2, hPrefer=2),
-    "düşen 3 küme + yatay+3": dict(minClD=3, hPrefer=3),
-    "düşen tc4 dt4 küme2 yatay+3": dict(minTouches=4, minTcD=4, minClD=2, hPrefer=3),
-    "düşen dt3 küme3 yatay+3 EMA": dict(minClD=3, hPrefer=3, emaSlopeMin=-0.2, emaBelowMax=0.5),
+    "düşen dt4 + 2 küme": dict(minTcD=4, minClD=2),
+    "düşen dt4 + yatay+1": dict(minTcD=4, hPrefer=1),
+    "yatay öncelik+1": dict(hPrefer=1),
+    "yatay öncelik+1 + 2 küme": dict(hPrefer=1, minClD=2),
+    "düşen dt4 + EMA eski": dict(minTcD=4, emaSlopeMin=-0.2, emaBelowMax=0.5),
+    "düşen dt4 + EMA orta": dict(minTcD=4, emaSlopeMin=-0.8, emaBelowMax=1.0),
+    "düşen dt4 + hacim1.3": dict(minTcD=4, volMaxX=1.3),
+    "düşen dt4 + yatay+1 + 2 küme": dict(minTcD=4, hPrefer=1, minClD=2),
 }
 VARIANTS = [
     ("YENİ varsayılan (v49)", {}),
