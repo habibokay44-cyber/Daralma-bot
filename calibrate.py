@@ -47,6 +47,8 @@ EXAMPLES = [
     ("GMTAS", "2026-07-08", "2026-07-20", False, "temmuz: daralma yok, fiyat aşağı kayıyor"),
     ("GMTAS", "2026-08-01", "2026-08-10", False, "ağustos: çizgi doğru ama yatay savrulma, fitilli dojiler, daralma yok"),
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
+    ("BIGEN", "2026-08-03", "2026-08-11", True, "yeşil kutu: büyük beyaz mum sonrası küçük mumlar, direnç büyük mumun tepesi"),
+    ("BIGEN", "2026-08-14", "2026-08-24", False, "turuncu çizgi uzak zirveden, fiyat sert yükselirken etiket, daralma yok"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
 ]
 
@@ -137,17 +139,15 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (küme≥2 + EMA altı ≤0.5 + kısa kapalı)", {}),
-    ("kısa pencere açık", dict(useShort=True)),
-    ("uzun: oran ≤0.8", dict(shrink=0.8)),
+    ("düşen: yükseliş ≤1.2", dict(riseMaxD=1.2)),
+    ("düşen: yükseliş ≤1.0", dict(riseMaxD=1.0)),
+    ("düşen: yükseliş ≤0.8", dict(riseMaxD=0.8)),
+    ("çizgi en çok 30 mum geriye", dict(lookback=30)),
+    ("çizgi en çok 25 mum geriye", dict(lookback=25)),
     ("tepeden düşüş ≤3.5", dict(ddMax=3.5)),
-    ("EMA21 eğim min -0.5", dict(emaSlopeMin=-0.5)),
     ("kapanış kutusu ≤1.0", dict(closeBoxADR=1.0)),
-    ("gövde/aralık ≥0.20", dict(bodyFrac=0.20)),
-    ("gövde/aralık ≥0.25", dict(bodyFrac=0.25)),
-    ("gövde/aralık ≥0.30", dict(bodyFrac=0.30)),
-    ("gövde/aralık ≥0.35", dict(bodyFrac=0.35)),
-    ("gövde/aralık ≥0.40", dict(bodyFrac=0.40)),
 ]
+
 
 
 def score(frames: dict, kw: dict) -> dict:
