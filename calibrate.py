@@ -146,9 +146,6 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("p en fazla 0.90", dict(maxClosePos=0.90)),
-    ("p en fazla 0.85", dict(maxClosePos=0.85)),
-    ("p en fazla 0.80", dict(maxClosePos=0.80)),
 ]
 
 
