@@ -144,9 +144,6 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("iptal sonrası bekleme 2 mum", dict(cancelBlock=2)),
-    ("iptal sonrası bekleme 1 mum", dict(cancelBlock=1)),
-    ("iptal sonrası bekleme yok", dict(cancelBlock=0)),
 ]
 
 
