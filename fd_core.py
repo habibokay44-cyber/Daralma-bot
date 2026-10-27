@@ -37,7 +37,7 @@ class Params:
     shrinkS: float = 0.85
     boxS: float = 1.0
     bodyADR: float = 0.1
-    bodyADRD: float = 0.05
+    bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
     maxViol: int = 0
     violPct: float = 5.0
     bodyPokeMax: float = 0.4
@@ -50,11 +50,12 @@ class Params:
     minClusters: int = 2
     minTb: int = 2
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
-    hPrefer: int = 0                # yatay da geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
+    hPrefer: int = 0                # yatay seviye de geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
     dMinWithH: int = 0              # geçerli yatay seviye varsa düşen çizgi en az bu kadar temaslı olmalı (yoksa yatay seçilir)
     flatPrefer: float = 0.0         # yatay seviye de varsa ve düşen çizgi eğimi (|sn|) bundan küçükse yatayı seç (0 = kapalı)
-    fallbackD: bool = False         # yatay seçilir ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
-    minClD: int = 0                 # düşen çizgi: ayrı temas kümesi min. (0 = kapalı)
+    fbMinDt: int = 0                # fallbackD sadece düşen çizgi en az bu kadar dar-bant temaslıysa (dt) devreye girer
+    fallbackD: bool = False         # yatay seçilirse ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
+    minClD: int = 0                 # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
     closeBoxADR: float = 1.2
@@ -78,14 +79,14 @@ class Params:
     maxCandle: float = 1.3
     minClosePos: float = 0.0
     useJump: bool = True
-    jumpMax: float = 0.6
+    jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
     useVolSig: bool = True
-    volMaxX: float = 1.8
+    volMaxX: float = 1.8            # sinyal mumu hacmi / 20 mum ort. hacim (max)
     useRedSig: bool = True
-    sigRedMax: float = 0.3
-    useEmaTr: bool = True
-    emaSlopeMin: float = -0.8
-    emaBelowMax: float = 1.0
+    sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
+    useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
+    emaSlopeMin: float = -0.8       # EMA21'in 10 mumluk eğimi (ADR katı) min.
+    emaBelowMax: float = 1.0        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     nearADR: float = 2.2
     lastNear: float = 1.8
@@ -97,8 +98,8 @@ class Params:
     flatUp: float = 0.1
     maxDesc: float = 4.0
     allowHoriz: bool = True
-    modePref: str = "Otomatik"
-    levelSrc: str = "Fitil"
+    modePref: str = "Otomatik"      # Otomatik / Düşen / Yatay
+    levelSrc: str = "Fitil"         # Fitil / Gövde
     touchSpan: int = 4
     lastTouchMax: int = 5
     maxLineBack: int = 15
@@ -106,7 +107,7 @@ class Params:
     useTrend: bool = False
     cooldown: int = 8
     cancelBlock: int = 3
-    cancelClearsCooldown: bool = True
+    cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
     trigWin: int = 8
     trigVol: float = 0.0
     useStop: bool = True
@@ -115,11 +116,11 @@ class Params:
     redKillADR: float = 0.7
     useDrop: bool = True
     dropADR: float = 0.5
-    useAboveLbl: bool = True
+    useAboveLbl: bool = True        # Giriş: kapanış etiket kapanışının üstünde olsun
     strongShrink: float = 0.75
     strongBox: float = 0.9
     onlyStrong: bool = False
-    tpMode: str = "SMC direnç"
+    tpMode: str = "SMC direnç"      # "SMC direnç" / "Sabit R"
     tpMult: float = 2.0
     smcL: int = 5
     smcR: int = 5
@@ -128,7 +129,7 @@ class Params:
     tpMaxR: float = 6.0
     smcBufADR: float = 0.1
     maxHold: int = 30
-    warmup: int = 70
+    warmup: int = 30                # bu muma kadar sadece pivotlar toplanır
 
 
 # ---------------------------------------------------------------- yardımcılar
@@ -267,6 +268,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     return S
 
 
+
 # ---------------------------------------------------------------- ana motor
 def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
     """Tüm geçmişi mum mum işler. events: etiket ve Giriş olayları, trades: test işlemleri."""
@@ -279,8 +281,9 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
 
     events: list[dict] = []
     trades: list[dict] = []
-    diag: dict[int, str] = {}
+    diag: dict[int, str] = {}       # mum -> "neden sinyal yok" harfleri (Pine hata ayıklama ile aynı)
 
+    # --- durum değişkenleri (Pine "var") ---
     pP: list[float] = []
     pX: list[int] = []
     sP: list[float] = []
@@ -406,7 +409,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 hh = h[bars]
                 if (hh > lv + S.wickAbs[t]).any():
                     rejW += 1
-                    continue
+                    continue  # iğne çok taşıyor
                 mxOv = max(0.0, float(((hh - lv) / c_t * 100 / adr_t).max()))
                 bt = S.bodyTop[bars]
                 mxBody = max(0.0, float(((bt - lv) / c_t * 100 / adr_t).max()))
@@ -430,7 +433,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                     continue
                 lnN = pb + sl * (t - xB)
                 cl_ = c[t - nC + 1:t + 1]
-                lvl_ = pb + sl * (t - np.arange(0, nC) - xB)
+                lvl_ = pb + sl * (t - np.arange(0, nC) - xB)  # i = 0..nC-1 -> c[t-i]
                 gs = float(((lvl_ - c[t - np.arange(0, nC)]) / c[t - np.arange(0, nC)] * 100).sum())
                 aG = gs / nC / adr_t
                 lG = (lnN - c_t) / c_t * 100 / adr_t
@@ -467,6 +470,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
 
     # ================================================================ döngü
     for t in range(n):
+        # --- pivotlar (Pine'da tüm mumlarda toplanır) ---
         if not na(S.ph[t]):
             pP.append(float(S.ph[t]))
             pX.append(t - P.pvR)
@@ -474,6 +478,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 pP.pop(0)
                 pX.pop(0)
 
+        # --- SMC swing tepeleri: alınmış / eski olanları sil, yenisini ekle ---
         if sP:
             keep = [i for i in range(len(sP)) if not (h[t] > sP[i] or t - sX[i] > P.smcLook)]
             sP = [sP[i] for i in keep]
@@ -492,6 +497,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         close_t = c[t]
         bodyTol_t = S.bodyTol[t]
 
+        # --- aday çizgiler ---
         hz = hor_best(t) if S.tightCore[t] else dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN)
         fb = falling_best(t) if S.tightOk[t] else dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN,
                                                        ag=NAN, lg=NAN, sn=NAN, ov=NAN)
@@ -504,6 +510,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         found = foundD or foundH
         flatD = foundD and abs(nz(bestSN)) <= P.flatBand
 
+        # --- kilitler ve kırılımlar ---
         brokeOut = (not na(hLock)) and close_t > hLock + bodyTol_t
         if brokeOut:
             lastBreakBar = t
@@ -525,6 +532,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             dLockXA = None
             dLn = NAN
 
+        # --- mod seçimi ---
         if not na(hLock):
             useH = True
         elif not na(dLockPA):
@@ -535,8 +543,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             useH = foundH
         else:
             useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT or bestTcT < P.dMinWithH
-                               or (P.flatPrefer > 0 and abs(nz(bestSN)) < P.flatPrefer))
-            if useH and P.fallbackD and foundD and not flatD and not (bool(S.riseOkN[t]) and bool(S.slopeOkN[t])):
+                          or (P.flatPrefer > 0 and abs(nz(bestSN)) < P.flatPrefer))
+            if useH and P.fallbackD and foundD and not flatD and bestTcT >= P.fbMinDt and not (bool(S.riseOkN[t]) and bool(S.slopeOkN[t])):
                 useH = False
 
         riseOkSel = S.riseOkN[t] if useH else S.riseOkW[t]
@@ -605,6 +613,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         selLn = nz(hLock, hL) if useH else nz(dLn, bestLn)
         selSl = 0.0 if useH else nz(dLockSl, bestSl)
 
+        # --- iptal ve tetik ---
         stopInv = NAN if na(lblStop) else lblStop - P.stopBuf * adr_t / 100 * close_t
         redBody = (o[t] - close_t) / close_t * 100 / adr_t
         stopHit = P.useStop and (not na(stopInv)) and close_t < stopInv
@@ -646,6 +655,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if armed and lblBar is not None and t - lblBar >= P.trigWin:
             armed = False
 
+        # --- setup kaydı ---
         newSetup = setup and (not invalid) and (lastSetupBar is None or t - lastSetupBar > P.cooldown)
         if setup and not invalid:
             lastSetupBar = t
@@ -673,6 +683,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             )
             events.append(curSetupEv)
 
+        # --- Giriş: SL / TP ---
         entryRisk = close_t - l[t]
         entryTP = close_t + P.tpMult * entryRisk
         tpIsSmc = False
@@ -699,6 +710,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 setup_date=curSetupEv["date"] if curSetupEv is not None else None,
             ))
 
+        # --- geriye dönük test ---
         if tInTrade and t > tBar:
             exitPx = NAN
             why = 0
