@@ -52,6 +52,12 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
     return replace(P, warmup=30) if len(df) < P.warmup + 60 else P
 
 
+def mt(e: dict) -> str:
+    """Etiket mumunun trend ölçüleri: EMA21 eğim/uzaklık, 40 mum tepesinden düşüş, EMA50 uzaklık, son dip kaç mum önce."""
+    return (f"[ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f}]")
+
+
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     P = fitP(df, P)
     res = run(df, P)
@@ -72,13 +78,13 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     if expect:
         rq = MODE_REQ.get((sym, a))
         if live and rq and not any(e["mode"] == rq for e in live):
-            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:3])
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:3])
             return False, f"❌ {head}\n  etiket var ama mod yanlış ({rq} olmalı): {det}  [{px}]"
         if live:
-            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} v{e['v']:.1f} j{e['j']:.2f}" for e in live[:3])
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} {mt(e)}" for e in live[:3])
             return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
         if close_live:
-            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']}" for e in close_live[:3])
+            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']} {mt(e)}" for e in close_live[:3])
             return True, f"✅ (pencereye ±4 gün yakın) {head}\n  sinyal: {det}  [{px}]"
         rows = []
         for i in idx:
@@ -106,7 +112,7 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     info = f"veri {len(df)} mum ({df.index[0]:%d.%m.%Y}–{df.index[-1]:%d.%m.%Y})"
     short = f"\n  ℹ️ geçmiş kısa: ısınma {P.warmup} muma indirildi" if P.warmup < 70 else ""
     if live:
-        det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:6])
+        det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:6])
         return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]{short}"
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}; {info}]{short}"
 
@@ -131,14 +137,18 @@ EXTRA = {
     "dt2": dict(minTcD=2),
     "sıçrama0.9": dict(jumpMax=0.9),
 }
-# v50: düşen çizgi sıkılaştırma varyantları
+# v50: trend / sıkılaştırma varyantları
 TIGHT = {
-    "yatay varsa dt4 + dönüş": dict(dMinWithH=4, fallbackD=True),
-    "yatay varsa dt5 + dönüş": dict(dMinWithH=5, fallbackD=True),
-    "yatay varsa dt4 + dönüş + 2 küme": dict(dMinWithH=4, fallbackD=True, minClD=2),
+    "EMA orta": dict(emaSlopeMin=-0.8, emaBelowMax=1.0),
     "yatay varsa dt4 + dönüş + EMA orta": dict(dMinWithH=4, fallbackD=True, emaSlopeMin=-0.8, emaBelowMax=1.0),
-    "yatay varsa dt4 + dönüş + 2 küme + EMA orta": dict(dMinWithH=4, fallbackD=True, minClD=2, emaSlopeMin=-0.8, emaBelowMax=1.0),
-    "yatay varsa dt4 (dönüşsüz) + 2 küme + EMA orta": dict(dMinWithH=4, minClD=2, emaSlopeMin=-0.8, emaBelowMax=1.0),
+    "tepe düşüşü ≤3": dict(ddMax=3.0),
+    "tepe düşüşü ≤4": dict(ddMax=4.0),
+    "tepe düşüşü ≤5": dict(ddMax=5.0),
+    "tepe düşüşü ≤6": dict(ddMax=6.0),
+    "tepe düşüşü ≤8": dict(ddMax=8.0),
+    "EMA orta + tepe ≤4": dict(emaSlopeMin=-0.8, emaBelowMax=1.0, ddMax=4.0),
+    "EMA orta + tepe ≤6": dict(emaSlopeMin=-0.8, emaBelowMax=1.0, ddMax=6.0),
+    "EMA orta + dt4 + 2 küme + tepe ≤5": dict(emaSlopeMin=-0.8, emaBelowMax=1.0, minTcD=4, minClD=2, ddMax=5.0),
 }
 VARIANTS = [
     ("YENİ varsayılan (v49)", {}),
