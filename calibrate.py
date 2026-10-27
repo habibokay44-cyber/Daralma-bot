@@ -147,9 +147,6 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("EMA21 eğimi en az -0.5", dict(emaSlopeMin=-0.5)),
-    ("gövde oranı en az 0.20", dict(bodyFrac=0.20)),
-    ("gövde oranı en az 0.22", dict(bodyFrac=0.22)),
 ]
 
 
