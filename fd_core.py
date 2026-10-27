@@ -52,6 +52,7 @@ class Params:
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     hPrefer: int = 0                # yatay da geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
     dMinWithH: int = 0              # geçerli yatay seviye varsa düşen çizgi en az bu kadar temaslı olmalı (yoksa yatay seçilir)
+    fallbackD: bool = False         # yatay seçilir ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
     minClD: int = 0                 # düşen çizgi: ayrı temas kümesi min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
@@ -529,6 +530,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             useH = foundH
         else:
             useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT or bestTcT < P.dMinWithH)
+            if useH and P.fallbackD and foundD and not flatD and not (bool(S.riseOkN[t]) and bool(S.slopeOkN[t])):
+                useH = False
 
         riseOkSel = S.riseOkN[t] if useH else S.riseOkW[t]
         slopeOkSel = S.slopeOkN[t] if useH else S.slopeOkW[t]
