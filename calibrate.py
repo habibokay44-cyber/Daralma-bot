@@ -49,6 +49,7 @@ EXAMPLES = [
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
     ("BIGEN", "2026-08-03", "2026-08-11", True, "yeşil kutu: büyük beyaz mum sonrası küçük mumlar, direnç büyük mumun tepesi"),
     ("BIGEN", "2026-08-14", "2026-08-24", False, "turuncu çizgi uzak zirveden, fiyat sert yükselirken etiket, daralma yok"),
+    ("ATAKP", "2026-10-20", "2026-10-27", False, "kısa etiket: büyük beyaz mum sonrası daralma mumları henüz oluşmadı (1-2 küçük mum daha gerekli)"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
 ]
 
@@ -139,14 +140,15 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (küme≥2 + EMA altı ≤0.5 + kısa kapalı)", {}),
-    ("düşen: yükseliş ≤1.2", dict(riseMaxD=1.2)),
+    ("rallide yok: u>0.9 ve tepe<1.5", dict(rallyU=0.9, rallyDd=1.5)),
+    ("rallide yok: u>0.9 ve tepe<2.0", dict(rallyU=0.9, rallyDd=2.0)),
+    ("rallide yok: u>1.0 ve tepe<1.5", dict(rallyU=1.0, rallyDd=1.5)),
+    ("rallide yok: u>0.8 ve tepe<1.5", dict(rallyU=0.8, rallyDd=1.5)),
+    ("yükseliş alt sınırı -1.5", dict(riseMin=-1.5)),
+    ("yükseliş alt sınırı -2.2", dict(riseMin=-2.2)),
     ("düşen: yükseliş ≤1.0", dict(riseMaxD=1.0)),
-    ("düşen: yükseliş ≤0.8", dict(riseMaxD=0.8)),
-    ("çizgi en çok 30 mum geriye", dict(lookback=30)),
-    ("çizgi en çok 25 mum geriye", dict(lookback=25)),
-    ("tepeden düşüş ≤3.5", dict(ddMax=3.5)),
-    ("kapanış kutusu ≤1.0", dict(closeBoxADR=1.0)),
 ]
+
 
 
 
