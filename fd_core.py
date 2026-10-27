@@ -100,6 +100,7 @@ class Params:
     useTrend: bool = False
     cooldown: int = 8
     cancelBlock: int = 3
+    cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
     trigWin: int = 8
     trigVol: float = 0.0
     useStop: bool = True
@@ -608,6 +609,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             dLockXA = None
             lastCancelBar = t
             lblLive = False
+            if P.cancelClearsCooldown:
+                lastSetupBar = None
             sd = curSetupEv["date"] if curSetupEv is not None else None
             if curSetupEv is not None:
                 curSetupEv["cancelled"] = True
