@@ -84,6 +84,7 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             t_ = e_["t"]
             e_["u"], e_["s"] = float(res.S.riseVal[t_]), float(res.S.slopeVal[t_])
             e_["c"], e_["p"] = float(res.S.candRng[t_]), float(res.S.closePos[t_])
+            e_["bf"] = float(res.S.bodyFr[t_])
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
     head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
@@ -143,6 +144,9 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
+    ("iptal sonrası bekleme 2 mum", dict(cancelBlock=2)),
+    ("iptal sonrası bekleme 1 mum", dict(cancelBlock=1)),
+    ("iptal sonrası bekleme yok", dict(cancelBlock=0)),
 ]
 
 
