@@ -44,6 +44,7 @@ EXAMPLES = [
     ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
     ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden"),
+    ("GMTAS", "2026-06-01", "2026-10-27", False, "iki yanlış etiket: temmuz ortası (daralma yok) ve ağustos başı (çizgi yanlış)"),
 ]
 
 
@@ -60,14 +61,19 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, 40 mum tepesinden düşüş, EMA50 uzaklık, son dip kaç mum önce."""
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p."""
     return (f"[r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f}]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f}]")
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     P = fitP(df, P)
     res = run(df, P)
+    for e_ in res.events:  # etikete u/s/c/p ölçülerini ekle (sadece gösterim için)
+        if e_["type"] == "setup":
+            t_ = e_["t"]
+            e_["u"], e_["s"] = float(res.S.riseVal[t_]), float(res.S.slopeVal[t_])
+            e_["c"], e_["p"] = float(res.S.candRng[t_]), float(res.S.closePos[t_])
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
     head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
@@ -88,10 +94,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:3])
             return False, f"❌ {head}\n  etiket var ama mod yanlış ({rq} olmalı): {det}  [{px}]"
         if live:
-            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} {mt(e)}" for e in live[:3])
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:3])
             return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
         if close_live:
-            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']}" for e in close_live[:3])
+            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in close_live[:3])
             return True, f"✅ (pencereye ±4 gün yakın) {head}\n  sinyal: {det}  [{px}]"
         rows = []
         for i in idx:
