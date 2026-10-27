@@ -273,6 +273,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     return S
 
 
+
 # ---------------------------------------------------------------- ana motor
 def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
     """Tüm geçmişi mum mum işler. events: etiket ve Giriş olayları, trades: test işlemleri."""
@@ -562,7 +563,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
         ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
-                setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
+        setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and ddOk and bool(S.rallyOk[t]))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
@@ -596,7 +597,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if not S.emaOk[t]:
             why.append(f"e{S.emaSlope[t]:.2f}/{S.emaDist[t]:.2f}")
         if not ddOk:
-            why.append(f"T{S.dd40[t]:.1f}")       
+            why.append(f"T{S.dd40[t]:.1f}")
         if not S.rallyOk[t]:
             why.append("R")
         if S.tightOk[t] and not found:
@@ -773,6 +774,4 @@ def summarize(trades: list[dict]) -> dict:
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
     )
-
-
 
