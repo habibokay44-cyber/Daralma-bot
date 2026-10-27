@@ -72,9 +72,9 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p."""
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, gövde oranı bf, ADR ve son 5 mumun gerçek % aralığı."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f}]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}%]")
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
@@ -86,6 +86,8 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             e_["u"], e_["s"] = float(res.S.riseVal[t_]), float(res.S.slopeVal[t_])
             e_["c"], e_["p"] = float(res.S.candRng[t_]), float(res.S.closePos[t_])
             e_["bf"] = float(res.S.bodyFr[t_])
+            e_["adr"] = float(res.S.adr[t_])
+            e_["rg"] = float(res.S.tightVal[t_] * res.S.adr[t_])
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
     head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
@@ -145,6 +147,9 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
+    ("EMA21 eğimi en az -0.5", dict(emaSlopeMin=-0.5)),
+    ("gövde oranı en az 0.20", dict(bodyFrac=0.20)),
+    ("gövde oranı en az 0.22", dict(bodyFrac=0.22)),
 ]
 
 
