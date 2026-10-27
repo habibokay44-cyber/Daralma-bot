@@ -3,7 +3,7 @@
 
 Her örnek için verilen tarih penceresinde sinyal çıkıp çıkmadığını yazar. Çıkmadıysa
 her mumun neden elendiğini (Pine'daki hata ayıklama harfleri) en yakın mumlar için gösterir.
-Sonuç ekrana yazılır; --telegram ile Telegram'a da gider (uzunsa parçalanır).
+Sonuç ekrana yazılır; --telegram ile Telegram'a da gider.
 
   python calibrate.py --telegram
 """
@@ -20,6 +20,7 @@ from fd_core import Params, run, summarize
 from scan import fetch_tv_all, telegram_send
 
 # (hisse, pencere başı, pencere sonu, doğru örnek mi?, not)
+# Tarihler grafik görüntülerinden tahmindir; pencere yanlışsa "pencerede mum yok / fiyatlar şöyle" yazar.
 EXAMPLES = [
     ("ANELE", "2025-08-13", "2025-08-18", True, "taban, küçük beyaz mum"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
@@ -38,16 +39,19 @@ EXAMPLES = [
     ("JANTS", "2024-02-02", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
     ("TRCAS", "2024-07-09", "2024-07-16", True, "kırmızı ok bölgesi"),
-    ("KONTR", "2020-11-24", "2020-11-30", True, "ilk daralma, turuncu düşen çizgi doğru"),
-    ("KONTR", "2020-12-10", "2020-12-16", True, "ikinci daralma: MAVİ YATAY olmalı, düşen yanlış"),
-    ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü / daralma yok, direkt kırıyor"),
+    ("KONTR", "2020-11-30", "2020-12-04", True, "ilk daralma, turuncu düşen çizgi doğru"),
+    ("KONTR", "2020-12-18", "2020-12-24", True, "ikinci daralma: MAVİ YATAY olmalı"),
+    ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
-    ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden, direnç altı sıkışma yok"),
+    ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden"),
 ]
 
 
-# bu pencerede çıkan etiket bu modda olmalı
-MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-10"): "Yatay", ("KONTR", "2020-11-24"): "Düşen"}
+# bu pencerede çıkan etiket bu modda olmalı (DCTTR ocak: yatay çizgi, düşen değil)
+MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen"}
+
+# aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
+CAND = dict(minClD=2)
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
@@ -81,13 +85,13 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     if expect:
         rq = MODE_REQ.get((sym, a))
         if live and rq and not any(e["mode"] == rq for e in live):
-            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:3])
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:3])
             return False, f"❌ {head}\n  etiket var ama mod yanlış ({rq} olmalı): {det}  [{px}]"
         if live:
-            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:3])
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} {mt(e)}" for e in live[:3])
             return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
         if close_live:
-            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in close_live[:3])
+            det = ", ".join(f"{e['date']:%d.%m.%Y} {e['mode']}" for e in close_live[:3])
             return True, f"✅ (pencereye ±4 gün yakın) {head}\n  sinyal: {det}  [{px}]"
         rows = []
         for i in idx:
@@ -116,61 +120,28 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     short = f"\n  ℹ️ geçmiş {len(df)} mum, ısınma {P.warmup}: kısa geçmişte test zayıf" if len(df) < P.warmup + 20 else ""
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:6])
-        return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]{short}"
+        return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]"
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}; {info}]{short}"
 
 
-# v48 (eski) varsayılanlar: yeni varsayılanlarla karşılaştırmak için
-OLD = dict(emaSlopeMin=-0.2, emaBelowMax=0.5, riseMaxD=1.0, riseMin=-0.4, slopeMinD=-0.4, slopeMaxD=0.6,
-           riseMax=0.4, slopeMin=-0.15, slopeMax=0.4, maxCandle=1.0, minClosePos=0.2, volMaxX=1.3,
-           minTouches=4, minClusters=3, minTb=3, maxDesc=3.0, shrink=0.9, closeBoxADR=1.2, minTcD=3, jumpMax=0.6)
-# yeni varsayılana giren gevşetmeler (anahtar -> eski değer geri döner)
-ADOPTED = {
-    "EMA": ("emaSlopeMin", "emaBelowMax"),
-    "u/s düşen": ("riseMaxD", "riseMin", "slopeMinD", "slopeMaxD"),
-    "u/s yatay": ("riseMax", "slopeMin", "slopeMax"),
-    "mum c1.3 p0": ("maxCandle", "minClosePos"),
-    "hacim1.8": ("volMaxX",),
-    "yatay 3/2/2": ("minTouches", "minClusters", "minTb"),
-    "eğim4": ("maxDesc",),
-}
-# denenip gerek görülmeyenler: yeni varsayılana ek olarak denenir
-EXTRA = {
-    "r1.0 k1.5": dict(shrink=1.0, closeBoxADR=1.5),
-    "dt2": dict(minTcD=2),
-    "sıçrama0.9": dict(jumpMax=0.9),
-}
-# v50: trend / sıkılaştırma varyantları
-TIGHT = {
-    "yatay tercih 2.0 (dönüşsüz)": dict(flatPrefer=2.0),
-    "yatay tercih 2.5 (dönüşsüz)": dict(flatPrefer=2.5),
-    "yatay tercih 2.0 + dönüş dt≥5": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=5),
-    "yatay tercih 2.0 + dönüş dt≥6": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=6),
-    "yatay tercih 2.0 + dönüş dt≥8": dict(flatPrefer=2.0, fallbackD=True, fbMinDt=8),
-    "yatay tercih 2.5 + dönüş dt≥6": dict(flatPrefer=2.5, fallbackD=True, fbMinDt=6),
-    "yatay tercih 3.0 + dönüş dt≥6": dict(flatPrefer=3.0, fallbackD=True, fbMinDt=6),
-    "çizgi küme≥2": dict(minClD=2),
-    "çizgi küme≥2 + yatay tercih 2.0 + dönüş dt≥6": dict(minClD=2, flatPrefer=2.0, fallbackD=True, fbMinDt=6),
-    "ısınma 45": dict(warmup=45),
-    "ısınma 70": dict(warmup=70),
-}
+# v50: sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("YENİ varsayılan (v50)", {}),
+    ("ADAY (küme≥2)", {}),
+    ("küme kapalı (v50 varsayılan)", dict(minClD=0)),
     ("v49 (gevşek, trend filtresiz)", dict(emaSlopeMin=-1.5, emaBelowMax=1.5, ddMax=0.0)),
-    ("ESKİ varsayılan (v48)", dict(OLD)),
-    ("yeni, ama iptal sonrası eski bekleme", dict(cancelClearsCooldown=False)),
+    ("yatay varken düşen dt≥4 şart", dict(dMinWithH=4)),
+    ("yatay varken düşen dt≥5 şart", dict(dMinWithH=5)),
+    ("yatay varken düşen dt≥4 + dönüş dt≥4", dict(dMinWithH=4, fallbackD=True, fbMinDt=4)),
+    ("yatay tercih 2.0 + dönüş dt≥6", dict(flatPrefer=2.0, fallbackD=True, fbMinDt=6)),
+    ("küme≥3", dict(minClD=3)),
+    ("ısınma 45", dict(warmup=45)),
+    ("ısınma 70", dict(warmup=70)),
 ]
-for _n, _keys in ADOPTED.items():
-    VARIANTS.append((f"yeni, ama {_n} eski değerde", {k: OLD[k] for k in _keys}))
-for _n, _kw in TIGHT.items():
-    VARIANTS.append((f"SIKI {_n}", dict(_kw)))
-for _n, _kw in EXTRA.items():
-    VARIANTS.append((f"yeni + ek gevşetme {_n}", dict(_kw)))
 
 
 def score(frames: dict, kw: dict) -> dict:
     """Bir ayar için: kaç doğru örnek yakalandı, hangi yanlışlar çıktı, etiket yoğunluğu, geriye dönük test."""
-    P = replace(Params(), **kw)
+    P = replace(Params(), **{**CAND, **kw})
     hit = 0
     missed, badl = [], []
     nlab = bars = 0
@@ -219,22 +190,7 @@ def fmt(name: str, r: dict) -> str:
 
 def sweep(frames: dict) -> str:
     rows = [fmt(n, score(frames, kw)) for n, kw in VARIANTS]
-    return "🔬 Eşik denemesi (her satır yeni varsayılandan bir şeyi değiştirir):\n" + "\n".join(rows)
-
-
-def send_long(text: str) -> None:
-    """Telegram 4096 karakter sınırı: satır satır parçalara böl (her parça en çok ~3500 karakter)."""
-    parts, cur = [], ""
-    for line in text.split("\n"):
-        if cur and len(cur) + len(line) + 1 > 3500:
-            parts.append(cur)
-            cur = ""
-        cur = (cur + "\n" + line) if cur else line
-    if cur:
-        parts.append(cur)
-    for i, p in enumerate(parts, 1):
-        telegram_send(f"({i}/{len(parts)})\n" + p[:3900])
-        time.sleep(1)
+    return "🔬 Eşik denemesi (her satır ADAY ayardan bir şeyi değiştirir):\n" + "\n".join(rows)
 
 
 def main() -> None:
@@ -274,7 +230,7 @@ def main() -> None:
                 cand = f"arama yapılamadı: {e}"
             notfound.append(f"🔎 {s_} bulunamadı. Benzer: {cand or '-'}")
     sweep_txt = sweep(frames) + ("\n" + "\n".join(notfound) if notfound else "")
-    P = Params()
+    P = replace(Params(), **CAND)
     lines, ok = [], 0
     for sym, a, b, expect, note in EXAMPLES:
         df = frames.get(sym)
@@ -292,7 +248,17 @@ def main() -> None:
     out = summary + "\n\n" + sweep_txt + "\n\n" + "\n\n".join(lines)
     print(out)
     if args.telegram:
-        send_long(out)
+        parts, cur = [], ""
+        for line in out.split("\n"):
+            if cur and len(cur) + len(line) + 1 > 3500:
+                parts.append(cur)
+                cur = ""
+            cur = (cur + "\n" + line) if cur else line
+        if cur:
+            parts.append(cur)
+        for i, p in enumerate(parts, 1):
+            telegram_send(f"({i}/{len(parts)})\n" + p[:3900])
+            time.sleep(1)
 
 
 if __name__ == "__main__":
