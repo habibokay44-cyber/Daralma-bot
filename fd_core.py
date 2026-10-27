@@ -1,4 +1,4 @@
-"""Fiyat Daralması v48 - TradingView Pine göstergesinin Python portu.
+"""Fiyat Daralması v49 - TradingView Pine göstergesinin Python portu.
 
 Pine mantığı mum mum (durum makinesi olarak) birebir taşındı. Girdi: günlük OHLCV.
 Çıktı: "Fiyat Daralması" (etiket) ve "Giriş" olayları + geriye dönük test işlemleri.
@@ -46,9 +46,9 @@ class Params:
     rankADR: float = 0.2
     wickADR: float = 2.5
     maxOv: float = 0.8
-    minTouches: int = 4
-    minClusters: int = 3
-    minTb: int = 3
+    minTouches: int = 3
+    minClusters: int = 2
+    minTb: int = 2
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     tightADR: float = 1.0
     shrink: float = 0.9
@@ -59,28 +59,28 @@ class Params:
     useLowsH: bool = False
     lowUpH: float = 1.2
     useRise: bool = True
-    riseMin: float = -0.4
-    riseMax: float = 0.4
-    riseMaxD: float = 1.0
+    riseMin: float = -1.0
+    riseMax: float = 0.8
+    riseMaxD: float = 1.5
     useClose: bool = False
     closeNearY: float = 1.0
     useSlope: bool = True
-    slopeMin: float = -0.15
-    slopeMax: float = 0.4
-    slopeMinD: float = -0.4
-    slopeMaxD: float = 0.6
+    slopeMin: float = -0.5
+    slopeMax: float = 0.9
+    slopeMinD: float = -0.8
+    slopeMaxD: float = 1.2
     useCandle: bool = True
-    maxCandle: float = 1.0
-    minClosePos: float = 0.2
+    maxCandle: float = 1.3
+    minClosePos: float = 0.0
     useJump: bool = True
     jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
     useVolSig: bool = True
-    volMaxX: float = 1.3            # sinyal mumu hacmi / 20 mum ort. hacim (max)
+    volMaxX: float = 1.8            # sinyal mumu hacmi / 20 mum ort. hacim (max)
     useRedSig: bool = True
     sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
     useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
-    emaSlopeMin: float = -0.2       # EMA21'in 10 mumluk eğimi (ADR katı) min.
-    emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
+    emaSlopeMin: float = -1.5       # EMA21'in 10 mumluk eğimi (ADR katı) min.
+    emaBelowMax: float = 1.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -89,7 +89,7 @@ class Params:
     allowDesc: bool = True
     flatBand: float = 0.5
     flatUp: float = 0.1
-    maxDesc: float = 3.0
+    maxDesc: float = 4.0
     allowHoriz: bool = True
     modePref: str = "Otomatik"      # Otomatik / Düşen / Yatay
     levelSrc: str = "Fitil"         # Fitil / Gövde
