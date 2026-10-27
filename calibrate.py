@@ -44,7 +44,9 @@ EXAMPLES = [
     ("METEN", "2026-09-15", "2026-10-26", False, "METGUN Enerji: düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
     ("KRGYO", "2026-10-20", "2026-10-27", False, "sert çöküş sonrası sıçrama; çizgi sadece tepeden"),
-    ("GMTAS", "2026-06-01", "2026-10-27", False, "iki yanlış etiket: temmuz ortası (daralma yok) ve ağustos başı (çizgi yanlış)"),
+    ("GMTAS", "2026-07-08", "2026-07-20", False, "temmuz: daralma yok, fiyat aşağı kayıyor"),
+    ("GMTAS", "2026-08-01", "2026-08-10", False, "ağustos: çizgi yanlış, daralma yok"),
+    ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
 ]
 
 
@@ -135,13 +137,16 @@ VARIANTS = [
     ("ADAY (küme≥2)", {}),
     ("küme kapalı (v50 varsayılan)", dict(minClD=0)),
     ("v49 (gevşek, trend filtresiz)", dict(emaSlopeMin=-1.5, emaBelowMax=1.5, ddMax=0.0)),
+    ("tepeden düşüş ≤3.5", dict(ddMax=3.5)),
+    ("EMA21 altı ≤0.5", dict(emaBelowMax=0.5)),
+    ("yaklaşma u min -0.65", dict(riseMin=-0.65)),
+    ("düşen çizgi eğim s min -0.55", dict(slopeMinD=-0.55)),
+    ("u min -0.65 + s min -0.55", dict(riseMin=-0.65, slopeMinD=-0.55)),
+    ("kapanış kutusu ≤1.0", dict(closeBoxADR=1.0)),
+    ("tepe ≤3.5 + EMA altı ≤0.5", dict(ddMax=3.5, emaBelowMax=0.5)),
+    ("tepe ≤3.5 + kutu ≤1.0", dict(ddMax=3.5, closeBoxADR=1.0)),
     ("yatay varken düşen dt≥4 şart", dict(dMinWithH=4)),
-    ("yatay varken düşen dt≥5 şart", dict(dMinWithH=5)),
-    ("yatay varken düşen dt≥4 + dönüş dt≥4", dict(dMinWithH=4, fallbackD=True, fbMinDt=4)),
-    ("yatay tercih 2.0 + dönüş dt≥6", dict(flatPrefer=2.0, fallbackD=True, fbMinDt=6)),
-    ("küme≥3", dict(minClD=3)),
     ("ısınma 45", dict(warmup=45)),
-    ("ısınma 70", dict(warmup=70)),
 ]
 
 
