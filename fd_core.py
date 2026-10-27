@@ -37,8 +37,8 @@ class Params:
     shrinkS: float = 0.85
     bodyFrac: float = 0.0
     boxS: float = 1.0
-    rallyU: float = 0.0             # rallide etiket yok: son 5 mum yükselişi (u) bundan büyük VE tepeye yakınsa (rallyDd) (0 = kapalı)
-    rallyDd: float = 0.0            # 40 mumluk tepeden uzaklık (ADR katı) bundan küçükse rallide sayılır
+    rallyU: float = 0.9           # rallide etiket yok: son 5 mum yükselişi (u) bundan büyük VE tepeye yakınsa (rallyDd) (0 = kapalı)
+    rallyDd: float = 2.0           # 40 mumluk tepeden uzaklık (ADR katı) bundan küçükse rallide sayılır
     bodyADR: float = 0.1
     bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
     maxViol: int = 0
