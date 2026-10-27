@@ -48,8 +48,8 @@ MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay"}
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
-    """Yeni halka arz: geçmiş kısaysa ısınma süresini düşür (Pine'da ısınma yok)."""
-    return replace(P, warmup=30) if len(df) < P.warmup + 60 else P
+    """Ayar aynen kullanılır: geçmişi ısınma süresinden (warmup mum) kısa hisselerde sinyal çıkmaz (Pine'da da aynı şart olacak)."""
+    return P
 
 
 def mt(e: dict) -> str:
@@ -110,7 +110,7 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
         nr = ("\n  çevredeki olaylar (±25 gün): " + " | ".join(near[:8])) if near else ""
         return False, f"❌ {head}\n  sinyal yok{extra} [{px}]{nr}\n  en yakın mumlar: {best}"
     info = f"veri {len(df)} mum ({df.index[0]:%d.%m.%Y}–{df.index[-1]:%d.%m.%Y})"
-    short = f"\n  ℹ️ geçmiş kısa: ısınma {P.warmup} muma indirildi" if P.warmup < 70 else ""
+    short = f"\n  ℹ️ geçmiş {len(df)} mum < {P.warmup}+: yeni halka arzda sinyal çıkmaz (ısınma şartı), test bu yüzden bir şey kanıtlamaz" if len(df) < P.warmup + 20 else ""
     if live:
         det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)} {mt(e)}" for e in live[:6])
         return False, f"⚠️ {head}\n  YANLIŞ sinyal çıkıyor: {det}  [{px}; {info}]{short}"
@@ -139,14 +139,12 @@ EXTRA = {
 }
 # v50: trend / sıkılaştırma varyantları
 TIGHT = {
-    "yatay tercih |eğim|<1.5": dict(flatPrefer=1.5),
-    "yatay tercih |eğim|<2.0": dict(flatPrefer=2.0),
-    "yatay tercih |eğim|<2.5": dict(flatPrefer=2.5),
-    "tepe düşüşü ≤4": dict(ddMax=4.0),
-    "tepe düşüşü ≤7": dict(ddMax=7.0),
-    "EMA daha sıkı (-0.5/0.6)": dict(emaSlopeMin=-0.5, emaBelowMax=0.6),
-    "yatay tercih 2.0 + dt4 + 2 küme": dict(flatPrefer=2.0, minTcD=4, minClD=2),
-    "yatay tercih 2.0 + yatay varsa dt4": dict(flatPrefer=2.0, dMinWithH=4),
+    "yatay tercih 2.0 + dönüş": dict(flatPrefer=2.0, fallbackD=True),
+    "yatay tercih 2.5 + dönüş": dict(flatPrefer=2.5, fallbackD=True),
+    "yatay tercih 3.0 + dönüş": dict(flatPrefer=3.0, fallbackD=True),
+    "yatay tercih 2.0 + dönüş + tepe ≤4": dict(flatPrefer=2.0, fallbackD=True, ddMax=4.0),
+    "yatay tercih 2.0 + dönüş + EMA sıkı": dict(flatPrefer=2.0, fallbackD=True, emaSlopeMin=-0.5, emaBelowMax=0.6),
+    "yatay tercih 2.0 + dönüş + dt4 yatay varsa": dict(flatPrefer=2.0, fallbackD=True, dMinWithH=4),
 }
 VARIANTS = [
     ("YENİ varsayılan (v50)", {}),
