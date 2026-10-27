@@ -160,35 +160,47 @@ def fmt(name: str, r: dict) -> str:
             + f" | etiket/1000 mum {r['dens']:.1f}{tr}\n    kaçan: {', '.join(r['missed']) or '-'}")
 
 
+def merged(names: list[str]) -> dict:
+    d: dict = {}
+    for n in names:
+        d.update(COMPS[n])
+    return d
+
+
 def sweep(frames: dict, budget: int = 40 * 60) -> str:
+    """Geriye doğru eleme: hepsi gevşekken başla, doğru örnek sayısı düşmeyen ve yoğunluğu en çok azaltan gevşetmeyi çıkar."""
     t0 = time.time()
     rows = [fmt(n, score(frames, kw)) for n, kw in VARIANTS]
-    # açgözlü seçim: her adımda yanlış sinyal artmadan en çok doğru örneği kazandıran gevşetmeyi ekle
-    cur: dict = {}
-    names: list[str] = []
-    base = score(frames, cur)
-    path = [f"başlangıç: doğru {base['hit']}, yanlış {len(base['bad'])}, etiket/1000 {base['dens']:.1f}"]
-    left = dict(COMPS)
-    while left and time.time() - t0 < budget:
+    active = list(COMPS)
+    base = score(frames, merged(active))
+    path = [f"başlangıç (hepsi gevşek): doğru {base['hit']}, yanlış {len(base['bad'])}, etiket/1000 {base['dens']:.1f}, kaçan: {', '.join(base['missed']) or '-'}"]
+    while active and time.time() - t0 < budget:
         best = None
-        for n, d in left.items():
-            r = score(frames, dict(cur, **d))
-            if len(r["bad"]) > len(base["bad"]):
+        for n in active:
+            rest = [x for x in active if x != n]
+            r = score(frames, merged(rest))
+            if len(r["bad"]) > len(base["bad"]) or r["hit"] < base["hit"]:
                 continue
             key = (r["hit"], -r["dens"])
             if best is None or key > best[0]:
-                best = (key, n, d, r)
-        if best is None or best[3]["hit"] <= base["hit"]:
+                best = (key, n, rest, r)
+        if best is None:
             break
-        _, n, d, r = best
-        cur.update(d)
-        names.append(n)
-        left.pop(n)
-        base = r
-        path.append(f"+ {n}: doğru {r['hit']}, yanlış {len(r['bad'])}, etiket/1000 {r['dens']:.1f}, kaçan: {', '.join(r['missed']) or '-'}")
-    rows.append(fmt("SEÇİLEN (" + " + ".join(names) + ")", base))
-    rows.append("seçilen ayarlar: " + repr(cur))
-    return "🔬 Eşik denemesi:\n" + "\n".join(rows) + "\n\n🧭 Adım adım seçim:\n" + "\n".join(path)
+        _, n, rest, r = best
+        active, base = rest, r
+        st = r["st"]
+        pf = f" PF{st['profitFactor']:.2f} işlem {st['n']}" if st.get("n") else ""
+        path.append(f"- {n} çıkarıldı: doğru {r['hit']}, yanlış {len(r['bad'])}, etiket/1000 {r['dens']:.1f}{pf}")
+    contrib = []
+    for n in active:
+        if time.time() - t0 > budget + 600:
+            break
+        r = score(frames, merged([x for x in active if x != n]))
+        contrib.append(f"  {n}: çıkarılırsa doğru {r['hit']} (şimdi {base['hit']}), kaçan: {', '.join(r['missed']) or '-'}, etiket/1000 {r['dens']:.1f}")
+    rows.append(fmt("SEÇİLEN (" + " + ".join(active) + ")", base))
+    rows.append("seçilen ayarlar: " + repr(merged(active)))
+    return ("🔬 Eşik denemesi:\n" + "\n".join(rows) + "\n\n🧭 Geriye doğru eleme:\n" + "\n".join(path)
+            + "\n\n🔎 Kalan gevşetmelerin katkısı:\n" + ("\n".join(contrib) or "  -"))
 
 
 def main() -> None:
