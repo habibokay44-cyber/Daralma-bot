@@ -1,4 +1,4 @@
-"""Fiyat Daralması v49 - TradingView Pine göstergesinin Python portu.
+"""Fiyat Daralması v50 - TradingView Pine göstergesinin Python portu.
 
 Pine mantığı mum mum (durum makinesi olarak) birebir taşındı. Girdi: günlük OHLCV.
 Çıktı: "Fiyat Daralması" (etiket) ve "Giriş" olayları + geriye dönük test işlemleri.
@@ -37,7 +37,7 @@ class Params:
     shrinkS: float = 0.85
     boxS: float = 1.0
     bodyADR: float = 0.1
-    bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
+    bodyADRD: float = 0.05
     maxViol: int = 0
     violPct: float = 5.0
     bodyPokeMax: float = 0.4
@@ -50,6 +50,8 @@ class Params:
     minClusters: int = 2
     minTb: int = 2
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
+    hPrefer: int = 0                # yatay da geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
+    minClD: int = 0                 # düşen çizgi: ayrı temas kümesi min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
     closeBoxADR: float = 1.2
@@ -73,14 +75,14 @@ class Params:
     maxCandle: float = 1.3
     minClosePos: float = 0.0
     useJump: bool = True
-    jumpMax: float = 0.6            # sinyal mumu: önceki kapanışa göre değişim (ADR katı, max)
+    jumpMax: float = 0.6
     useVolSig: bool = True
-    volMaxX: float = 1.8            # sinyal mumu hacmi / 20 mum ort. hacim (max)
+    volMaxX: float = 1.8
     useRedSig: bool = True
-    sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
-    useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
-    emaSlopeMin: float = -1.5       # EMA21'in 10 mumluk eğimi (ADR katı) min.
-    emaBelowMax: float = 1.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
+    sigRedMax: float = 0.3
+    useEmaTr: bool = True
+    emaSlopeMin: float = -1.5
+    emaBelowMax: float = 1.5
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -91,8 +93,8 @@ class Params:
     flatUp: float = 0.1
     maxDesc: float = 4.0
     allowHoriz: bool = True
-    modePref: str = "Otomatik"      # Otomatik / Düşen / Yatay
-    levelSrc: str = "Fitil"         # Fitil / Gövde
+    modePref: str = "Otomatik"
+    levelSrc: str = "Fitil"
     touchSpan: int = 4
     lastTouchMax: int = 5
     maxLineBack: int = 15
@@ -100,7 +102,7 @@ class Params:
     useTrend: bool = False
     cooldown: int = 8
     cancelBlock: int = 3
-    cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
+    cancelClearsCooldown: bool = True
     trigWin: int = 8
     trigVol: float = 0.0
     useStop: bool = True
@@ -109,11 +111,11 @@ class Params:
     redKillADR: float = 0.7
     useDrop: bool = True
     dropADR: float = 0.5
-    useAboveLbl: bool = True        # Giriş: kapanış etiket kapanışının üstünde olsun
+    useAboveLbl: bool = True
     strongShrink: float = 0.75
     strongBox: float = 0.9
     onlyStrong: bool = False
-    tpMode: str = "SMC direnç"      # "SMC direnç" / "Sabit R"
+    tpMode: str = "SMC direnç"
     tpMult: float = 2.0
     smcL: int = 5
     smcR: int = 5
@@ -122,7 +124,7 @@ class Params:
     tpMaxR: float = 6.0
     smcBufADR: float = 0.1
     maxHold: int = 30
-    warmup: int = 70                # bu muma kadar sadece pivotlar toplanır
+    warmup: int = 70
 
 
 # ---------------------------------------------------------------- yardımcılar
@@ -270,9 +272,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
 
     events: list[dict] = []
     trades: list[dict] = []
-    diag: dict[int, str] = {}       # mum -> "neden sinyal yok" harfleri (Pine hata ayıklama ile aynı)
+    diag: dict[int, str] = {}
 
-    # --- durum değişkenleri (Pine "var") ---
     pP: list[float] = []
     pX: list[int] = []
     sP: list[float] = []
@@ -371,15 +372,14 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                     r.update(hL=cand, hSpan=sp, hTc=tc, hTb=tb, hFirst=ft, hLt=lt, hCl=cl, hOv=ov)
         r["near"] = "H:" + ",".join(nearFail or ["-"])
         return r
-
-    # --------- düşen çizgi taraması ---------
+            # --------- düşen çizgi taraması ---------
     def falling_best(t: int):
         pPt = list(pP)
         pXt = list(pX)
         if h[t] >= h[t - 1]:
             pPt.append(float(h[t]))
             pXt.append(t)
-        best = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, info="")
+        best = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, cl=0, info="")
         rejW = rejB = 0
         dInfo = ""
         dSc = -1
@@ -398,13 +398,16 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 hh = h[bars]
                 if (hh > lv + S.wickAbs[t]).any():
                     rejW += 1
-                    continue  # iğne çok taşıyor
+                    continue
                 mxOv = max(0.0, float(((hh - lv) / c_t * 100 / adr_t).max()))
                 bt = S.bodyTop[bars]
                 mxBody = max(0.0, float(((bt - lv) / c_t * 100 / adr_t).max()))
                 viol = int((bt > lv + S.bodyTolD[t]).sum())
                 tc = int((hh >= lv - S.touchTol[t]).sum())
-                tcT = int((np.abs(hh - lv) <= S.rankTol[t]).sum())
+                isTb = np.abs(hh - lv) <= S.rankTol[t]
+                tcT = int(isTb.sum())
+                xb = isTb[1:]
+                clD = int(np.count_nonzero(xb & ~np.concatenate(([False], xb[:-1])))) if len(xb) > 0 else 0
                 lineLen = t - xA + 1
                 violBad = viol > P.maxViol or (viol / lineLen * 100 > P.violPct) or mxBody > P.bodyPokeMax
                 belowBad = False
@@ -419,7 +422,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                     continue
                 lnN = pb + sl * (t - xB)
                 cl_ = c[t - nC + 1:t + 1]
-                lvl_ = pb + sl * (t - np.arange(0, nC) - xB)  # i = 0..nC-1 -> c[t-i]
+                lvl_ = pb + sl * (t - np.arange(0, nC) - xB)
                 gs = float(((lvl_ - c[t - np.arange(0, nC)]) / c[t - np.arange(0, nC)] * 100).sum())
                 aG = gs / nC / adr_t
                 lG = (lnN - c_t) / c_t * 100 / adr_t
@@ -445,16 +448,17 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                         flz.append(f"w{mxOv:.1f}")
                     if tcT < P.minTcD:
                         flz.append(f"dt{tcT}")
+                    if clD < P.minClD:
+                        flz.append(f"cl{clD}")
                     dInfo = ",".join(flz) or "-"
-                if score == 4 and mxOv <= P.maxOv and tcT >= P.minTcD:
+                if score == 4 and mxOv <= P.maxOv and tcT >= P.minTcD and clD >= P.minClD:
                     if na(best["pa"]) or tcT > best["tcT"] or (tcT == best["tcT"] and pa > best["pa"]):
-                        best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv)
+                        best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv, cl=clD)
         best["info"] = f"D:eleme iğne{rejW} gövde{rejB} " + (f"en iyi aday {dInfo}" if dSc >= 0 else "aday yok")
         return best
 
     # ================================================================ döngü
     for t in range(n):
-        # --- pivotlar (Pine'da tüm mumlarda toplanır) ---
         if not na(S.ph[t]):
             pP.append(float(S.ph[t]))
             pX.append(t - P.pvR)
@@ -462,7 +466,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 pP.pop(0)
                 pX.pop(0)
 
-        # --- SMC swing tepeleri: alınmış / eski olanları sil, yenisini ekle ---
         if sP:
             keep = [i for i in range(len(sP)) if not (h[t] > sP[i] or t - sX[i] > P.smcLook)]
             sP = [sP[i] for i in keep]
@@ -481,7 +484,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         close_t = c[t]
         bodyTol_t = S.bodyTol[t]
 
-        # --- aday çizgiler ---
         hz = hor_best(t) if S.tightCore[t] else dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN)
         fb = falling_best(t) if S.tightOk[t] else dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN,
                                                        ag=NAN, lg=NAN, sn=NAN, ov=NAN)
@@ -494,7 +496,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         found = foundD or foundH
         flatD = foundD and abs(nz(bestSN)) <= P.flatBand
 
-        # --- kilitler ve kırılımlar ---
         brokeOut = (not na(hLock)) and close_t > hLock + bodyTol_t
         if brokeOut:
             lastBreakBar = t
@@ -516,7 +517,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             dLockXA = None
             dLn = NAN
 
-        # --- mod seçimi ---
         if not na(hLock):
             useH = True
         elif not na(dLockPA):
@@ -526,7 +526,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         elif P.modePref == "Yatay":
             useH = foundH
         else:
-            useH = foundH and ((not foundD) or flatD or hTb > bestTcT)
+            useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT)
 
         riseOkSel = S.riseOkN[t] if useH else S.riseOkW[t]
         slopeOkSel = S.slopeOkN[t] if useH else S.slopeOkW[t]
@@ -591,7 +591,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         selLn = nz(hLock, hL) if useH else nz(dLn, bestLn)
         selSl = 0.0 if useH else nz(dLockSl, bestSl)
 
-        # --- iptal ve tetik ---
         stopInv = NAN if na(lblStop) else lblStop - P.stopBuf * adr_t / 100 * close_t
         redBody = (o[t] - close_t) / close_t * 100 / adr_t
         stopHit = P.useStop and (not na(stopInv)) and close_t < stopInv
@@ -633,7 +632,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if armed and lblBar is not None and t - lblBar >= P.trigWin:
             armed = False
 
-        # --- setup kaydı ---
         newSetup = setup and (not invalid) and (lastSetupBar is None or t - lastSetupBar > P.cooldown)
         if setup and not invalid:
             lastSetupBar = t
@@ -653,12 +651,12 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 short=bool(S.tightShort[t] and not S.tightLong[t]),
                 r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]), m=float(S.tightVal[t]),
                 touches=int(hz["hTc"] if useH else bestTc), dt=int(hTb if useH else bestTcT),
+                dcl=int(0 if useH else fb.get("cl", 0)), sn=float(nz(bestSN, 0.0)),
                 v=float(nz(S.volRatio[t], 0.0)), j=float(nz(S.jump[t], 0.0)), adr=float(adr_t),
                 stop=float(S.stopLvl[t]), cancelled=False, triggered=False,
             )
             events.append(curSetupEv)
 
-        # --- Giriş: SL / TP ---
         entryRisk = close_t - l[t]
         entryTP = close_t + P.tpMult * entryRisk
         tpIsSmc = False
@@ -685,7 +683,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 setup_date=curSetupEv["date"] if curSetupEv is not None else None,
             ))
 
-        # --- geriye dönük test ---
         if tInTrade and t > tBar:
             exitPx = NAN
             why = 0
@@ -741,3 +738,4 @@ def summarize(trades: list[dict]) -> dict:
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
     )
+
