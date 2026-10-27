@@ -24,23 +24,21 @@ EXAMPLES = [
     ("ANELE", "2025-08-13", "2025-08-18", True, "taban, küçük beyaz mum"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
     ("RYSAS", "2024-05-03", "2024-05-08", True, "düşen çizgi altı daralma"),
-    ("DCTTR", "2024-11-18", "2024-12-04", True, "yatay taban sonu"),
-    ("DCTTR", "2024-12-26", "2025-01-17", True, "ikinci daralma"),
-    ("DCTTR", "2025-04-24", "2025-05-09", True, "üçüncü daralma"),
+    ("DCTTR", "2025-01-02", "2025-01-15", True, "ikinci daralma"),
+    ("DCTTR", "2025-04-24", "2025-05-05", True, "üçüncü daralma"),
     ("DOBUR", "2023-07-10", "2023-08-10", True, "EMA yukarı eğimli"),
     ("DOBUR", "2024-02-09", "2024-02-15", True, "ikinci doğru daralma"),
     ("DOBUR", "2023-09-25", "2023-10-15", False, "EMA düz/aşağı, çalışmayan daralma"),
-    ("IEYHO", "2024-03-18", "2024-04-08", True, "direnç altı daralma"),
     ("LOGO", "2024-01-08", "2024-01-19", True, "düşen çizgi altı"),
     ("YAYLA", "2024-01-02", "2024-01-12", True, "düşen çizgi altı"),
-    ("IDGYO", "2024-01-29", "2024-02-12", True, "ilk daralma"),
-    ("IDGYO", "2024-03-08", "2024-03-22", True, "ikinci daralma"),
+    ("IDGYO", "2024-02-06", "2024-02-09", True, "ilk daralma"),
+    ("IDGYO", "2024-04-04", "2024-04-16", True, "ikinci daralma"),
     ("BMSTL", "2024-10-21", "2024-11-11", True, "yatay direnç altı"),
     ("TKNSA", "2023-08-14", "2023-09-08", True, "yükselen üçgen"),
     ("JANTS", "2024-02-02", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
     ("TRCAS", "2024-07-09", "2024-07-16", True, "kırmızı ok bölgesi"),
-    ("METEN", "2026-10-14", "2026-10-26", False, "yeni halka arz, düşüş trendinde V dönüşü"),
+    ("METEN", "2026-10-14", "2026-10-26", False, "düşüş trendinde V dönüşü"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
 ]
 
@@ -102,17 +100,18 @@ LOOSE = dict(E1, riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2, rise
              slopeMax=0.9, maxCandle=1.3, minClosePos=0.0, shrink=1.0, closeBoxADR=1.5, minTcD=2, volMaxX=1.8)
 VARIANTS = [
     ("mevcut", {}),
+    ("eski iptal bekleme", dict(cancelClearsCooldown=False)),
     ("EMA -1.5/-1.5 + sıçrama 0.9", E1),
-    ("+ u üst 1.5, u alt -1.0", dict(E1, riseMaxD=1.5, riseMin=-1.0)),
-    ("+ eğim s -0.8..1.2 (düşen)", dict(E1, slopeMinD=-0.8, slopeMaxD=1.2)),
     ("+ u ve s gevşek", dict(E1, riseMaxD=1.5, riseMin=-1.0, slopeMinD=-0.8, slopeMaxD=1.2)),
-    ("+ yatay u/s gevşek", dict(E1, riseMax=0.8, riseMin=-1.0, slopeMin=-0.5, slopeMax=0.9)),
     ("+ mum c 1.3, p 0", dict(E1, maxCandle=1.3, minClosePos=0.0)),
-    ("+ r 1.0, k 1.5", dict(E1, shrink=1.0, closeBoxADR=1.5)),
+    ("+ yatay kümeler 2", dict(E1, minClusters=2)),
+    ("+ yatay kümeler 2, dar temas 2", dict(E1, minClusters=2, minTb=2)),
+    ("+ yatay temas 3, küme 2, dar 2", dict(E1, minTouches=3, minClusters=2, minTb=2)),
+    ("+ düşüş eğimi max 4", dict(E1, maxDesc=4.0)),
     ("+ dt 2", dict(E1, minTcD=2)),
     ("+ hacim 1.8", dict(E1, volMaxX=1.8)),
     ("hepsi gevşek", LOOSE),
-    ("hepsi gevşek, EMA kapalı", dict(LOOSE, useEmaTr=False)),
+    ("hepsi gevşek + yatay 3/2/2 + eğim 4", dict(LOOSE, minTouches=3, minClusters=2, minTb=2, maxDesc=4.0)),
 ]
 
 
@@ -151,7 +150,7 @@ def sweep(frames: dict) -> str:
                 bad += 1
                 badl.append(f"{sym}{a[5:7]}{a[8:]}")
         rows.append(f"• {name}: doğru {hit}, kaçan {miss}, YANLIŞ {bad}" + (f" ({', '.join(badl)})" if badl else "")
-                    + (f"\n    kaçan: {', '.join(missed)}" if name in ("mevcut", "hepsi gevşek") else ""))
+                    + f"\n    kaçan: {', '.join(missed) or '-'}")
     return "🔬 Eşik denemesi:\n" + "\n".join(rows)
 
 
