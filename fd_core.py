@@ -52,6 +52,7 @@ class Params:
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     hPrefer: int = 0                # yatay da geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
     dMinWithH: int = 0              # geçerli yatay seviye varsa düşen çizgi en az bu kadar temaslı olmalı (yoksa yatay seçilir)
+    flatPrefer: float = 0.0         # yatay seviye de varsa ve düşen çizgi eğimi (|sn|) bundan küçükse yatayı seç (0 = kapalı)
     fallbackD: bool = False         # yatay seçilir ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
     minClD: int = 0                 # düşen çizgi: ayrı temas kümesi min. (0 = kapalı)
     tightADR: float = 1.0
@@ -83,9 +84,9 @@ class Params:
     useRedSig: bool = True
     sigRedMax: float = 0.3
     useEmaTr: bool = True
-    emaSlopeMin: float = -1.5
-    emaBelowMax: float = 1.5
-    ddMax: float = 0.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
+    emaSlopeMin: float = -0.8
+    emaBelowMax: float = 1.0
+    ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -533,7 +534,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         elif P.modePref == "Yatay":
             useH = foundH
         else:
-            useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT or bestTcT < P.dMinWithH)
+            useH = foundH and ((not foundD) or flatD or hTb + P.hPrefer > bestTcT or bestTcT < P.dMinWithH
+                               or (P.flatPrefer > 0 and abs(nz(bestSN)) < P.flatPrefer))
             if useH and P.fallbackD and foundD and not flatD and not (bool(S.riseOkN[t]) and bool(S.slopeOkN[t])):
                 useH = False
 
@@ -752,6 +754,4 @@ def summarize(trades: list[dict]) -> dict:
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
     )
-
-
 
