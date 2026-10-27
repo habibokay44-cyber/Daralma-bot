@@ -47,6 +47,7 @@ EXAMPLES = [
     ("GMTAS", "2026-07-08", "2026-07-20", False, "temmuz: daralma yok, fiyat aşağı kayıyor"),
     ("GMTAS", "2026-08-01", "2026-08-10", False, "ağustos: çizgi yanlış, daralma yok"),
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
+    ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket: büyük fitilli mumlar, düşüş trendi, daralma yok (tarihi bu çıktıdan öğreneceğiz)"),
 ]
 
 
@@ -64,7 +65,7 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 def mt(e: dict) -> str:
     """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p."""
-    return (f"[r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
+    return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
             f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f}]")
 
 
@@ -135,18 +136,15 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (küme≥2 + EMA altı ≤0.5)", {}),
-    ("EMA altı eski (1.0)", dict(emaBelowMax=1.0)),
-    ("küme kapalı", dict(minClD=0)),
-    ("iğne taşması w ≤0.6", dict(maxOv=0.6)),
-    ("iğne taşması w ≤0.5", dict(maxOv=0.5)),
-    ("iğne taşması w ≤0.4", dict(maxOv=0.4)),
-    ("iğne taşması w ≤0.3", dict(maxOv=0.3)),
+    ("kısa pencere (3 mum) kapalı", dict(useShort=False)),
+    ("kısa: önceki mumlara oran ≤0.7", dict(shrinkS=0.7)),
+    ("kısa: kapanış kutusu ≤0.7", dict(boxS=0.7)),
+    ("kısa: mum aralığı ≤0.8", dict(tightS=0.8)),
+    ("kısa: oran ≤0.7 + aralık ≤0.8", dict(shrinkS=0.7, tightS=0.8)),
+    ("uzun: oran ≤0.8", dict(shrink=0.8)),
     ("tepeden düşüş ≤3.5", dict(ddMax=3.5)),
-    ("yaklaşma u min -0.65", dict(riseMin=-0.65)),
+    ("EMA21 eğim min -0.5", dict(emaSlopeMin=-0.5)),
     ("kapanış kutusu ≤1.0", dict(closeBoxADR=1.0)),
-    ("w ≤0.5 + tepe ≤3.5", dict(maxOv=0.5, ddMax=3.5)),
-    ("w ≤0.5 + u min -0.65", dict(maxOv=0.5, riseMin=-0.65)),
-    ("gövde ihlali payı 0.02 (bodyADRD)", dict(bodyADRD=0.02)),
 ]
 
 
