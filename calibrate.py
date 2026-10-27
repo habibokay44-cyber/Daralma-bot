@@ -38,9 +38,14 @@ EXAMPLES = [
     ("JANTS", "2024-02-02", "2024-02-08", True, "giriş (a)"),
     ("ATAGY", "2024-01-22", "2024-02-05", True, "giriş 1"),
     ("TRCAS", "2024-07-09", "2024-07-16", True, "kırmızı ok bölgesi"),
-    ("METEN", "2026-10-14", "2026-10-26", False, "düşüş trendinde V dönüşü"),
+    ("METGUN", "2026-09-28", "2026-10-09", False, "düşüş trendinde V dönüşü (1)"),
+    ("METGUN", "2026-10-16", "2026-10-26", False, "düşüş trendinde V dönüşü (2)"),
     ("BAHKM", "2026-10-05", "2026-10-23", False, "düşen siyah mumda etiket"),
 ]
+
+
+# bu pencerede çıkan etiket bu modda olmalı (DCTTR ocak: yatay çizgi, düşen değil)
+MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay"}
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
@@ -60,6 +65,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     close_live = [e for e in res.events if e["type"] == "setup" and not e.get("cancelled")
                   and ta - tolD <= e["date"] <= tb + tolD]
     if expect:
+        rq = MODE_REQ.get((sym, a))
+        if live and rq and not any(e["mode"] == rq for e in live):
+            det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} cl{e.get('dcl', 0)}" for e in live[:3])
+            return False, f"❌ {head}\n  etiket var ama mod yanlış ({rq} olmalı): {det}  [{px}]"
         if live:
             det = ", ".join(f"{e['date']:%d.%m} {e['mode']} dt{e['dt']} v{e['v']:.1f} j{e['j']:.2f}" for e in live[:3])
             return True, f"✅ {head}\n  sinyal var: {det}  [{px}]"
@@ -115,6 +124,20 @@ EXTRA = {
     "dt2": dict(minTcD=2),
     "sıçrama0.9": dict(jumpMax=0.9),
 }
+# v50: düşen çizgi sıkılaştırma varyantları
+TIGHT = {
+    "yatay öncelik+2": dict(hPrefer=2),
+    "yatay öncelik+4": dict(hPrefer=4),
+    "düşen dt4": dict(minTcD=4),
+    "düşen dt5": dict(minTcD=5),
+    "düşen 2 küme": dict(minClD=2),
+    "düşen 3 küme": dict(minClD=3),
+    "düşen dt4 + yatay+2": dict(minTcD=4, hPrefer=2),
+    "düşen 2 küme + yatay+2": dict(minClD=2, hPrefer=2),
+    "düşen 3 küme + yatay+3": dict(minClD=3, hPrefer=3),
+    "düşen tc4 dt4 küme2 yatay+3": dict(minTouches=4, minTcD=4, minClD=2, hPrefer=3),
+    "düşen dt3 küme3 yatay+3 EMA": dict(minClD=3, hPrefer=3, emaSlopeMin=-0.2, emaBelowMax=0.5),
+}
 VARIANTS = [
     ("YENİ varsayılan (v49)", {}),
     ("ESKİ varsayılan (v48)", dict(OLD)),
@@ -122,6 +145,8 @@ VARIANTS = [
 ]
 for _n, _keys in ADOPTED.items():
     VARIANTS.append((f"yeni, ama {_n} eski değerde", {k: OLD[k] for k in _keys}))
+for _n, _kw in TIGHT.items():
+    VARIANTS.append((f"SIKI {_n}", dict(_kw)))
 for _n, _kw in EXTRA.items():
     VARIANTS.append((f"yeni + ek gevşetme {_n}", dict(_kw)))
 
@@ -153,7 +178,10 @@ def score(frames: dict, kw: dict) -> dict:
                     and ta - tolD <= e["date"] <= tb + tolD]
             tag = f"{sym}{a[5:7]}{a[8:]}"
             if expect:
-                if live:
+                rq = MODE_REQ.get((sym, a))
+                if live and rq and not any(e["mode"] == rq for e in live):
+                    missed.append(tag + "(mod)")
+                elif live:
                     hit += 1
                 else:
                     missed.append(tag)
