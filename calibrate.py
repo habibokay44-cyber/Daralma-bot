@@ -54,7 +54,7 @@ EXAMPLES = [
 MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen"}
 
 # aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
-CAND = dict(minClD=2)
+CAND = dict(minClD=2, emaBelowMax=0.5)
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
@@ -132,21 +132,21 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}; {info}]{short}"
 
 
-# v50: sıkılaştırma varyantları (hepsi CAND üstüne)
+# sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("ADAY (küme≥2)", {}),
-    ("küme kapalı (v50 varsayılan)", dict(minClD=0)),
-    ("v49 (gevşek, trend filtresiz)", dict(emaSlopeMin=-1.5, emaBelowMax=1.5, ddMax=0.0)),
+    ("ADAY (küme≥2 + EMA altı ≤0.5)", {}),
+    ("EMA altı eski (1.0)", dict(emaBelowMax=1.0)),
+    ("küme kapalı", dict(minClD=0)),
+    ("iğne taşması w ≤0.6", dict(maxOv=0.6)),
+    ("iğne taşması w ≤0.5", dict(maxOv=0.5)),
+    ("iğne taşması w ≤0.4", dict(maxOv=0.4)),
+    ("iğne taşması w ≤0.3", dict(maxOv=0.3)),
     ("tepeden düşüş ≤3.5", dict(ddMax=3.5)),
-    ("EMA21 altı ≤0.5", dict(emaBelowMax=0.5)),
     ("yaklaşma u min -0.65", dict(riseMin=-0.65)),
-    ("düşen çizgi eğim s min -0.55", dict(slopeMinD=-0.55)),
-    ("u min -0.65 + s min -0.55", dict(riseMin=-0.65, slopeMinD=-0.55)),
     ("kapanış kutusu ≤1.0", dict(closeBoxADR=1.0)),
-    ("tepe ≤3.5 + EMA altı ≤0.5", dict(ddMax=3.5, emaBelowMax=0.5)),
-    ("tepe ≤3.5 + kutu ≤1.0", dict(ddMax=3.5, closeBoxADR=1.0)),
-    ("yatay varken düşen dt≥4 şart", dict(dMinWithH=4)),
-    ("ısınma 45", dict(warmup=45)),
+    ("w ≤0.5 + tepe ≤3.5", dict(maxOv=0.5, ddMax=3.5)),
+    ("w ≤0.5 + u min -0.65", dict(maxOv=0.5, riseMin=-0.65)),
+    ("gövde ihlali payı 0.02 (bodyADRD)", dict(bodyADRD=0.02)),
 ]
 
 
