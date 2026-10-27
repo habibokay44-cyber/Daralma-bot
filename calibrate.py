@@ -55,6 +55,7 @@ EXAMPLES = [
     ("BAHKM", "2026-08-03", "2026-08-26", True, "ağustos: düşen çizgi altında bariz daralma, sonra yukarı kırılım (etiket olmalı)"),
     ("ATAKP", "2026-10-20", "2026-10-27", False, "kısa etiket: büyük beyaz mum sonrası daralma mumları henüz oluşmadı (1-2 küçük mum daha gerekli)"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
+    ("TUKAS", "2026-10-06", "2026-10-20", False, "kısa daralma yok: mumlar çok volatil, çizgi yanlış (illa çizilecekse yatay olmalı)"),
 ]
 
 
