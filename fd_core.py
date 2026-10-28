@@ -35,7 +35,7 @@ class Params:
     useShort: bool = False
     tightS: float = 1.0
     shrinkS: float = 0.85
-    bodyFrac: float = 0.18
+    bodyFrac: float = 0.17
     boxS: float = 1.0
     rallyU: float = 0.9             # rallide etiket yok: son 5 mum yükselişi (u) bundan büyük VE tepeye yakınsa (rallyDd) (0 = kapalı)
     rallyDd: float = 2.0            # 40 mumluk tepeden uzaklık (ADR katı) bundan küçükse rallide sayılır
