@@ -56,6 +56,7 @@ EXAMPLES = [
     ("ATAKP", "2026-10-20", "2026-10-27", False, "kısa etiket: büyük beyaz mum sonrası daralma mumları henüz oluşmadı (1-2 küçük mum daha gerekli)"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
     ("TUKAS", "2026-10-06", "2026-10-20", False, "kısa daralma yok: mumlar çok volatil, çizgi yanlış (illa çizilecekse yatay olmalı)"),
+    ("TTKOM", "2026-09-28", "2026-10-06", False, "daralma yok: kutuda art arda 3 kırmızı mum, aşağı akış, kümelenme yok"),
 ]
 
 
@@ -72,9 +73,9 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, gövde oranı bf, ADR ve son 5 mumun gerçek % aralığı."""
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, gövde oranı bf, ADR, son 5 mumun gerçek % aralığı rg, son 5 mumda kırmızı sayısı kr, bir öncekinden düşük kapanış sayısı lc."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}%]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)}]")
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
@@ -88,6 +89,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             e_["bf"] = float(res.S.bodyFr[t_])
             e_["adr"] = float(res.S.adr[t_])
             e_["rg"] = float(res.S.tightVal[t_] * res.S.adr[t_])
+            cs_ = list(df["Close"].iloc[max(t_ - 5, 0):t_ + 1])
+            os_ = list(df["Open"].iloc[max(t_ - 4, 0):t_ + 1])
+            e_["kr"] = sum(1 for o_, c_ in zip(os_, cs_[-len(os_):]) if c_ < o_)
+            e_["lc"] = sum(1 for i_ in range(1, len(cs_)) if cs_[i_] < cs_[i_ - 1])
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
     head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
