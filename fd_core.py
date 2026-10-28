@@ -92,7 +92,7 @@ class Params:
     emaSlopeMin: float = -0.5       # EMA21'in 10 mumluk eğimi (ADR katı) min.
     emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
-    useBox: bool = False            # KUTU modu: çizgi bulunamasa da uzun yatay taban kutusu (boxN mum) daralma sayılır
+    useBox: bool = True          # KUTU modu: çizgi bulunamasa da uzun yatay taban kutusu (boxN mum) daralma sayılır
     boxN: int = 15                  # kutu: son kaç mum
     boxBody: float = 1.3            # kutu: gövde tepesi - gövde dibi aralığı (ADR katı, max)
     boxHL: float = 2.5              # kutu: fitilli en yüksek - en düşük aralığı (ADR katı, max)
