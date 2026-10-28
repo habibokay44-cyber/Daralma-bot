@@ -52,6 +52,7 @@ class Params:
     minTouches: int = 3
     minClusters: int = 2
     minTb: int = 2
+    tbCl: bool = False
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     hPrefer: int = 0                # yatay seviye de geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
     dMinWithH: int = 0              # geçerli yatay seviye varsa düşen çizgi en az bu kadar temaslı olmalı (yoksa yatay seçilir)
@@ -351,7 +352,14 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 pos = np.flatnonzero(isT)
                 lastT = int(pos[0]) + 1
                 firstT = int(pos[-1]) + 1
-            tb = int((d <= S.rankTol[t]).sum())
+            mk = d <= S.rankTol[t]
+            if P.tbCl:
+                pv = np.concatenate(([False], mk[:-1]))
+                tb = int(np.count_nonzero(mk & ~pv))
+            else:
+                tb = int(mk.sum())
+
+        
         mxH = L
         if firstT >= 0:
             mxH = max(mxH, float(h[t - firstT:t + 1].max()))
