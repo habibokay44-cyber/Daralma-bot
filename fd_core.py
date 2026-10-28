@@ -61,7 +61,7 @@ class Params:
     minClD: int = 2                 # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
-    closeBoxADR: float = 1.2
+    closeBoxADR: float = 1.0
     useLows: bool = True
     lowTolADR: float = 0.5
     lowUpADR: float = 2.8
@@ -89,7 +89,7 @@ class Params:
     useRedSig: bool = True
     sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
     useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
-    emaSlopeMin: float = -0.8       # EMA21'in 10 mumluk eğimi (ADR katı) min.
+    emaSlopeMin: float = -0.5      # EMA21'in 10 mumluk eğimi (ADR katı) min.
     emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     nearADR: float = 2.2
