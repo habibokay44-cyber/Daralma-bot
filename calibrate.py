@@ -14,6 +14,7 @@ import sys
 import time
 from dataclasses import replace
 
+import numpy as np
 import pandas as pd
 
 from fd_core import Params, run, summarize
@@ -59,6 +60,9 @@ EXAMPLES = [
     ("TTKOM", "2026-09-28", "2026-10-06", False, "daralma yok: kutuda art arda 3 kırmızı mum, aşağı akış, kümelenme yok"),
     ("VKING", "2026-04-06", "2026-04-15", False, "ilk etiket: 7 ve 13 Nisan büyük mumları daralmayı bozuyor, çizgi yanlış"),
     ("VKING", "2026-04-27", "2026-05-08", False, "ikinci etiket: çizgi yanlış, daralma yok (doğru çizgi Mart tepesinden uzun noktalı çizgi)"),
+    ("HKTM", "2026-08-04", "2026-08-14", True, "yeşil kutu: düşüş sonrası taban, kırılım mumu hariç"),
+    ("MARTI", "2026-08-04", "2026-08-26", True, "yeşil kutu: sert düşüş sonrası uzun yatay taban, sonra rally"),
+    ("TERA", "2025-08-29", "2025-10-03", True, "noktalı düşen çizgi altında bariz daralma, sonra kırılım"),
 ]
 
 
@@ -75,9 +79,37 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, gövde oranı bf, ADR, son 5 mumun gerçek % aralığı rg, son 5 mumda kırmızı sayısı kr, bir öncekinden düşük kapanış sayısı lc."""
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
             f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f}]")
+
+
+LAST_BOX = ""
+
+
+def box_line(df: pd.DataFrame, res, idx: list) -> str:
+    """Kutu ölçümü: pencerede kutu gibi en sıkı gün için, son W mumun gövde kutusu (bb) ve fitilli kutusu (hb), ADR katı."""
+    S = res.S
+    bt = np.maximum(S.o, S.c)
+    bl = np.minimum(S.o, S.c)
+    parts = []
+    for W in (7, 10, 15):
+        hiB = pd.Series(bt).rolling(W).max().to_numpy()
+        loB = pd.Series(bl).rolling(W).min().to_numpy()
+        hiH = pd.Series(S.h).rolling(W).max().to_numpy()
+        loL = pd.Series(S.l).rolling(W).min().to_numpy()
+        bb = (hiB / loB - 1) * 100 / S.adr
+        hb = (hiH / loL - 1) * 100 / S.adr
+        ok = [i for i in idx if i >= W and bb[i] == bb[i]]
+        if not ok:
+            continue
+        i = min(ok, key=lambda k: bb[k])
+        parts.append(f"W{W} {df.index[i]:%d.%m} bb{bb[i]:.2f} hb{hb[i]:.2f}")
+    if not parts:
+        return ""
+    i = idx[-1]
+    ctx = f"son gün {df.index[i]:%d.%m}: ema{float(S.emaSlope[i]):+.2f}/{float(S.emaDist[i]):+.2f} tepe-{float(S.dd40[i]):.1f} e50{float(S.e50d[i]):+.1f}"
+    return "  kutu ölçümü: " + " | ".join(parts) + " | " + ctx
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
@@ -98,8 +130,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             w0_ = max(t_ - 4, 0)
             e_["mx"] = float(max(res.S.candRng[w0_:t_ + 1]))
             e_["mb"] = max(abs(float(df["Close"].iloc[i_]) - float(df["Open"].iloc[i_])) / float(df["Close"].iloc[i_]) * 100 / float(res.S.adr[t_]) for i_ in range(w0_, t_ + 1))
+    global LAST_BOX
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
     idx = [i for i, d in enumerate(df.index) if ta <= d <= tb]
+    LAST_BOX = box_line(df, res, idx) if idx else ""
     head = f"{sym} {ta:%d.%m.%Y}–{tb:%d.%m.%Y} ({'doğru örnek' if expect else 'YANLIŞ örnek'}: {note})"
     if not idx:
         return False, (f"⚠️ {head}\n  pencerede mum yok. Veri {df.index[0]:%d.%m.%Y}–{df.index[-1]:%d.%m.%Y}")
@@ -154,12 +188,12 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}; {info}]{short}"
 
 
+
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("pencere 80", {"lookback": 80}),
-    ("pencere 120", {"lookback": 120}),
 ]
+
 
 def score(frames: dict, kw: dict) -> dict:
     """Bir ayar için: kaç doğru örnek yakalandı, hangi yanlışlar çıktı, etiket yoğunluğu, geriye dönük test."""
@@ -265,7 +299,7 @@ def main() -> None:
             lines.append(f"⚠️ {sym}: hesaplanamadı ({len(df)} mum): {e}")
             continue
         ok += int(good)
-        lines.append(txt)
+        lines.append(txt + ("\n" + LAST_BOX if LAST_BOX else ""))
     summary = f"🧪 Kalibrasyon: {ok}/{len(EXAMPLES)} örnek beklendiği gibi"
     out = summary + "\n\n" + sweep_txt + "\n\n" + "\n\n".join(lines)
     print(out)
