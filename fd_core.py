@@ -52,6 +52,7 @@ class Params:
     minTouches: int = 3
     minClusters: int = 2
     minTb: int = 3
+    clMerge: int = 1
     tbCl: bool = False
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     hPrefer: int = 0                # yatay seviye de geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
@@ -445,7 +446,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 isTb = np.abs(hh - lv) <= S.rankTol[t]
                 tcT = int(isTb.sum())
                 xb = isTb[1:]
-                clD = int(np.count_nonzero(xb & ~np.concatenate(([False], xb[:-1])))) if len(xb) > 0 else 0
+                pos_ = np.flatnonzero(xb)
+                clD = (1 + int(np.count_nonzero(np.diff(pos_) > P.clMerge))) if len(pos_) > 0 else 0
                 lineLen = t - xA + 1
                 violBad = viol > P.maxViol or (viol / lineLen * 100 > P.violPct) or mxBody > P.bodyPokeMax
                 belowBad = False
