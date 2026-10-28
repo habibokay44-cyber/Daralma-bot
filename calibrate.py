@@ -192,10 +192,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (bodyFrac 0.17, kutu açık)", {}),
-    ("dar bant temas = ayrı küme (tbCl)", dict(tbCl=True)),
-    ("tbCl + minTb 3", dict(tbCl=True, minTb=3)),
-    ("minTb 3 (kümesiz)", dict(minTb=3)),
+    ("düz çizgiler de Düşen olsun (allowFlat)", dict(allowFlat=True)),
+    ("allowFlat + minTb 3", dict(allowFlat=True, minTb=3)),
 ]
+
 
 
 def score(frames: dict, kw: dict) -> dict:
