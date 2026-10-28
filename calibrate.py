@@ -157,8 +157,8 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("40 mum tepesinden düşüş en fazla 4.3", dict(ddMax=4.3)),
-    ("40 mum tepesinden düşüş en fazla 4.0", dict(ddMax=4.0)),
+    ("pencere 80", {"lookback": 80}),
+    ("pencere 120", {"lookback": 120}),
 ]
 
 def score(frames: dict, kw: dict) -> dict:
