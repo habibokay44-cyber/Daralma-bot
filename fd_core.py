@@ -51,7 +51,7 @@ class Params:
     maxOv: float = 0.8
     minTouches: int = 3
     minClusters: int = 2
-    minTb: int = 2
+    minTb: int = 3
     tbCl: bool = False
     minTcD: int = 3                 # düşen çizgi: dar bantta (dt) min. temas
     hPrefer: int = 0                # yatay seviye de geçerliyse: yatay temas + hPrefer > düşen temas ise yatayı seç
@@ -101,7 +101,7 @@ class Params:
     lastNear: float = 1.8
     nearADRH: float = 1.2
     lastNearH: float = 1.0
-    allowFlat: bool = False
+    allowFlat: bool = True
     allowDesc: bool = True
     flatBand: float = 0.5
     flatUp: float = 0.1
