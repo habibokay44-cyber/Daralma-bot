@@ -37,8 +37,8 @@ class Params:
     shrinkS: float = 0.85
     bodyFrac: float = 0.18
     boxS: float = 1.0
-    rallyU: float = 0.9           # rallide etiket yok: son 5 mum yükselişi (u) bundan büyük VE tepeye yakınsa (rallyDd) (0 = kapalı)
-    rallyDd: float = 2.0           # 40 mumluk tepeden uzaklık (ADR katı) bundan küçükse rallide sayılır
+    rallyU: float = 0.9             # rallide etiket yok: son 5 mum yükselişi (u) bundan büyük VE tepeye yakınsa (rallyDd) (0 = kapalı)
+    rallyDd: float = 2.0            # 40 mumluk tepeden uzaklık (ADR katı) bundan küçükse rallide sayılır
     bodyADR: float = 0.1
     bodyADRD: float = 0.05          # düşen çizgi: gövdenin çizgiyi geçme toleransı (daha sıkı)
     maxViol: int = 0
@@ -89,7 +89,7 @@ class Params:
     useRedSig: bool = True
     sigRedMax: float = 0.3          # sinyal mumu: kırmızı gövde (ADR katı, max) - düşen mum daralma mumu olamaz
     useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
-    emaSlopeMin: float = -0.5      # EMA21'in 10 mumluk eğimi (ADR katı) min.
+    emaSlopeMin: float = -0.5       # EMA21'in 10 mumluk eğimi (ADR katı) min.
     emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     nearADR: float = 2.2
@@ -261,6 +261,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.lowAge = pd.Series(l).rolling(40, min_periods=10).apply(lambda w: len(w) - 1 - int(np.argmin(w)), raw=True).to_numpy()
     S.entryTrendOk = (c > S.ema50) if P.useTrend else np.ones(len(c), bool)
     S.stopLvl = _lowest(l, nC)
+
     S.bodyTol = P.bodyADR * S.adr / 100 * c
     S.bodyTolD = P.bodyADRD * S.adr / 100 * c
     S.touchTol = P.touchADR * S.adr / 100 * c
@@ -474,7 +475,6 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         best["info"] = f"D:eleme iğne{rejW} gövde{rejB} " + (f"en iyi aday {dInfo}" if dSc >= 0 else "aday yok")
         return best
 
-
     # ================================================================ döngü
     for t in range(n):
         # --- pivotlar (Pine'da tüm mumlarda toplanır) ---
@@ -503,6 +503,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         adr_t = S.adr[t]
         close_t = c[t]
         bodyTol_t = S.bodyTol[t]
+
 
         # --- aday çizgiler ---
         hz = hor_best(t) if S.tightCore[t] else dict(hL=NAN, hSpan=0, hTc=0, hTb=-1, hFirst=0, hLt=-1, hCl=0, hOv=NAN)
