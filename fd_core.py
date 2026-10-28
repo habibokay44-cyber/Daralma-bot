@@ -76,7 +76,7 @@ class Params:
     useSlope: bool = True
     slopeMin: float = -0.5
     slopeMax: float = 0.9
-    slopeMinD: float = -0.8
+    slopeMinD: float = -0.6
     slopeMaxD: float = 1.2
     useCandle: bool = True
     maxCandle: float = 1.3
