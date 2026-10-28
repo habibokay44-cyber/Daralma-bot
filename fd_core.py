@@ -92,6 +92,10 @@ class Params:
     emaSlopeMin: float = -0.5       # EMA21'in 10 mumluk eğimi (ADR katı) min.
     emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
+    useBox: bool = False            # KUTU modu: çizgi bulunamasa da uzun yatay taban kutusu (boxN mum) daralma sayılır
+    boxN: int = 15                  # kutu: son kaç mum
+    boxBody: float = 1.3            # kutu: gövde tepesi - gövde dibi aralığı (ADR katı, max)
+    boxHL: float = 2.5              # kutu: fitilli en yüksek - en düşük aralığı (ADR katı, max)
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -269,6 +273,14 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.wickAbs = P.wickADR * S.adr / 100 * c
     S.bodyTop = np.maximum(o, c)
     S.srcT = S.bodyTop if P.levelSrc == "Gövde" else h
+
+    # KUTU modu: son boxN mumun gövde kutusu (bb) ve fitilli kutusu (hb), ADR katı
+    bTopN = _highest(S.bodyTop, P.boxN)
+    bBotN = _lowest(np.minimum(o, c), P.boxN)
+    S.boxBodyVal = (bTopN / bBotN - 1) * 100 / S.adr
+    S.boxHLVal = (_highest(h, P.boxN) / _lowest(l, P.boxN) - 1) * 100 / S.adr
+    S.boxTop = bTopN
+    S.boxOk = (P.useBox & (S.boxBodyVal <= P.boxBody) & (S.boxHLVal <= P.boxHL) & S.candOk & S.jumpOk & S.volOk & S.redOk)
 
     S.ph = _pivot_high(h, P.pvL, P.pvR)
     S.smcPh = _pivot_high(h, P.smcL, P.smcR)
@@ -510,6 +522,18 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         fb = falling_best(t) if S.tightOk[t] else dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN,
                                                        ag=NAN, lg=NAN, sn=NAN, ov=NAN)
         hL, hSpan, hTb, hFirst = hz["hL"], hz["hSpan"], hz["hTb"], hz["hFirst"]
+        boxMode = False
+        if P.useBox and bool(S.boxOk[t]):
+            ddOk0 = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
+            normalOk = ((hSpan > 0 or fb["tc"] > 0) and bool(S.tightCore[t]) and bool(S.emaOk[t])
+                        and ddOk0 and bool(S.rallyOk[t]))
+            if not normalOk:
+                # çizgi yok ya da trend filtreleri engelliyor ama uzun yatay kutu var: direnç = kutunun gövde tepesi
+                boxMode = True
+                fb = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, cl=0, info="")
+                hz = dict(hz)
+                hL, hSpan, hTb, hFirst = float(S.boxTop[t]), P.boxN, 0, P.boxN
+                hz.update(hL=hL, hSpan=hSpan, hTb=0, hFirst=hFirst, hTc=0)
         bestTc, bestTcT, bestXA = fb["tc"], fb["tcT"], fb["xA"]
         bestPA, bestSl, bestLn, bestSN = fb["pa"], fb["sl"], fb["ln"], fb["sn"]
 
@@ -565,8 +589,9 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         dOkH = (not useH) or (not P.useLowsH) or S.lowDiff[t] <= P.lowUpH
 
         ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
-        setupRaw = (found and bool(S.tightCore[t]) and modeOk and yOk and dOkH and bool(S.candOk[t])
-                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and bool(S.emaOk[t]) and ddOk and bool(S.rallyOk[t]))
+        setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
+                    and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -602,6 +627,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"T{S.dd40[t]:.1f}")
         if not S.rallyOk[t]:
             why.append("R")
+        if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac):
+            why.append(f"bf{S.bodyFr[t]:.2f}")
         if S.tightOk[t] and not found:
             why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
         strong = bool(S.strong[t])
@@ -681,7 +708,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if newSetup:
             curSetupEv = dict(
                 type="setup", t=t, date=dates[t], close=float(close_t),
-                mode="Yatay" if useH else "Düşen", line=float(selLn), strong=strong,
+                mode="Kutu" if boxMode else ("Yatay" if useH else "Düşen"), line=float(selLn), strong=strong,
                 short=bool(S.tightShort[t] and not S.tightLong[t]),
                 r=float(S.shrinkVal[t]), k=float(S.closeBoxVal[t]), m=float(S.tightVal[t]),
                 touches=int(hz["hTc"] if useH else bestTc), dt=int(hTb if useH else bestTcT),
