@@ -71,7 +71,7 @@ EXAMPLES = [
 MODE_REQ = {("DCTTR", "2025-01-02"): "Yatay", ("KONTR", "2020-12-18"): "Yatay", ("KONTR", "2020-11-30"): "Düşen", ("KONTR", "2021-11-22"): "Yatay"}
 
 # aday varsayılan: fd_core varsayılanının üstüne uygulanır (benimsenirse fd_core ve Pine'a taşınır)
-CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0, bodyFrac=0.17)
+CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0, bodyFrac=0.17, allowFlat=True, minTb=3)
 
 
 def fitP(df: pd.DataFrame, P: Params) -> Params:
@@ -192,9 +192,9 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("ADAY (bodyFrac 0.17, kutu açık)", {}),
-    ("düz çizgiler de Düşen olsun (allowFlat)", dict(allowFlat=True)),
-    ("allowFlat + minTb 3", dict(allowFlat=True, minTb=3)),
+    ("ADAY (allowFlat + minTb 3 + bodyFrac 0.17)", {}),
+    ("eski ayar (allowFlat kapalı, minTb 2)", dict(allowFlat=False, minTb=2)),
+    ("minTb 4", dict(minTb=4)),
 ]
 
 
