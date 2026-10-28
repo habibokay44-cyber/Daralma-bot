@@ -61,7 +61,7 @@ EXAMPLES = [
     ("VKING", "2026-04-06", "2026-04-15", False, "ilk etiket: 7 ve 13 Nisan büyük mumları daralmayı bozuyor, çizgi yanlış"),
     ("VKING", "2026-04-27", "2026-05-08", False, "ikinci etiket: çizgi yanlış, daralma yok (doğru çizgi Mart tepesinden uzun noktalı çizgi)"),
     ("KARTN", "2026-05-08", "2026-05-14", False, "mayıs: çok volatil, büyük gövdeli al-sat mumlar, daralma değil"),
-    ("KARTN", "2026-09-21", "2026-09-23", False, "eylül: düşen çizgi: temaslar peş peşe mumlarda (ilk ve ikinci temas yan yana), mesafeli değil"),
+    ("KARTN", "2025-09-19", "2025-09-23", False, "eylül: düşen çizgi: temaslar peş peşe mumlarda (ilk ve ikinci temas yan yana), mesafeli değil"),
     ("HKTM", "2026-08-04", "2026-08-14", True, "yeşil kutu: düşüş sonrası taban, kırılım mumu hariç"),
     ("MARTI", "2026-08-04", "2026-08-26", True, "yeşil kutu: sert düşüş sonrası uzun yatay taban, sonra rally"),
     ("TERA", "2025-08-29", "2025-10-03", True, "noktalı düşen çizgi altında bariz daralma, sonra kırılım"),
