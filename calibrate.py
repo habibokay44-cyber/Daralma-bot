@@ -154,14 +154,9 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
-    ("kapanış kutusu k en fazla 1.0", dict(closeBoxADR=1.0)),
-    ("kapanış kutusu k en fazla 0.95", dict(closeBoxADR=0.95)),
-    ("EMA21 eğimi en az -0.5", dict(emaSlopeMin=-0.5)),
-    ("çizgi eğimi en fazla -3.5", dict(maxDesc=3.5)),
-    ("k 0.95 + EMA -0.5", dict(closeBoxADR=0.95, emaSlopeMin=-0.5)),
-    ("k 0.95 + EMA -0.5 + eğim -3.5", dict(closeBoxADR=0.95, emaSlopeMin=-0.5, maxDesc=3.5)),
+    ("40 mum tepesinden düşüş en fazla 4.3", dict(ddMax=4.3)),
+    ("40 mum tepesinden düşüş en fazla 4.0", dict(ddMax=4.0)),
 ]
-
 
 def score(frames: dict, kw: dict) -> dict:
     """Bir ayar için: kaç doğru örnek yakalandı, hangi yanlışlar çıktı, etiket yoğunluğu, geriye dönük test."""
