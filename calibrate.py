@@ -57,6 +57,8 @@ EXAMPLES = [
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
     ("TUKAS", "2026-10-06", "2026-10-20", False, "kısa daralma yok: mumlar çok volatil, çizgi yanlış (illa çizilecekse yatay olmalı)"),
     ("TTKOM", "2026-09-28", "2026-10-06", False, "daralma yok: kutuda art arda 3 kırmızı mum, aşağı akış, kümelenme yok"),
+    ("VKING", "2026-04-06", "2026-04-15", False, "ilk etiket: 7 ve 13 Nisan büyük mumları daralmayı bozuyor, çizgi yanlış"),
+    ("VKING", "2026-04-27", "2026-05-08", False, "ikinci etiket: çizgi yanlış, daralma yok (doğru çizgi Mart tepesinden uzun noktalı çizgi)"),
 ]
 
 
