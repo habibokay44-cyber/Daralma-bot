@@ -152,6 +152,11 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (hepsi açık)", {}),
+    ("yaklaşma u en az -0.8", dict(riseMin=-0.8)),
+    ("yaklaşma u en az -0.7", dict(riseMin=-0.7)),
+    ("eğim s en az -0.6 (düşen)", dict(slopeMinD=-0.6)),
+    ("eğim s en az -0.5 (düşen)", dict(slopeMinD=-0.5)),
+    ("u -0.8 ve s -0.6", dict(riseMin=-0.8, slopeMinD=-0.6)),
 ]
 
 
