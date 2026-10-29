@@ -25,6 +25,8 @@ from scan import fetch_tv_all, telegram_send
 EXAMPLES = [
     ("ANELE", "2025-08-13", "2025-08-18", True, "taban, küçük beyaz mum"),
     ("ANELE", "2026-03-02", "2026-03-27", True, "mart: yeşil kutu: 20 mumluk taban, kırılım mumu hariç"),
+    ("ANELE", "2025-07-07", "2025-07-10", False, "temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış"),
+    ("ANELE", "2025-07-16", "2025-07-18", True, "temmuz 2025: doğru daralma 16-18 Temmuz"),
     ("EMPAE", "2026-04-13", "2026-04-20", False, "daralma yok: fiyat aşağı akıyor, tek yeşil mum var; düşen çizgi etiketi yanlış"),
     ("EMPAE", "2026-04-23", "2026-05-08", True, "taban bölgesi (15 Nis-4 May): bu aralıkta etiket (Düşen veya kutu) kabul"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
@@ -131,7 +133,7 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
 
 
 # hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
-DEBUG_WIN = {("TUKAS", "2026-10-17"): ("2026-10-13", "2026-10-23")}
+DEBUG_WIN = {("ANELE", "2025-07-07"): ("2025-07-03", "2025-07-22"), ("VKING", "2026-04-06"): ("2026-04-08", "2026-04-17")}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
