@@ -32,7 +32,9 @@ EXAMPLES = [
     ("DCTTR", "2025-01-02", "2025-01-15", True, "ikinci daralma"),
     ("DCTTR", "2025-04-24", "2025-05-05", True, "üçüncü daralma"),
     ("DOBUR", "2023-07-10", "2023-08-10", True, "EMA yukarı eğimli"),
-    ("DOBUR", "2024-02-09", "2024-02-15", True, "ikinci doğru daralma"),
+    ("DOBUR", "2024-02-09", "2024-02-13", True, "ikinci doğru daralma (9-13 Şubat yeşil kutu, uzun çizgi Aralık tepesinden)"),
+    ("DOBUR", "2024-01-16", "2024-01-19", False, "ocak: kutu yanlış yerde, mumlar aşağı gelirken etiket (çizgi doğru)"),
+    ("DOBUR", "2024-01-23", "2024-01-24", True, "ocak: doğru daralma kutusu 19-24 Ocak"),
     ("DOBUR", "2023-09-25", "2023-10-15", False, "EMA düz/aşağı, çalışmayan daralma"),
     ("LOGO", "2024-01-08", "2024-01-19", True, "düşen çizgi altı"),
     ("YAYLA", "2024-01-02", "2024-01-12", True, "düşen çizgi altı"),
@@ -59,7 +61,8 @@ EXAMPLES = [
     ("BAHKM", "2026-08-03", "2026-08-26", True, "ağustos: düşen çizgi altında bariz daralma, sonra yukarı kırılım (etiket olmalı)"),
     ("ATAKP", "2026-10-20", "2026-10-27", False, "kısa etiket: büyük beyaz mum sonrası daralma mumları henüz oluşmadı (1-2 küçük mum daha gerekli)"),
     ("AVHOL", "2026-06-01", "2026-10-27", False, "kısa etiket 11.08: sert yükseliş içinde, daralma yok"),
-    ("TUKAS", "2026-10-06", "2026-10-20", False, "kısa daralma yok: mumlar çok volatil, çizgi yanlış (illa çizilecekse yatay olmalı)"),
+    ("TUKAS", "2026-10-06", "2026-10-16", False, "etiket erken: mumlar aşağı giderken daralma yok, yatay çizgi yanlış (doğrusu ~2.03 tepelerinden)"),
+    ("TUKAS", "2026-10-17", "2026-10-21", True, "doğru daralma: 15-20 Ekim yeşil kutu, ~2.03 yatay direnç altı"),
     ("TTKOM", "2026-09-28", "2026-10-06", False, "daralma yok: kutuda art arda 3 kırmızı mum, aşağı akış, kümelenme yok"),
     ("VKING", "2026-04-06", "2026-04-15", False, "ilk etiket: 7 ve 13 Nisan büyük mumları daralmayı bozuyor, çizgi yanlış"),
     ("VKING", "2026-04-27", "2026-05-08", False, "ikinci etiket: çizgi yanlış, daralma yok (doğru çizgi Mart tepesinden uzun noktalı çizgi)"),
@@ -74,6 +77,9 @@ EXAMPLES = [
     ("GSDDE", "2026-04-21", "2026-04-28", True, "bariz daralma: 10.87 direnci altında küçük mumlar, sonra kırılım (etiket çıkmıyor)"),
     ("BAHKM", "2026-08-17", "2026-08-24", True, "uzun düşen çizgi (19 Mart 2026 tepesinden) altında daralma, sonra kırılım"),
     ("MRGYO", "2025-05-08", "2025-05-13", True, "uzun düşen çizgi (4 Aralık 2024 tepesinden) altında daralma, sonra kırılım"),
+    ("VKING", "2026-02-10", "2026-02-16", False, "şubat: çizgi peş peşe iki muma çizilmiş, daralma yok"),
+    ("MRGYO", "2022-10-10", "2022-10-14", False, "ekim 2022: fiyat aşağı giderken etiket, çizgi yanlış"),
+    ("MRGYO", "2022-10-17", "2022-10-18", True, "doğru daralma: 13-18 Ekim yeşil kutu, ~0.556 yatay direnç altı"),
 ]
 
 
