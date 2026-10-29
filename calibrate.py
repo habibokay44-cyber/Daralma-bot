@@ -24,6 +24,8 @@ from scan import fetch_tv_all, telegram_send
 # Tarihler grafik görüntülerinden tahmindir; pencere yanlışsa "pencerede mum yok / fiyatlar şöyle" yazar.
 EXAMPLES = [
     ("ANELE", "2025-08-13", "2025-08-18", True, "taban, küçük beyaz mum"),
+    ("ANELE", "2026-03-02", "2026-03-27", True, "mart: yeşil kutu: 20 mumluk taban, kırılım mumu hariç"),
+    ("EMPAE", "2026-04-15", "2026-05-04", True, "yeşil kutu: düşüş sonrası taban, sonra büyük rally"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
     ("RYSAS", "2024-05-03", "2024-05-08", True, "düşen çizgi altı daralma"),
     ("DCTTR", "2025-01-02", "2025-01-15", True, "ikinci daralma"),
@@ -194,10 +196,11 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("temas kümesi: 2 mum yakınsa tek", dict(clMerge=2)),
-    ("temas kümesi: 3 mum yakınsa tek", dict(clMerge=3)),
-    ("en az 3 ayrı küme", dict(minClD=3)),
-    ("2 mum yakınsa tek + en az 3 küme", dict(clMerge=2, minClD=3)),
+    ("kutu fitilli aralık 3.0", dict(boxHL=3.0)),
+    ("kutu gövde aralığı 1.6", dict(boxBody=1.6)),
+    ("kutu 3.0 + gövde 1.6", dict(boxHL=3.0, boxBody=1.6)),
+    ("kutu 3.0 + gövde 1.6 + 20 mum", dict(boxHL=3.0, boxBody=1.6, boxN=20)),
+    ("kutu 3.5 + gövde 2.0", dict(boxHL=3.5, boxBody=2.0)),
 ]
 
 
