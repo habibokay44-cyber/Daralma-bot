@@ -85,9 +85,9 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 
 
 def mt(e: dict) -> str:
-    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p."""
+    """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, çizgi uzunluğu sp."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f}]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f} sp{e.get('sp', 0)}]")
 
 
 LAST_BOX = ""
@@ -194,14 +194,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
     return True, f"✅ {head}\n  beklendiği gibi sinyal yok  [{px}; {info}]{short}"
 
 
-
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("kapanış kutusu 0.80", dict(closeBoxADR=0.80)),
-    ("kapanış kutusu 0.75", dict(closeBoxADR=0.75)),
 ]
-
 
 
 def score(frames: dict, kw: dict) -> dict:
@@ -327,4 +323,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main()
