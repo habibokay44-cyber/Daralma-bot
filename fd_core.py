@@ -500,7 +500,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                     dInfo = ",".join(flz) or "-"
                 if score == 4 and mxOv <= P.maxOv and tcT >= P.minTcD and clD >= P.minClD:
                     if na(best["pa"]) or tcT > best["tcT"] or (tcT == best["tcT"] and pa > best["pa"]):
-                        best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv, cl=clD)
+                        best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv, cl=clD,
+                                tps=[int(x_) for x_ in np.flatnonzero(isTb)])
         best["info"] = f"D:eleme iğne{rejW} gövde{rejB} " + (f"en iyi aday {dInfo}" if dSc >= 0 else "aday yok")
         return best
 
@@ -741,6 +742,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 touches=int(hz["hTc"] if useH else bestTc), dt=int(hTb if useH else bestTcT),
                 dcl=int(0 if useH else fb.get("cl", 0)), sn=float(nz(bestSN, 0.0)),                   
                 sp=int(0 if useH else (t - int(bestXA) + 1)),
+                tpos=("" if useH else ",".join(str(x_) for x_ in fb.get("tps", [])[:10])), 
                 hnear=str(hz.get("near", "")),
                 es=float(nz(S.emaSlope[t], 0.0)), ed=float(nz(S.emaDist[t], 0.0)), dd=float(nz(S.dd40[t], 0.0)),
                 e50=float(nz(S.e50d[t], 0.0)), la=int(nz(S.lowAge[t], 0)),
