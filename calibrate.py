@@ -196,6 +196,11 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
+    ("kutu 10 mum, fitilli 3.0", dict(boxN=10, boxHL=3.0)),
+    ("kutu 10 mum, fitilli 2.8", dict(boxN=10, boxHL=2.8)),
+    ("kutu 12 mum, fitilli 3.0", dict(boxN=12, boxHL=3.0)),
+    ("kutu 10 mum, gövde 1.1, fitilli 3.0", dict(boxN=10, boxBody=1.1, boxHL=3.0)),
+    ("kutu 7 mum", dict(boxN=7)),
 ]
 
 
