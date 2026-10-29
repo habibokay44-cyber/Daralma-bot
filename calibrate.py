@@ -197,6 +197,9 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
+    ("kapanış kutusu 0.93", dict(closeBoxADR=0.93)),
+    ("kapanış kutusu 0.90", dict(closeBoxADR=0.90)),
+    ("kapanış kutusu 0.85", dict(closeBoxADR=0.85)),
 ]
 
 
