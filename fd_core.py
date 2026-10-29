@@ -63,7 +63,7 @@ class Params:
     minClD: int = 2                 # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
-    closeBoxADR: float = 1.0
+    closeBoxADR: float = 0.85
     useLows: bool = True
     lowTolADR: float = 0.5
     lowUpADR: float = 2.8
