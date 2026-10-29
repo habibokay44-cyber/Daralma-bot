@@ -133,7 +133,7 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
 
 
 # hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
-DEBUG_WIN = {("ANELE", "2025-07-07"): ("2025-07-03", "2025-07-22"), ("VKING", "2026-04-06"): ("2026-04-03", "2026-04-17")}
+DEBUG_WIN = {}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
