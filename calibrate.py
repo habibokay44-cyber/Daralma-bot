@@ -68,9 +68,9 @@ EXAMPLES = [
     ("HKTM", "2026-08-04", "2026-08-14", True, "yeşil kutu: düşüş sonrası taban, kırılım mumu hariç"),
     ("MARTI", "2026-08-04", "2026-08-26", True, "yeşil kutu: sert düşüş sonrası uzun yatay taban, sonra rally"),
     ("TERA", "2025-08-29", "2025-10-03", True, "noktalı düşen çizgi altında bariz daralma, sonra kırılım"),
-    ("GSDDE", "2025-09-08", "2025-09-11", False, "eylül 2025: fiyat aşağı giderken daralma etiketi, çizgi uzak zirveden"),
+    ("GSDDE", "2026-09-08", "2026-09-11", False, "eylül 2026: fiyat aşağı giderken daralma etiketi, çizgi uzak zirveden (kapanış ~13)"),
     ("GSDDE", "2026-01-05", "2026-01-08", False, "ocak: volatil mumlarda daralma etiketi, daralma yok"),
-    ("GSDDE", "2026-09-28", "2026-09-30", False, "eylül sonu: düşüş içinde daralma etiketi"),
+    ("GSDDE", "2025-09-26", "2025-09-30", False, "eylül 2025 sonu: düşüş içinde daralma etiketi (kapanış ~10.4)"),
     ("GSDDE", "2026-04-21", "2026-04-28", True, "bariz daralma: 10.87 direnci altında küçük mumlar, sonra kırılım (etiket çıkmıyor)"),
 ]
 
@@ -90,7 +90,7 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 def mt(e: dict) -> str:
     """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, çizgi uzunluğu sp."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f} sp{e.get('sp', 0)}]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f} sp{e.get('sp', 0)} b7 {e.get('b7', 0):.2f}/{e.get('h7', 0):.2f}]")
 
 
 LAST_BOX = ""
@@ -138,6 +138,11 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
             e_["lc"] = sum(1 for i_ in range(1, len(cs_)) if cs_[i_] < cs_[i_ - 1])
             w0_ = max(t_ - 4, 0)
             e_["mx"] = float(max(res.S.candRng[w0_:t_ + 1]))
+            w7_ = slice(max(t_ - 6, 0), t_ + 1)
+            bt7_ = np.maximum(res.S.o, res.S.c)[w7_]
+            bl7_ = np.minimum(res.S.o, res.S.c)[w7_]
+            e_["b7"] = float((bt7_.max() / bl7_.min() - 1) * 100 / res.S.adr[t_])
+            e_["h7"] = float((res.S.h[w7_].max() / res.S.l[w7_].min() - 1) * 100 / res.S.adr[t_])
             e_["mb"] = max(abs(float(df["Close"].iloc[i_]) - float(df["Open"].iloc[i_])) / float(df["Close"].iloc[i_]) * 100 / float(res.S.adr[t_]) for i_ in range(w0_, t_ + 1))
     global LAST_BOX
     ta, tb = pd.Timestamp(a), pd.Timestamp(b)
