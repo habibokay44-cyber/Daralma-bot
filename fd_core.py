@@ -25,7 +25,7 @@ def nz(x, y=0.0):
 
 @dataclass
 class Params:
-    lookback: int = 40
+    lookback: int = 120
     minSpan: int = 6
     minSpanH: int = 9
     pvL: int = 2
