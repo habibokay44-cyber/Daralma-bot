@@ -129,7 +129,28 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
     return "  kutu ölçümü: " + " | ".join(parts) + " | " + ctx
 
 
+# hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
+DEBUG_WIN = {("DOBUR", "2024-01-16"): ("2024-01-12", "2024-01-26")}
+
+
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
+    ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
+    win_ = DEBUG_WIN.get((sym, a))
+    if win_:
+        P2 = fitP(df, P)
+        r2 = run(df, P2)
+        rows_ = []
+        for i_, d_ in enumerate(df.index):
+            if pd.Timestamp(win_[0]) <= d_ <= pd.Timestamp(win_[1]):
+                w_ = r2.diag.get(i_)
+                rows_.append(f"{d_:%d.%m} {(w_ or '-')[:130]}")
+        evs_ = [f"{e['date']:%d.%m} {e['mode']} {'iptal:' + str(e.get('cancel_reason', '?')) if e.get('cancelled') else 'canlı'}"
+                for e in r2.events if e["type"] == "setup" and pd.Timestamp(win_[0]) - pd.Timedelta(days=10) <= e["date"] <= pd.Timestamp(win_[1])]
+        msg_ += "\n  🔎 etiketler: " + (", ".join(evs_) or "yok") + "\n  🔎 gün gün: " + " | ".join(rows_)
+    return ok_, msg_
+
+
+def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     P = fitP(df, P)
     res = run(df, P)
     for e_ in res.events:  # etikete u/s/c/p ölçülerini ekle (sadece gösterim için)
