@@ -72,6 +72,8 @@ EXAMPLES = [
     ("GSDDE", "2026-01-05", "2026-01-08", False, "ocak: volatil mumlarda daralma etiketi, daralma yok"),
     ("GSDDE", "2025-09-26", "2025-09-30", False, "eylül 2025 sonu: düşüş içinde daralma etiketi (kapanış ~10.4)"),
     ("GSDDE", "2026-04-21", "2026-04-28", True, "bariz daralma: 10.87 direnci altında küçük mumlar, sonra kırılım (etiket çıkmıyor)"),
+    ("BAHKM", "2026-08-17", "2026-08-24", True, "uzun düşen çizgi (19 Mart 2026 tepesinden) altında daralma, sonra kırılım"),
+    ("MRGYO", "2025-05-08", "2025-05-13", True, "uzun düşen çizgi (4 Aralık 2024 tepesinden) altında daralma, sonra kırılım"),
 ]
 
 
@@ -208,6 +210,7 @@ VARIANTS = [
     ("b7 kuralı kapalı", dict(b7Max=0)),
     ("art arda düşüş kuralı kapalı", dict(lcMax=0)),
     ("düşüş trendi temas şartı kapalı", dict(dnMinTb=0)),
+    ("uzun çizgi (lookback 120)", dict(lookback=120)),
 ]
 
 
