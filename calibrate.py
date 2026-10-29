@@ -68,6 +68,10 @@ EXAMPLES = [
     ("HKTM", "2026-08-04", "2026-08-14", True, "yeşil kutu: düşüş sonrası taban, kırılım mumu hariç"),
     ("MARTI", "2026-08-04", "2026-08-26", True, "yeşil kutu: sert düşüş sonrası uzun yatay taban, sonra rally"),
     ("TERA", "2025-08-29", "2025-10-03", True, "noktalı düşen çizgi altında bariz daralma, sonra kırılım"),
+    ("GSDDE", "2025-09-08", "2025-09-11", False, "eylül 2025: fiyat aşağı giderken daralma etiketi, çizgi uzak zirveden"),
+    ("GSDDE", "2026-01-05", "2026-01-08", False, "ocak: volatil mumlarda daralma etiketi, daralma yok"),
+    ("GSDDE", "2026-09-28", "2026-09-30", False, "eylül sonu: düşüş içinde daralma etiketi"),
+    ("GSDDE", "2026-04-21", "2026-04-28", True, "bariz daralma: 10.87 direnci altında küçük mumlar, sonra kırılım (etiket çıkmıyor)"),
 ]
 
 
