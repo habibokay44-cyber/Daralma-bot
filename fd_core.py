@@ -98,6 +98,8 @@ class Params:
     boxN: int = 15                  # kutu: son kaç mum
     boxBody: float = 1.3            # kutu: gövde tepesi - gövde dibi aralığı (ADR katı, max)
     boxHL: float = 2.5              # kutu: fitilli en yüksek - en düşük aralığı (ADR katı, max)
+    b7Max: float = 1.95             # son 7 mumun gövde aralığı (ADR katı) bundan büyükse etiket yok (volatil mumlar; 0 = kapalı)
+    lcMax: int = 3                  # son 5 mumda bu kadardan fazla düşen kapanış varsa etiket yok (art arda düşüş; 0 = kapalı)
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -282,6 +284,11 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.boxBodyVal = (bTopN / bBotN - 1) * 100 / S.adr
     S.boxHLVal = (_highest(h, P.boxN) / _lowest(l, P.boxN) - 1) * 100 / S.adr
     S.boxTop = bTopN
+    S.b7Val = (_highest(S.bodyTop, 7) / _lowest(np.minimum(o, c), 7) - 1) * 100 / S.adr
+    S.b7Ok = (S.b7Val <= P.b7Max) if P.b7Max > 0 else np.ones(len(c), bool)
+    dn_ = np.r_[0.0, (c[1:] < c[:-1]).astype(float)]
+    S.lcCnt = np.convolve(dn_, np.ones(5))[:len(c)]
+    S.lcOk = (S.lcCnt <= P.lcMax) if P.lcMax > 0 else np.ones(len(c), bool)
     S.boxOk = (P.useBox & (S.boxBodyVal <= P.boxBody) & (S.boxHLVal <= P.boxHL) & S.candOk & S.jumpOk & S.volOk & S.redOk)
 
     S.ph = _pivot_high(h, P.pvL, P.pvR)
@@ -601,7 +608,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
         setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
-                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode))
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and bool(S.b7Ok[t]) and bool(S.lcOk[t]))
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -643,6 +650,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"T{S.dd40[t]:.1f}")
         if not S.rallyOk[t] and not boxMode:
             why.append("R")
+        if not S.b7Ok[t]:
+            why.append(f"b7_{S.b7Val[t]:.2f}")
+        if not S.lcOk[t]:
+            why.append(f"lc{int(S.lcCnt[t])}")
         if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac) and not boxMode:
             why.append(f"bf{S.bodyFr[t]:.2f}")
         if S.tightOk[t] and not found:
