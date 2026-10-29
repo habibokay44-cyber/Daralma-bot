@@ -26,6 +26,7 @@ EXAMPLES = [
     ("ANELE", "2025-08-13", "2025-08-18", True, "taban, küçük beyaz mum"),
     ("ANELE", "2026-03-02", "2026-03-27", True, "mart: yeşil kutu: 20 mumluk taban, kırılım mumu hariç"),
     ("EMPAE", "2026-04-13", "2026-04-20", False, "daralma yok: fiyat aşağı akıyor, tek yeşil mum var; düşen çizgi etiketi yanlış"),
+    ("EMPAE", "2026-04-23", "2026-04-27", False, "çizgi uzak zirveden, yalnızca tek temas"),
     ("EMPAE", "2026-04-29", "2026-05-08", True, "yeşil kutu: düşüş sonrası taban (15 Nis-4 May), kutu etiketi bu aralıkta olmalı"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
     ("RYSAS", "2024-05-03", "2024-05-08", True, "düşen çizgi altı daralma"),
