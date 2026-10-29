@@ -100,6 +100,7 @@ class Params:
     boxHL: float = 2.5              # kutu: fitilli en yüksek - en düşük aralığı (ADR katı, max)
     dnSlope: float = -0.4           # EMA21 eğimi bundan düşükse VE kapanış EMA21 altındaysa (düşüş trendi) ...
     dnMinTb: int = 5                # ... düşen çizgide dar bantta en az bu kadar temas gerekir (0 = kapalı)
+    dnMinSp: int = 12               # Düşen çizgi ilk temastan etiket mumuna en az bu kadar mum uzunlukta olmalı (0 = kapalı)
     b7Max: float = 1.95             # son 7 mumun gövde aralığı (ADR katı) bundan büyükse etiket yok (volatil mumlar; 0 = kapalı)
     lcMax: int = 3                  # son 5 mumda bu kadardan fazla düşen kapanış varsa etiket yok (art arda düşüş; 0 = kapalı)
     nearADR: float = 2.2
@@ -610,9 +611,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
 
         ddOk = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
         dnOk = (P.dnMinTb <= 0) or boxMode or useH or not (S.emaSlope[t] <= P.dnSlope and S.emaDist[t] < 0) or bestTcT >= P.dnMinTb
+        spOk = (P.dnMinSp <= 0) or boxMode or useH or na(bestXA) or (t - int(bestXA) + 1) >= P.dnMinSp
         setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
-                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and bool(S.b7Ok[t]) and bool(S.lcOk[t]) and dnOk)
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and bool(S.b7Ok[t]) and bool(S.lcOk[t]) and dnOk and spOk)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -660,6 +662,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"lc{int(S.lcCnt[t])}")
         if not dnOk:
             why.append(f"dn{bestTcT}")
+        if not spOk:
+            why.append(f"sp{t - int(bestXA) + 1}")
         if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac) and not boxMode:
             why.append(f"bf{S.bodyFr[t]:.2f}")
         if S.tightOk[t] and not found:
