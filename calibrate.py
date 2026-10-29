@@ -133,7 +133,7 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
 
 
 # hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
-DEBUG_WIN = {("ANELE", "2025-07-07"): ("2025-07-03", "2025-07-22"), ("VKING", "2026-04-06"): ("2026-04-08", "2026-04-17")}
+DEBUG_WIN = {("ANELE", "2025-07-07"): ("2025-07-03", "2025-07-22"), ("VKING", "2026-04-06"): ("2026-04-03", "2026-04-17")}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
@@ -147,7 +147,9 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
                 w_ = r2.diag.get(i_)
                 S_ = r2.S
                 nums_ = (f"[k{S_.closeBoxVal[i_]:.2f} m{S_.tightVal[i_]:.2f} r{S_.shrinkVal[i_]:.2f} "
-                         f"e{S_.emaSlope[i_]:.2f}/{S_.emaDist[i_]:.2f} adr{S_.adr[i_]:.2f}]")
+                         f"e{S_.emaSlope[i_]:.2f}/{S_.emaDist[i_]:.2f} adr{S_.adr[i_]:.2f} "
+                         f"G{(float(df['Close'].iloc[i_]) - float(df['Open'].iloc[i_])) / float(df['Close'].iloc[i_]) * 100 / float(S_.adr[i_]):+.1f} "
+                         f"H{(float(df['High'].iloc[i_]) / float(df['Low'].iloc[i_]) - 1) * 100 / float(S_.adr[i_]):.1f}]")
                 rows_.append(f"{d_:%d.%m} {nums_} {(w_ or '-')[:90]}")
         evs_ = [f"{e['date']:%d.%m} {e['mode']} {'iptal:' + str(e.get('cancel_reason', '?')) if e.get('cancelled') else 'canlı'}"
                 for e in r2.events if e["type"] == "setup" and pd.Timestamp(win_[0]) - pd.Timedelta(days=10) <= e["date"] <= pd.Timestamp(win_[1])]
@@ -246,6 +248,8 @@ VARIANTS = [
     ("kısa düşen çizgi şartı kapalı", dict(dnMinSp=0)),
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
+    ("kapanış kutusu eşiği 0.95", dict(closeBoxADR=0.95)),
+    ("kapanış kutusu eşiği 1.00", dict(closeBoxADR=1.0)),
 ]
 
 
