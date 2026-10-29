@@ -606,7 +606,13 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
         why = []
-        if not (S.tightLong[t] or S.tightShort[t]):
+          
+        if P.useBox:
+            if boxMode:
+                why.append("K")
+            elif not (S.boxBodyVal[t] <= P.boxBody and S.boxHLVal[t] <= P.boxHL):
+                why.append(f"bx{S.boxBodyVal[t]:.2f}/{S.boxHLVal[t]:.2f}")        
+        if not (S.tightLong[t] or S.tightShort[t]) and not boxMode:
             if S.tightVal[t] > P.tightADR:
                 why.append("m")
             if S.shrinkVal[t] > P.shrink:
@@ -631,13 +637,13 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"v{S.volRatio[t]:.2f}")
         if not S.redOk[t]:
             why.append(f"g{S.redSig[t]:.2f}")
-        if not S.emaOk[t]:
+        if not S.emaOk[t] and not boxMode:
             why.append(f"e{S.emaSlope[t]:.2f}/{S.emaDist[t]:.2f}")
-        if not ddOk:
+        if not ddOk and not boxMode:
             why.append(f"T{S.dd40[t]:.1f}")
-        if not S.rallyOk[t]:
+        if not S.rallyOk[t] and not boxMode:
             why.append("R")
-        if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac):
+        if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac) and not boxMode:
             why.append(f"bf{S.bodyFr[t]:.2f}")
         if S.tightOk[t] and not found:
             why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
