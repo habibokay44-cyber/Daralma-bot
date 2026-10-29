@@ -207,6 +207,7 @@ VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
     ("b7 kuralı kapalı", dict(b7Max=0)),
     ("art arda düşüş kuralı kapalı", dict(lcMax=0)),
+    ("düşüş trendi temas şartı kapalı", dict(dnMinTb=0)),
 ]
 
 
