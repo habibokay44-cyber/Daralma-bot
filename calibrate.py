@@ -143,7 +143,10 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
         for i_, d_ in enumerate(df.index):
             if pd.Timestamp(win_[0]) <= d_ <= pd.Timestamp(win_[1]):
                 w_ = r2.diag.get(i_)
-                rows_.append(f"{d_:%d.%m} {(w_ or '-')[:130]}")
+                S_ = r2.S
+                nums_ = (f"[k{S_.closeBoxVal[i_]:.2f} m{S_.tightVal[i_]:.2f} r{S_.shrinkVal[i_]:.2f} "
+                         f"e{S_.emaSlope[i_]:.2f}/{S_.emaDist[i_]:.2f} adr{S_.adr[i_]:.2f}]")
+                rows_.append(f"{d_:%d.%m} {nums_} {(w_ or '-')[:90]}")
         evs_ = [f"{e['date']:%d.%m} {e['mode']} {'iptal:' + str(e.get('cancel_reason', '?')) if e.get('cancelled') else 'canlı'}"
                 for e in r2.events if e["type"] == "setup" and pd.Timestamp(win_[0]) - pd.Timedelta(days=10) <= e["date"] <= pd.Timestamp(win_[1])]
         msg_ += "\n  🔎 etiketler: " + (", ".join(evs_) or "yok") + "\n  🔎 gün gün: " + " | ".join(rows_)
