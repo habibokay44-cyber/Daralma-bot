@@ -217,6 +217,7 @@ VARIANTS = [
     ("art arda düşüş kuralı kapalı", dict(lcMax=0)),
     ("düşüş trendi temas şartı kapalı", dict(dnMinTb=0)),
     ("uzun çizgi (lookback 120)", dict(lookback=120)),
+    ("kısa düşen çizgi şartı kapalı", dict(dnMinSp=0)),
 ]
 
 
