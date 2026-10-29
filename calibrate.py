@@ -243,6 +243,7 @@ VARIANTS = [
     ("uzun çizgi (lookback 120)", dict(lookback=120)),
     ("kısa düşen çizgi şartı kapalı", dict(dnMinSp=0)),
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
+    ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
 ]
 
 
