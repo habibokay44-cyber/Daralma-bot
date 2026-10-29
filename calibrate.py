@@ -205,6 +205,8 @@ def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
+    ("b7 kuralı kapalı", dict(b7Max=0)),
+    ("art arda düşüş kuralı kapalı", dict(lcMax=0)),
 ]
 
 
