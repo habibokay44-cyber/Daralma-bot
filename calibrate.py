@@ -35,6 +35,7 @@ EXAMPLES = [
     ("DOBUR", "2024-02-09", "2024-02-13", True, "ikinci doğru daralma (9-13 Şubat yeşil kutu, uzun çizgi Aralık tepesinden)"),
     ("DOBUR", "2024-01-16", "2024-01-19", False, "ocak: kutu yanlış yerde, mumlar aşağı gelirken etiket (çizgi doğru)"),
     ("DOBUR", "2024-01-23", "2024-01-24", True, "ocak: doğru daralma kutusu 19-24 Ocak"),
+    ("DOBUR", "2024-11-22", "2024-11-27", True, "kasım 2024: 20-27 Kasım yatay sıkışma, etiket hiç yok (kaçan)"),
     ("DOBUR", "2023-09-25", "2023-10-15", False, "EMA düz/aşağı, çalışmayan daralma"),
     ("LOGO", "2024-01-08", "2024-01-19", True, "düşen çizgi altı"),
     ("YAYLA", "2024-01-02", "2024-01-12", True, "düşen çizgi altı"),
@@ -130,7 +131,7 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
 
 
 # hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
-DEBUG_WIN = {("DOBUR", "2024-01-16"): ("2024-01-12", "2024-01-26")}
+DEBUG_WIN = {("DOBUR", "2024-11-22"): ("2024-11-18", "2024-11-29")}
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
