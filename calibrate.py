@@ -135,7 +135,39 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
 
 
 # hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
-DEBUG_WIN = {("SANKO", "2026-04-24"): ("2026-04-20", "2026-04-30"), ("SANKO", "2026-10-22"): ("2026-10-19", "2026-10-28")}
+Daralmabot, [30 Eki 2026 saat 10:45]
+(1/10)
+🧪 Kalibrasyon: 49/62 örnek beklendiği gibi
+
+🔬 Eşik denemesi (her satır ADAY ayardan bir şeyi değiştirir):
+• ADAY (şimdiki ayar): doğru 27/36, YANLIŞ 4 (ANELE0707, SANKO0424, SANKO1022, VKING0406) | etiket/1000 mum 9.5 | işlem 392 kazanma %45 R+0.62 PF2.10
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017, TUKAS1017
+• b7 kuralı kapalı: doğru 27/36, YANLIŞ 6 (ANELE0707, GSDDE0105, KARTN0919, SANKO0424, SANKO1022, VKING0406) | etiket/1000 mum 9.8 | işlem 401 kazanma %46 R+0.64 PF2.14
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017, TUKAS1017
+• art arda düşüş kuralı kapalı: doğru 27/36, YANLIŞ 5 (ANELE0707, GSDDE0926, SANKO0424, SANKO1022, VKING0406) | etiket/1000 mum 9.9 | işlem 406 kazanma %45 R+0.63 PF2.12
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017, TUKAS1017
+• düşüş trendi temas şartı kapalı: doğru 27/36, YANLIŞ 5 (ANELE0707, GSDDE0908, SANKO0424, SANKO1022, VKING0406) | etiket/1000 mum 9.6 | işlem 397 kazanma %45 R+0.61 PF2.08
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017, TUKAS1017
+• uzun çizgi (lookback 120): doğru 27/36, YANLIŞ 4 (ANELE0707, SANKO0424, SANKO1022, VKING0406) | etiket/1000 mum 9.5 | işlem 392 kazanma %45 R+0.62 PF2.10
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017, TUKAS1017
+• kısa düşen çizgi şartı kapalı: doğru 28/36, YANLIŞ 6 (ANELE0707, MRGYO1010, SANKO0424, SANKO1022, VKING0406, VKING0210) | etiket/1000 mum 10.3 | işlem 427 kazanma %44 R+0.64 PF2.12
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, TUKAS1017
+• kısa düşen çizgi min 11 mum: doğru 27/36, YANLIŞ 4 (ANELE0707, SANKO0424, SANKO1022, VKING0406) | etiket/1000 mum 9.8 | işlem 403 kazanma %44 R+0.59 PF2.03
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017, TUKAS1017
+• Yatay düşüş trendi engeli kapalı: doğru 28/36, YANLIŞ 5 (ANELE0707, SANKO0424, SANKO1022, TUKAS1006, VKING0406) | etiket/1000 mum 9.6 | işlem 393 kazanma %46 R+0.62 PF2.11
+    kaçan: ANELE0302, ANELE0716, BIGEN0803, DOBUR1122, GSDDE0421, HKTM0804, MRGYO0508, MRGYO1017
+
+✅ ANELE 13.08.2025–18.08.2025 (doğru örnek: taban, küçük beyaz mum)
+  sinyal var: 13.08 Yatay dt6 cl0 [r0.83 k0.39 m0.84 ema+1.42/+0.92 tepe-0.4 e50+2.0 dip36g sn0.0 u+0.08 s+0.16 c0.78 p0.51 bf0.28 adr6.2% rg5.3% kr4 lc2 mx1.32 mb0.28 sp0 b7 0.86/1.90tp[]]  [kapanış 20.84–21.20, 4 mum]
+  kutu ölçümü: W7 15.08 bb0.67 hb1.55 | W10 15.08 bb0.83 hb1.85 | W15 18.08 bb1.46 hb2.49 | son gün 18.08: ema+1.16/+0.88 tepe-0.1 e50+1.9
+
+❌ ANELE 02.03.2026–27.03.2026 (doğru örnek: mart: yeşil kutu: 20 mumluk taban, kırılım mumu hariç)
+  sinyal yok [kapanış 13.80–14.59, 19 mum]
+  en yakın mumlar: 17.03 bx4.15/4.28 e-1.56/-1.16 T6.0 | 13.03 bx5.99/6.24 c0.75/p0.85 e-1.74/-1.21 T5.5 | 16.03 bx4.49/4.61 g0.68 e-1.59/-1.47 T5.9 | 23.03 bx2.77/2.88 c1.39/p0.99 e-1.37/-1.17 T6.5
+  kutu ölçümü: W7 17.03 bb0.78 hb1.66 | W10 23.03 bb1.02 hb2.79 | W15 24.03 bb1.56 hb3.01 | son gün 27.03: ema-1.10/+0.13 tepe-5.5 e50-1.3
+
+⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
+DEBUG_WIN = {}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
