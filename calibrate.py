@@ -29,6 +29,7 @@ EXAMPLES = [
     ("ANELE", "2025-07-16", "2025-07-18", True, "temmuz 2025: doğru daralma 16-18 Temmuz"),
     ("SANKO", "2026-04-24", "2026-04-29", False, "nisan 2026: daralma yok, yanlış etiket"),
     ("SANKO", "2026-10-22", "2026-10-27", False, "ekim 2026: mumlar çok volatil, daralma yok"),
+    ("ENJSA", "2026-10-07", "2026-10-12", False, "ekim 2026: kırmızı mumda etiket, mumlar volatil, daralma yok"),
     ("EMPAE", "2026-04-13", "2026-04-20", False, "daralma yok: fiyat aşağı akıyor, tek yeşil mum var; düşen çizgi etiketi yanlış"),
     ("EMPAE", "2026-04-23", "2026-05-08", True, "taban bölgesi (15 Nis-4 May): bu aralıkta etiket (Düşen veya kutu) kabul"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
@@ -167,7 +168,9 @@ Daralmabot, [30 Eki 2026 saat 10:45]
   kutu ölçümü: W7 17.03 bb0.78 hb1.66 | W10 23.03 bb1.02 hb2.79 | W15 24.03 bb1.56 hb3.01 | son gün 27.03: ema-1.10/+0.13 tepe-5.5 e50-1.3
 
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
-DEBUG_WIN = {}
+
+DEBUG_WIN = {("ENJSA", "2026-10-07"): ("2026-10-01", "2026-10-15")}
+
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
