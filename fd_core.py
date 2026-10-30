@@ -102,6 +102,7 @@ class Params:
     dnMinTb: int = 5                # ... düşen çizgide dar bantta en az bu kadar temas gerekir (0 = kapalı)
     dnMinSp: int = 12               # Düşen çizgi ilk temastan etiket mumuna en az bu kadar mum uzunlukta olmalı (0 = kapalı)
     hDnBlock: bool = True
+    yBodyMax: float = 0.0
     b7Max: float = 1.95             # son 7 mumun gövde aralığı (ADR katı) bundan büyükse etiket yok (volatil mumlar; 0 = kapalı)
     lcMax: int = 3                  # son 5 mumda bu kadardan fazla düşen kapanış varsa etiket yok (art arda düşüş; 0 = kapalı)
     nearADR: float = 2.2
@@ -206,6 +207,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.tightVal = recentRng / S.adr
     S.shrinkVal = recentRng / priorRng
     S.closeBoxVal = (_highest(c, nC) / _lowest(c, nC) - 1) * 100 / S.adr
+    S.bodyBox10 = (_highest(np.maximum(o, c), 10) / _lowest(np.minimum(o, c), 10) - 1) * 100 / S.adr
     lowNow = _lowest(l, nC)
     lowPrev = _shift(_lowest(l, 10), nC)
     S.lowDiff = (lowNow - lowPrev) / c * 100 / S.adr
@@ -614,9 +616,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         dnOk = (P.dnMinTb <= 0) or boxMode or useH or not (S.emaSlope[t] <= P.dnSlope and S.emaDist[t] < 0) or bestTcT >= P.dnMinTb
         spOk = (P.dnMinSp <= 0) or boxMode or useH or na(bestXA) or (t - int(bestXA) + 1) >= P.dnMinSp
         hdOk = (not P.hDnBlock) or boxMode or (not useH) or not (S.emaSlope[t] <= P.dnSlope and S.emaDist[t] < 0)
+        ybOk = (P.yBodyMax <= 0) or boxMode or (not useH) or S.bodyBox10[t] <= P.yBodyMax
         setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
-                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and bool(S.b7Ok[t]) and bool(S.lcOk[t]) and dnOk and spOk and hdOk)
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and bool(S.b7Ok[t]) and bool(S.lcOk[t]) and dnOk and spOk and hdOk and ybOk)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
