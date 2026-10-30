@@ -136,6 +136,7 @@ def box_line(df: pd.DataFrame, res, idx: list) -> str:
 
 
 # hata ayıklama: bu (hisse, başlangıç) örneklerinde pencere çevresi gün gün neden elendi/etiket çıktı gösterilir
+"""
 Daralmabot, [30 Eki 2026 saat 10:45]
 (1/10)
 🧪 Kalibrasyon: 49/62 örnek beklendiği gibi
@@ -168,6 +169,7 @@ Daralmabot, [30 Eki 2026 saat 10:45]
   kutu ölçümü: W7 17.03 bb0.78 hb1.66 | W10 23.03 bb1.02 hb2.79 | W15 24.03 bb1.56 hb3.01 | son gün 27.03: ema-1.10/+0.13 tepe-5.5 e50-1.3
 
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
+"""
 
 DEBUG_WIN = {("ENJSA", "2026-10-07"): ("2026-10-01", "2026-10-15")}
 
