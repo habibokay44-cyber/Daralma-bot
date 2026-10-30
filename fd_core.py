@@ -102,7 +102,7 @@ class Params:
     dnMinTb: int = 5                # ... düşen çizgide dar bantta en az bu kadar temas gerekir (0 = kapalı)
     dnMinSp: int = 12               # Düşen çizgi ilk temastan etiket mumuna en az bu kadar mum uzunlukta olmalı (0 = kapalı)
     hDnBlock: bool = True
-    yBodyMax: float = 0.0
+    yBodyMax: float = 2.0
     b7Max: float = 1.95             # son 7 mumun gövde aralığı (ADR katı) bundan büyükse etiket yok (volatil mumlar; 0 = kapalı)
     lcMax: int = 3                  # son 5 mumda bu kadardan fazla düşen kapanış varsa etiket yok (art arda düşüş; 0 = kapalı)
     nearADR: float = 2.2
