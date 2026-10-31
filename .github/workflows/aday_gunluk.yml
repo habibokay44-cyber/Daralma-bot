@@ -1,0 +1,47 @@
+name: Aday daralma listesi
+
+on:
+  schedule:
+    # Hafta içi 16:30 UTC = 19:30 Türkiye saati (ana taramadan sonra)
+    - cron: "30 16 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bist-aday
+  cancel-in-progress: false
+
+jobs:
+  aday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: TradingView veri kütüphanesi
+        run: pip install "git+https://github.com/rongardF/tvdatafeed.git"
+
+      - name: Aday listesini bul ve Telegram'a gönder
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python aday_gunluk.py
+
+      - name: Gönderilenler listesini kaydet
+        run: |
+          git config user.name "bist-tarayici"
+          git config user.email "bist-tarayici@users.noreply.github.com"
+          git add state/aday_sent.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "aday durumu"
+            git push
+          fi
