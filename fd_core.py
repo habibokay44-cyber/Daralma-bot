@@ -672,6 +672,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"sp{t - int(bestXA) + 1}")
         if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac) and not boxMode:
             why.append(f"bf{S.bodyFr[t]:.2f}")
+        if not found:
+            why.append("F")
+        if not modeOk:
+            why.append("M")
         if S.tightOk[t] and not found:
             why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
         strong = bool(S.strong[t])
