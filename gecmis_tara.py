@@ -76,7 +76,7 @@ def candidates(sym: str, df: pd.DataFrame, skip_labeled: bool = True, span: int 
         nxt = c[i + 1:i + 1 + LOOK]
         brk = bool(len(nxt) and nxt.max() > hiH * (1 + 0.5 * a / 100))
         out.append(dict(sym=sym, a=df.index[s], b=df.index[i], bb=bb, hb=hb, res=hiH, brk=brk,
-                        recent=(n - i) <= LOOK))
+                        recent=(n - i) <= LOOK, i=i, lo=loL, adr=a))
     return out
 
 
