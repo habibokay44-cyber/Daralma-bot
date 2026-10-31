@@ -207,7 +207,7 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
             e_["c"], e_["p"] = float(res.S.candRng[t_]), float(res.S.closePos[t_])
             e_["bf"] = float(res.S.bodyFr[t_])
             e_["adr"] = float(res.S.adr[t_])
-            e["d10"] = float(res.S.drop10[t_])
+            e_["d10"] = float(res.S.drop10[t_])
             e_["rg"] = float(res.S.tightVal[t_] * res.S.adr[t_])
             cs_ = list(df["Close"].iloc[max(t_ - 5, 0):t_ + 1])
             os_ = list(df["Open"].iloc[max(t_ - 4, 0):t_ + 1])
