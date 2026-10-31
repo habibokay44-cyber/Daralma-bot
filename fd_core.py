@@ -105,6 +105,13 @@ class Params:
     yBodyMax: float = 2.0
     b7Max: float = 1.95             # son 7 mumun gövde aralığı (ADR katı) bundan büyükse etiket yok (volatil mumlar; 0 = kapalı)
     lcMax: int = 3                  # son 5 mumda bu kadardan fazla düşen kapanış varsa etiket yok (art arda düşüş; 0 = kapalı)
+    restMode: bool = False          # DİNLENME modu (deneme): güçlü yükseliş trendinde direnç altı kısa dar dinlenme
+    restE50: float = 2.0            # kapanış EMA50'nin en az bu kadar (ADR katı) üstünde
+    restM: float = 1.3              # 5 mum ort. aralık / ADR en çok
+    restK: float = 1.0              # 5 mum kapanış aralığı / ADR en çok
+    restB7: float = 2.6             # son 7 mumun gövde aralığı (ADR katı) en çok
+    restDd: float = 2.0             # 40 mumluk tepeden uzaklık (ADR katı) en çok
+    restN: int = 5                  # direnç = son restN mumun gövde tepesi
     nearADR: float = 2.2
     lastNear: float = 1.8
     nearADRH: float = 1.2
@@ -297,6 +304,9 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.lcCnt = np.convolve(dn_, np.ones(5))[:len(c)]
     S.lcOk = (S.lcCnt <= P.lcMax) if P.lcMax > 0 else np.ones(len(c), bool)
     S.boxOk = (P.useBox & (S.boxBodyVal <= P.boxBody) & (S.boxHLVal <= P.boxHL) & S.candOk & S.jumpOk & S.volOk & S.redOk)
+    S.restTop = _highest(S.bodyTop, P.restN)
+    S.restOk = (P.restMode & (S.e50d >= P.restE50) & (S.tightVal <= P.restM) & (S.closeBoxVal <= P.restK)
+                & (S.b7Val <= P.restB7) & (S.dd40 <= P.restDd) & S.candOk & S.jumpOk & S.volOk & S.redOk)
 
     S.ph = _pivot_high(h, P.pvL, P.pvR)
     S.smcPh = _pivot_high(h, P.smcL, P.smcR)
@@ -558,6 +568,32 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 fb = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, cl=0, info="")
                 hz = dict(hz)
                 hL, hSpan, hTb, hFirst = float(S.boxTop[t]), P.boxN, 0, P.boxN
+                hz.update(hL=hL, hSpan=hSpan, hTb=0, hFirst=hFirst, hTc=0)
+                        restMode = False
+        if P.restMode and (not boxMode) and bool(S.restOk[t]):
+            ddOk1 = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
+            normalOk1 = ((hSpan > 0 or fb["tc"] > 0) and bool(S.tightCore[t]) and bool(S.emaOk[t])
+                         and ddOk1 and bool(S.rallyOk[t]))
+            if not normalOk1:
+                # normal çizgi yolu etiket üretemiyor: direnç = son restN mumun gövde tepesi (DİNLENME)
+                boxMode = True
+                restMode = True
+                fb = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, cl=0, info="")
+                hz = dict(hz)
+                hL, hSpan, hTb, hFirst = float(S.restTop[t]), P.restN, 0, P.restN
+                hz.update(hL=hL, hSpan=hSpan, hTb=0, hFirst=hFirst, hTc=0)
+                        restMode = False
+        if P.restMode and (not boxMode) and bool(S.restOk[t]):
+            ddOk1 = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
+            normalOk1 = ((hSpan > 0 or fb["tc"] > 0) and bool(S.tightCore[t]) and bool(S.emaOk[t])
+                         and ddOk1 and bool(S.rallyOk[t]))
+            if not normalOk1:
+                # normal çizgi yolu etiket üretemiyor: direnç = son restN mumun gövde tepesi (DİNLENME)
+                boxMode = True
+                restMode = True
+                fb = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, cl=0, info="")
+                hz = dict(hz)
+                hL, hSpan, hTb, hFirst = float(S.restTop[t]), P.restN, 0, P.restN
                 hz.update(hL=hL, hSpan=hSpan, hTb=0, hFirst=hFirst, hTc=0)
         bestTc, bestTcT, bestXA = fb["tc"], fb["tcT"], fb["xA"]
         bestPA, bestSl, bestLn, bestSN = fb["pa"], fb["sl"], fb["ln"], fb["sn"]
