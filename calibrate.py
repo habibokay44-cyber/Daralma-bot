@@ -294,8 +294,6 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
-    ("Kapanış kutusu 0.92", dict(closeBoxADR=0.92)),
-    ("Kapanış kutusu 0.95", dict(closeBoxADR=0.95)),
 ]
 
 
