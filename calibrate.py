@@ -176,7 +176,7 @@ Daralmabot, [30 Eki 2026 saat 10:45]
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
 """
 
-DEBUG_WIN = {("LIDER", "2025-01-20"): ("2025-01-13", "2025-01-27"), ("LIDER", "2025-02-24"): ("2025-02-10", "2025-03-03"), ("LIDER", "2025-03-06"): ("2025-03-03", "2025-03-14")}
+DEBUG_WIN = {}
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
