@@ -296,9 +296,6 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
-    ("DİNLENME sıkı (M1.15 K0.85)", dict(restMode=True, restM=1.15, restK=0.85)),
-    ("DİNLENME orta (M1.3 K1.0)", dict(restMode=True)),
-    ("DİNLENME gevşek (M1.5 K1.3)", dict(restMode=True, restM=1.5, restK=1.3)),
 ]
 
 
