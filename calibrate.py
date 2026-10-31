@@ -42,6 +42,7 @@ EXAMPLES = [
     ("CEMTS", "2025-03-10", "2025-03-17", True, "mart 2025: ~9.95 direnci altında küçük mumlar, etiket yok (kullanıcı çizgisi)"),
     ("SUWEN", "2025-03-10", "2025-03-14", True, "mart 2025: ~9.40 direnci altında küçük mumlar (kullanıcı kutusu), etiket yok"),
     ("AHSGY", "2025-03-11", "2025-03-18", True, "mart 2025: düşüş sonrası taban ~5.9-6.2 (kullanıcı kutusu), etiket yok"),
+    ("OZATD", "2025-02-17", "2025-02-20", True, "şubat 2025: ~98-99 direnci altında küçük mumlar, sonra kırılım ve yükseliş (kullanıcı kutusu)"),
     ("EMPAE", "2026-04-13", "2026-04-20", False, "daralma yok: fiyat aşağı akıyor, tek yeşil mum var; düşen çizgi etiketi yanlış"),
     ("EMPAE", "2026-04-23", "2026-05-08", True, "taban bölgesi (15 Nis-4 May): bu aralıkta etiket (Düşen veya kutu) kabul"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
