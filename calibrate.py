@@ -99,6 +99,8 @@ EXAMPLES = [
     ("VKING", "2026-02-10", "2026-02-16", False, "şubat: çizgi peş peşe iki muma çizilmiş, daralma yok"),
     ("MRGYO", "2022-10-10", "2022-10-14", False, "ekim 2022: fiyat aşağı giderken etiket, çizgi yanlış"),
     ("MRGYO", "2022-10-17", "2022-10-18", True, "doğru daralma: 13-18 Ekim yeşil kutu, ~0.556 yatay direnç altı"),
+    ("KRGYO", "2026-10-28", "2026-10-30", True, "ekim 2026 sonu: ~3.28 direnci altında küçük mumlar, düşüş sonrası taban (kullanıcı listesi), etiket yok"),
+    ("MACKO", "2026-10-26", "2026-10-30", True, "ekim 2026 sonu: ~24.48 direnci altında küçük mumlar, sert düşüş sonrası taban (kullanıcı listesi), etiket yok"),
 ]
 
 
@@ -184,7 +186,7 @@ Daralmabot, [30 Eki 2026 saat 10:45]
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
 """
 
-DEBUG_WIN = {}
+DEBUG_WIN = {("KRGYO", "2026-10-28"): ("2026-10-20", "2026-10-30"), ("MACKO", "2026-10-26"): ("2026-10-19", "2026-10-30")}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
