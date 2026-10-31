@@ -569,20 +569,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 hz = dict(hz)
                 hL, hSpan, hTb, hFirst = float(S.boxTop[t]), P.boxN, 0, P.boxN
                 hz.update(hL=hL, hSpan=hSpan, hTb=0, hFirst=hFirst, hTc=0)
-                        restMode = False
-        if P.restMode and (not boxMode) and bool(S.restOk[t]):
-            ddOk1 = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
-            normalOk1 = ((hSpan > 0 or fb["tc"] > 0) and bool(S.tightCore[t]) and bool(S.emaOk[t])
-                         and ddOk1 and bool(S.rallyOk[t]))
-            if not normalOk1:
-                # normal çizgi yolu etiket üretemiyor: direnç = son restN mumun gövde tepesi (DİNLENME)
-                boxMode = True
-                restMode = True
-                fb = dict(tc=0, tcT=-1, xA=0, pa=NAN, sl=0.0, ln=NAN, ag=NAN, lg=NAN, sn=NAN, ov=NAN, cl=0, info="")
-                hz = dict(hz)
-                hL, hSpan, hTb, hFirst = float(S.restTop[t]), P.restN, 0, P.restN
-                hz.update(hL=hL, hSpan=hSpan, hTb=0, hFirst=hFirst, hTc=0)
-                        restMode = False
+        restMode = False
         if P.restMode and (not boxMode) and bool(S.restOk[t]):
             ddOk1 = (P.ddMax <= 0) or na(S.dd40[t]) or S.dd40[t] <= P.ddMax
             normalOk1 = ((hSpan > 0 or fb["tc"] > 0) and bool(S.tightCore[t]) and bool(S.emaOk[t])
@@ -656,7 +643,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         ybOk = (P.yBodyMax <= 0) or boxMode or (not useH) or S.bodyBox10[t] <= P.yBodyMax
         setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
-                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and bool(S.b7Ok[t]) and bool(S.lcOk[t]) and dnOk and spOk and hdOk and ybOk)
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and (bool(S.b7Ok[t]) or restMode) and bool(S.lcOk[t]) and dnOk and spOk and hdOk and ybOk)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -664,7 +651,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
           
         if P.useBox:
             if boxMode:
-                why.append("K")
+                why.append("RS" if restMode else "K")
             elif not (S.boxBodyVal[t] <= P.boxBody and S.boxHLVal[t] <= P.boxHL):
                 why.append(f"bx{S.boxBodyVal[t]:.2f}/{S.boxHLVal[t]:.2f}")        
         if not (S.tightLong[t] or S.tightShort[t]) and not boxMode:
@@ -896,4 +883,3 @@ def summarize(trades: list[dict]) -> dict:
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
     )
-
