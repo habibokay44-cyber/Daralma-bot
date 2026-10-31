@@ -32,6 +32,9 @@ EXAMPLES = [
     ("ENJSA", "2026-10-07", "2026-10-12", False, "ekim 2026: kırmızı mumda etiket, mumlar volatil, daralma yok"),
     ("ARENA", "2024-03-11", "2024-03-14", False, "mart: fiyat aşağı giderken Düşen etiketi, daralma yok"),
     ("KAPLM", "2026-03-25", "2026-04-02", True, "mart-nisan 2026: ~480 direnci altında 9 mumluk sıkışma, sonra kırılım (kullanıcı kutusu)"),
+    ("LIDER", "2025-01-20", "2025-01-23", True, "ocak 2025: kutu çıkan mumlar doğru daralma (turuncu çizgi yanlış, çizgi bu testte ölçülmüyor)"),
+    ("LIDER", "2025-02-24", "2025-02-27", True, "şubat sonu: daha doğru daralma, Ocak tepesinden uzun düşen çizgi altı, kırılım öncesi (kaçan)"),
+    ("LIDER", "2025-03-06", "2025-03-11", True, "mart: kırılım sonrası ~31.4 direnci altında küçük mumlar, etiket yok (kaçan)"),
     ("EMPAE", "2026-04-13", "2026-04-20", False, "daralma yok: fiyat aşağı akıyor, tek yeşil mum var; düşen çizgi etiketi yanlış"),
     ("EMPAE", "2026-04-23", "2026-05-08", True, "taban bölgesi (15 Nis-4 May): bu aralıkta etiket (Düşen veya kutu) kabul"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
@@ -173,7 +176,7 @@ Daralmabot, [30 Eki 2026 saat 10:45]
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
 """
 
-DEBUG_WIN = {("KAPLM", "2026-03-25"): ("2026-03-18", "2026-04-08")}
+DEBUG_WIN = {("LIDER", "2025-01-20"): ("2025-01-13", "2025-01-27"), ("LIDER", "2025-02-24"): ("2025-02-10", "2025-03-03"), ("LIDER", "2025-03-06"): ("2025-03-03", "2025-03-14")}
 
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
