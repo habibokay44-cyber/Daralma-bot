@@ -38,6 +38,10 @@ EXAMPLES = [
     ("ICBCT", "2026-03-26", "2026-03-31", False, "mart 2026: aşağı düşen mumlarda etiket, daralma yok (çizgi de yanlış)"),
     ("ICBCT", "2026-04-13", "2026-04-16", True, "nisan 2026: doğru daralma, ~14.5 civarı, düşen çizgi altı (kullanıcı kutusu)"),
     ("OFSYM", "2025-07-01", "2025-07-04", True, "temmuz 2025: ~45 direnci altında küçük mumlar, sonra yükseliş (kullanıcı kutusu, etiket yok)"),
+    ("FORTE", "2025-07-21", "2025-07-24", False, "temmuz 2025: aşağı düşen mumlarda etiket, daralma yok"),
+    ("CEMTS", "2025-03-10", "2025-03-17", True, "mart 2025: ~9.95 direnci altında küçük mumlar, etiket yok (kullanıcı çizgisi)"),
+    ("SUWEN", "2025-03-10", "2025-03-14", True, "mart 2025: ~9.40 direnci altında küçük mumlar (kullanıcı kutusu), etiket yok"),
+    ("AHSGY", "2025-03-11", "2025-03-18", True, "mart 2025: düşüş sonrası taban ~5.9-6.2 (kullanıcı kutusu), etiket yok"),
     ("EMPAE", "2026-04-13", "2026-04-20", False, "daralma yok: fiyat aşağı akıyor, tek yeşil mum var; düşen çizgi etiketi yanlış"),
     ("EMPAE", "2026-04-23", "2026-05-08", True, "taban bölgesi (15 Nis-4 May): bu aralıkta etiket (Düşen veya kutu) kabul"),
     ("KLSYN", "2026-02-02", "2026-02-12", True, "kırmızı yay bölgesi"),
@@ -179,7 +183,7 @@ Daralmabot, [30 Eki 2026 saat 10:45]
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
 """
 
-DEBUG_WIN = {("OFSYM", "2025-07-01"): ("2025-06-25", "2025-07-11")}
+DEBUG_WIN = {("FORTE", "2025-07-21"): ("2025-07-15", "2025-07-28"), ("CEMTS", "2025-03-10"): ("2025-03-05", "2025-03-20"), ("SUWEN", "2025-03-10"): ("2025-03-05", "2025-03-19"), ("AHSGY", "2025-03-11"): ("2025-03-06", "2025-03-21")}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
