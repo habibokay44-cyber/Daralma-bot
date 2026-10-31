@@ -208,6 +208,7 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.shrinkVal = recentRng / priorRng
     S.closeBoxVal = (_highest(c, nC) / _lowest(c, nC) - 1) * 100 / S.adr
     S.bodyBox10 = (_highest(np.maximum(o, c), 10) / _lowest(np.minimum(o, c), 10) - 1) * 100 / S.adr
+    S.drop10 = (c / _shift(c, 10) - 1) * 100 / S.adr
     lowNow = _lowest(l, nC)
     lowPrev = _shift(_lowest(l, 10), nC)
     S.lowDiff = (lowNow - lowPrev) / c * 100 / S.adr
