@@ -24,16 +24,18 @@ from scan import fetch_tv_all, get_tickers, telegram_send, link
 CAND = dict(minClD=2, emaBelowMax=0.5, useShort=False, rallyU=0.9, rallyDd=2.0, bodyFrac=0.17, allowFlat=True, minTb=3)
 
 W = 6            # pencere (mum)
-BB_MAX = 1.8     # gövde kutusu / ADR üst sınırı
-HB_MAX = 3.0     # fitilli kutu / ADR üst sınırı
+BB_MAX = 1.1     # gövde kutusu / ADR üst sınırı
+HB_MAX = 2.0     # fitilli kutu / ADR üst sınırı
 RNG_MAX = 2.0    # tek mum aralığı / ADR üst sınırı (volatil mum yok)
 DOWN_MAX = 4     # penceredeki art arda düşen kapanış üst sınırı
-NEAR = 0.8       # kapanış dirence en fazla bu kadar ADR uzakta
+NEAR = 0.4       # kapanış dirence en fazla bu kadar ADR uzakta
 LOOK = 10        # kırılım aranan ileri mum sayısı
 TOL = 4          # etiket yakınlık toleransı (mum)
+SPAN = 500       # liste için son kaç mum taranır (örnek testinde tüm geçmiş)
+GAP = 20         # aynı hissede iki aday arası en az mum
 
 
-def candidates(sym: str, df: pd.DataFrame) -> list[dict]:
+def candidates(sym: str, df: pd.DataFrame, skip_labeled: bool = True, span: int = SPAN) -> list[dict]:
     res = run(df, replace(Params(), **CAND))
     S = res.S
     n = res.n
@@ -42,7 +44,7 @@ def candidates(sym: str, df: pd.DataFrame) -> list[dict]:
     bt, bl = np.maximum(o, c), np.minimum(o, c)
     out: list[dict] = []
     last_i = -99
-    for i in range(60, n):
+    for i in range(max(60, n - span), n):
         a = adr[i]
         if not (a == a) or a <= 0:
             continue
@@ -66,9 +68,9 @@ def candidates(sym: str, df: pd.DataFrame) -> list[dict]:
             continue
         if (hiH - c[i]) * 100 / c[i] / a > NEAR:     # kapanış dirençten uzak
             continue
-        if any(abs(t - j) <= TOL for t in live for j in range(s, i + 1)):
+        if skip_labeled and any(abs(t - j) <= TOL for t in live for j in range(s, i + 1)):
             continue                                  # bot zaten etiket koymuş
-        if i - last_i < W:                            # ardışık pencereleri tek aday say
+        if i - last_i < (GAP if skip_labeled else W):  # ardışık pencereleri tek aday say
             continue
         last_i = i
         nxt = c[i + 1:i + 1 + LOOK]
@@ -86,6 +88,26 @@ def main() -> None:
 
     tickers = get_tickers()
     frames = fetch_tv_all(tickers, n_bars=1500, budget=30 * 60)
+    # kendi kendini sına: filtre bilinen örnekleri ne kadar yakalıyor (etiket şartı olmadan, tüm geçmiş)
+    from calibrate import EXAMPLES
+    tp = fp = npos = nneg = 0
+    for sym, a, b, expect, _note in EXAMPLES:
+        df = frames.get(sym)
+        if df is None:
+            continue
+        ta, tb = pd.Timestamp(a) - pd.Timedelta(days=4), pd.Timestamp(b) + pd.Timedelta(days=4)
+        try:
+            hit = any(x["b"] >= ta and x["a"] <= tb for x in candidates(sym, df, skip_labeled=False, span=len(df)))
+        except Exception:  # noqa: BLE001
+            continue
+        if expect:
+            npos += 1
+            tp += int(hit)
+        else:
+            nneg += 1
+            fp += int(hit)
+    selftest = f"Filtre sınaması: doğru örneklerin {tp}/{npos}'ini, yanlış örneklerin {fp}/{nneg}'ini aday sayıyor."
+    print(selftest)
     allc: list[dict] = []
     for sym, df in frames.items():
         try:
@@ -103,6 +125,7 @@ def main() -> None:
     pick = sorted(yes[: k * 2 // 3] + no[: k - k * 2 // 3], key=lambda x: (x["sym"], x["a"]))
     head = (f"🔎 Geçmiş tarama: {len(frames)} hisse, botun etiket koymadığı {len(allc)} aday pencere "
             f"({len(yes)} tanesinde sonradan kırılım var, {len(no)} tanesinde yok).\n"
+            f"{selftest}\n"
             f"Rastgele {len(pick)} tanesi aşağıda. Grafikte bak, her biri için doğru/yanlış yaz.")
     lines = [f"• {x['sym']} {x['a']:%d.%m.%Y}–{x['b']:%d.%m.%Y} bb{x['bb']:.2f} hb{x['hb']:.2f} "
              f"direnç~{x['res']:.2f} kırılım:{'E' if x['brk'] else 'H'}  {link(x['sym'])}" for x in pick]
