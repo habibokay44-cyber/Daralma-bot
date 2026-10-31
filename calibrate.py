@@ -291,6 +291,9 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
+    ("Kutu penceresi 10 mum", dict(boxN=10)),
+    ("Kutu penceresi 7 mum", dict(boxN=7)),
+    ("Kutu 10 mum, gevşek eşik", dict(boxN=10, boxBody=1.9, boxHL=3.3)),
 ]
 
 
