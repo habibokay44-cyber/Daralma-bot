@@ -682,7 +682,14 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         setup = setupRaw and (not brokeOut) and (not blocked) and ((not P.onlyStrong) or strong)
 
         if setupRaw and (blocked or brokeOut):
-            why.append("B")
+            _b = ""
+            if lastBreakBar is not None and t - lastBreakBar <= P.cooldown:
+                _b += "-kirilim"
+            if lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive:
+                _b += "-setup"
+            if brokeOut:
+                _b += "-cikis"
+            why.append("B" + _b)
         diag[t] = " ".join(why)
 
         if setup and useH and na(hLock):
