@@ -303,6 +303,11 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
+    ("EMA eğim alt sınır -0.8", dict(emaSlopeMin=-0.8)),
+    ("EMA eğim alt sınır -1.3", dict(emaSlopeMin=-1.3)),
+    ("EMA eğim -1.6 + dip mesafesi 1.0", dict(emaSlopeMin=-1.6, emaBelowMax=1.0)),
+    ("EMA şartı kapalı", dict(useEmaTr=False)),
+    ("EMA kapalı + tepe düşüşü 12", dict(useEmaTr=False, ddMax=12.0)),
 ]
 
 
