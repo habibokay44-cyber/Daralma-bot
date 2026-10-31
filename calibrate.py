@@ -105,7 +105,7 @@ def fitP(df: pd.DataFrame, P: Params) -> Params:
 def mt(e: dict) -> str:
     """Etiket mumunun ölçüleri: sıkışma r/k/m, EMA21 eğim/uzaklık, tepeden düşüş, EMA50 uzaklık, son dip, çizgi eğimi, yaklaşma u, eğim s, mum c/p, çizgi uzunluğu sp."""
     return (f"[{'KISA ' if e.get('short') else ''}r{e.get('r', 0):.2f} k{e.get('k', 0):.2f} m{e.get('m', 0):.2f} ema{e.get('es', 0):+.2f}/{e.get('ed', 0):+.2f} tepe-{e.get('dd', 0):.1f} "
-            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f} sp{e.get('sp', 0)} b7 {e.get('b7', 0):.2f}/{e.get('h7', 0):.2f}tp[{e.get('tpos', '')}]]")
+            f"e50{e.get('e50', 0):+.1f} dip{e.get('la', 0)}g sn{e.get('sn', 0):.1f} u{e.get('u', 0):+.2f} s{e.get('s', 0):+.2f} c{e.get('c', 0):.2f} p{e.get('p', 0):.2f} bf{e.get('bf', 0):.2f} adr{e.get('adr', 0):.1f}% rg{e.get('rg', 0):.1f}% kr{e.get('kr', 0)} lc{e.get('lc', 0)} mx{e.get('mx', 0):.2f} mb{e.get('mb', 0):.2f} sp{e.get('sp', 0)} b7 {e.get('b7', 0):.2f}/{e.get('h7', 0):.2f} d10 {e.get('d10', 0):+.1f} tp[{e.get('tpos', '')}]
 
 
 LAST_BOX = ""
@@ -207,6 +207,7 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
             e_["c"], e_["p"] = float(res.S.candRng[t_]), float(res.S.closePos[t_])
             e_["bf"] = float(res.S.bodyFr[t_])
             e_["adr"] = float(res.S.adr[t_])
+            e["d10"] = float(res.S.drop10[t_])
             e_["rg"] = float(res.S.tightVal[t_] * res.S.adr[t_])
             cs_ = list(df["Close"].iloc[max(t_ - 5, 0):t_ + 1])
             os_ = list(df["Open"].iloc[max(t_ - 4, 0):t_ + 1])
