@@ -300,9 +300,6 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
-    ("düşen eğim alt sınır -0.37", dict(slopeMinD=-0.37)),
-    ("düşen eğim alt sınır -0.42", dict(slopeMinD=-0.42)),
-    ("düşen eğim alt sınır -0.50", dict(slopeMinD=-0.50)),
 ]
 
 
