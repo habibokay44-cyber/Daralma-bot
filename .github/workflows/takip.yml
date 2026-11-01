@@ -1,0 +1,37 @@
+name: Akşam takibi
+
+on:
+  schedule:
+    # Hafta içi 17:00 UTC = 20:00 Türkiye saati (ana taramadan sonra)
+    - cron: "0 17 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bist-takip
+  cancel-in-progress: false
+
+jobs:
+  aday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: TradingView veri kütüphanesi
+        run: pip install "git+https://github.com/rongardF/tvdatafeed.git"
+
+      - name: Takip mesajını gönder
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python takip.py
