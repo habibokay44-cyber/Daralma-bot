@@ -318,6 +318,9 @@ VARIANTS = [
     ("Düşen: r>=0.55 (kırılganlık testi)", dict(shrinkMinD=0.55)),
     ("Düşen: EMA21 altı + eğim<0 engeli", dict(dnBelowSlope=0.0)),
     ("ikisi birlikte", dict(shrinkMinD=0.50, dnBelowSlope=0.0)),
+    ("SADECE e kuralı (r kapalı)", dict(shrinkMinD=0.0)),
+    ("SADECE r kuralı (e kapalı)", dict(dnBelowSlope=-99.0)),
+    ("ikisi de kapalı", dict(shrinkMinD=0.0, dnBelowSlope=-99.0)),
 ]
 
 
