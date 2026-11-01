@@ -643,7 +643,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         ybOk = (P.yBodyMax <= 0) or boxMode or (not useH) or S.bodyBox10[t] <= P.yBodyMax
         setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
-                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and (bool(S.b7Ok[t]) or restMode) and bool(S.lcOk[t]) and dnOk and spOk and hdOk and ybOk)
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and (bool(S.b7Ok[t]) or restMode) and bool(S.lcOk[t]) and dnOk and spOk and shrOk and ebOk) k)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
@@ -691,6 +691,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
             why.append(f"lc{int(S.lcCnt[t])}")
         if not dnOk:
             why.append(f"dn{bestTcT}")
+        if not shrOk:
+            why.append(f"rl{S.shrinkVal[t]:.2f}")
+        if not ebOk:
+            why.append("eb")
         if not spOk:
             why.append(f"sp{t - int(bestXA) + 1}")
         if not (np.isnan(S.bodyFr[t]) or S.bodyFr[t] >= P.bodyFrac) and not boxMode:
