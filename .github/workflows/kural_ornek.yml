@@ -1,0 +1,27 @@
+name: Kural ornek
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gecmis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: TradingView veri kütüphanesi
+        run: pip install "git+https://github.com/rongardF/tvdatafeed.git"
+
+      - name: Bot etiketi, aday, kontrol ölçümü
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python kural_ornek.py --telegram
