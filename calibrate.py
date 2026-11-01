@@ -74,6 +74,8 @@ EXAMPLES = [
     ("GMTAS", "2026-07-08", "2026-07-20", False, "temmuz: daralma yok, fiyat aşağı kayıyor"),
     ("GMTAS", "2026-08-01", "2026-08-10", False, "ağustos: çizgi doğru ama yatay savrulma, fitilli dojiler, daralma yok"),
     ("GMTAS", "2026-10-09", "2026-10-15", True, "ekim: doğru etiket (düşüşten toparlanıp çizgi altında daralma)"),
+    ("PKART", "2026-04-09", "2026-04-14", False, "fiyat düşerken etiket; daralma değil"),
+    ("PKART", "2026-06-25", "2026-06-30", False, "düşüş sürerken etiket; daralma değil"),
     ("BIGEN", "2026-08-03", "2026-08-11", True, "yeşil kutu: büyük beyaz mum sonrası küçük mumlar, direnç büyük mumun tepesi"),
     ("BIGEN", "2026-08-14", "2026-08-24", False, "turuncu çizgi uzak zirveden, fiyat sert yükselirken etiket, daralma yok"),
     ("KONTR", "2021-11-22", "2021-12-02", True, "yatay daralma ~2.19 altı: MAVİ YATAY olmalı (düşen çizgi yanlış)"),
