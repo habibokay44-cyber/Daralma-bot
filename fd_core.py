@@ -95,6 +95,8 @@ class Params:
     emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     shrinkMinD: float = 0.50       # Düşen modu: sıkışma oranı (r) bundan küçükse etiket yok (0 = kapalı)
+    slopeMinG: float = -99.0        # Düşen/Yatay: yakın eğim (slopeVal) bundan küçükse etiket yok (-99 = kapalı)
+    riseMinG: float = -99.0         # Düşen/Yatay: yükseliş (riseVal) bundan küçükse etiket yok (-99 = kapalı)
     dnBelowSlope: float = 0.0     # Düşen modu: kapanış EMA21 altında VE yakın eğim (s) bundan küçükse etiket yok (-99 = kapalı)
     useBox: bool = True          # KUTU modu: çizgi bulunamasa da uzun yatay taban kutusu (boxN mum) daralma sayılır
     boxN: int = 15                  # kutu: son kaç mum
@@ -645,9 +647,11 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         ybOk = (P.yBodyMax <= 0) or boxMode or (not useH) or S.bodyBox10[t] <= P.yBodyMax
         shrOk = (P.shrinkMinD <= 0) or boxMode or useH or na(S.shrinkVal[t]) or S.shrinkVal[t] >= P.shrinkMinD
         ebOk = boxMode or useH or not (S.emaDist[t] < 0 and S.slopeVal[t] < P.dnBelowSlope)
+        slG = boxMode or na(S.slopeVal[t]) or S.slopeVal[t] >= P.slopeMinG
+        riG = boxMode or na(S.riseVal[t]) or S.riseVal[t] >= P.riseMinG
         setupRaw = (found and (bool(S.tightCore[t]) or boxMode) and modeOk and yOk and dOkH and bool(S.candOk[t])
                     and bool(S.jumpOk[t]) and bool(S.volOk[t]) and bool(S.redOk[t]) and (bool(S.emaOk[t]) or boxMode)
-                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and (bool(S.b7Ok[t]) or restMode) and bool(S.lcOk[t]) and dnOk and spOk and hdOk and ybOk and shrOk and ebOk)
+                    and (ddOk or boxMode) and (bool(S.rallyOk[t]) or boxMode) and (bool(S.b7Ok[t]) or restMode) and bool(S.lcOk[t]) and dnOk and spOk and hdOk and ybOk and shrOk and ebOk and slG and riG)
         blocked = ((lastBreakBar is not None and t - lastBreakBar <= P.cooldown)
                    or (lastCancelBar is not None and t - lastCancelBar <= P.cancelBlock)
                    or (lastSetupBar is not None and t - lastSetupBar <= P.cooldown and not lblLive))
