@@ -186,7 +186,7 @@ Daralmabot, [30 Eki 2026 saat 10:45]
 ⚠️ ANELE 07.07.2025–10.07.2025 (YANLIŞ örnek: temmuz 2025: fiyat aşağı giderken kutu/etiket yanlış)
 """
 
-DEBUG_WIN = {("KRGYO", "2026-10-28"): ("2026-10-20", "2026-10-30"), ("MACKO", "2026-10-26"): ("2026-10-19", "2026-10-30")}
+DEBUG_WIN = {}
 
 def evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: str, P: Params) -> tuple[bool, str]:
     ok_, msg_ = _evaluate(sym, df, a, b, expect, note, P)
@@ -303,11 +303,6 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
-    ("EMA eğim alt sınır -0.8", dict(emaSlopeMin=-0.8)),
-    ("EMA eğim alt sınır -1.3", dict(emaSlopeMin=-1.3)),
-    ("EMA eğim -1.6 + dip mesafesi 1.0", dict(emaSlopeMin=-1.6, emaBelowMax=1.0)),
-    ("EMA şartı kapalı", dict(useEmaTr=False)),
-    ("EMA kapalı + tepe düşüşü 12", dict(useEmaTr=False, ddMax=12.0)),
 ]
 
 
