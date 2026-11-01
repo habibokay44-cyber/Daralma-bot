@@ -116,9 +116,12 @@ def main() -> None:
             print(f"[uyarı] {sym}: {e}", file=sys.stderr)
     cl = pd.DataFrame({s: df["Close"].astype(float) for s, df in frames.items()}).sort_index()
     ma = cl.rolling(50).mean()
-    br = float(((cl > ma).where(ma.notna()).iloc[-1]).mean())
+    ok = (cl > ma).where(ma.notna())
+    cnt = ok.notna().sum(axis=1)
+    ok = ok[cnt >= 0.8 * cnt.max()]
+    br = float(ok.iloc[-1].mean())
     zone = "düşük bölge (testte işlem kalitesi daha düşük)" if br < BR_LOW else ("yüksek bölge" if br >= BR_HIGH else "orta bölge")
-    last_day = cl.index[-1]
+    last_day = ok.index[-1]
     parts = []
     if lines_pos:
         parts.append("📈 Pozisyonlar (iz stop: giriş mumunun dibi → +1R'de girişe → son 10 mumun dibi)\n" + "\n".join(lines_pos))
@@ -127,7 +130,7 @@ def main() -> None:
     if not parts:
         print(f"Bugün gönderilecek bir şey yok. Genişlik {br:.2f}")
         return
-    msg = f"🧭 Akşam takibi {last_day:%d.%m.%Y}\n\n" + "\n\n".join(parts) + f"\n\n🌡️ Piyasa genişliği (SMA50 üstü hisse): {br:.2f} → {zone}"
+    msg = f"🧭 Akşam takibi {last_day:%d.%m.%Y}\n\n" + "\n\n".join(parts) + f"\n\n🌡️ Piyasa genişliği Piyasa genişliği (SMA50 üstü hisse): {br:.2f} ({int(cnt.loc[ok.index[-1]])} hisse) → {zone}"
     print(msg)
     if not args.dry:
         telegram_send(msg)
