@@ -890,4 +890,4 @@ def summarize(trades: list[dict]) -> dict:
         profitFactor=float(gWin / gLoss) if gLoss > 0 else float("inf"),
         avgPlanR=float(plan),
         breakEven=float(100 / (1 + plan)),
-    
+    )
