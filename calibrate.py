@@ -77,7 +77,6 @@ EXAMPLES = [
     ("PKART", "2026-04-09", "2026-04-14", False, "fiyat düşerken etiket; daralma değil"),
     ("PKART", "2026-06-25", "2026-06-30", False, "düşüş sürerken etiket; daralma değil"),
     ("PKART","2026-07-08","2026-07-13",False,"büyük mum kutunun içinde; etiket erken, daralma henüz oluşmadı"),
-    ("PKART","2026-07-13","2026-07-17",True,"doğru daralma 13-17 Temmuz (etiket 17'sine doğru gelmeli)"),
     ("BIGEN", "2026-08-03", "2026-08-11", True, "yeşil kutu: büyük beyaz mum sonrası küçük mumlar, direnç büyük mumun tepesi"),
     ("BIGEN", "2026-08-14", "2026-08-24", False, "turuncu çizgi uzak zirveden, fiyat sert yükselirken etiket, daralma yok"),
     ("KONTR", "2021-11-22", "2021-12-02", True, "yatay daralma ~2.19 altı: MAVİ YATAY olmalı (düşen çizgi yanlış)"),
