@@ -305,6 +305,10 @@ VARIANTS = [
     ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
     ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
     ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
+    ("Düşen: r>=0.50", dict(shrinkMinD=0.50)),
+    ("Düşen: r>=0.55 (kırılganlık testi)", dict(shrinkMinD=0.55)),
+    ("Düşen: EMA21 altı + eğim<0 engeli", dict(dnBelowSlope=0.0)),
+    ("ikisi birlikte", dict(shrinkMinD=0.50, dnBelowSlope=0.0)),
 ]
 
 
