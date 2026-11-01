@@ -1,0 +1,4 @@
+# Açık pozisyonların. Her satır: HISSE GIRIS_TARIHI(YYYY-AA-GG) GIRIS_FIYATI
+# Örnek (başındaki # işaretini kaldırırsan çalışır):
+# KRGYO 2026-10-29 12.34
+# Kapanan pozisyonun satırını sil.
