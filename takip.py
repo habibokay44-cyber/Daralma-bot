@@ -13,6 +13,7 @@ Pozisyonlar: repo ana klasöründeki pozisyonlar.txt, her satır:  HISSE  GIRIS_
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -72,7 +73,10 @@ def track(df: pd.DataFrame, date: str, price: float) -> dict:
             s = max(s, price)
         if armed:
             s = max(s, float(l[max(t + 1, k - TRAIL + 1):k + 1].min()))
-    return dict(closed=False, t=t, last=float(c[-1]), ret=(c[-1] / price - 1) * 100, R=(c[-1] - price) / R,
+    cs = df["Close"].astype(float)
+    e10 = float(cs.ewm(span=10, adjust=False).mean().iloc[-1])
+    e21 = float(cs.ewm(span=21, adjust=False).mean().iloc[-1])
+    return dict(closed=False, e10=e10, e21=e21, t=t, last=float(c[-1]), ret=(c[-1] / price - 1) * 100, R=(c[-1] - price) / R,
                 stop=float(s), prev=float(s_prev), armed=armed, sl0=float(sl), days=n - 1 - t)
 
 
@@ -98,7 +102,13 @@ def main() -> None:
             up = r["stop"] > r["prev"] + 1e-9
             st = "iz sürüyor" if r["armed"] else "henüz +1R yok, stop = giriş mumunun dibi"
             mv = f" 🔼 stopu {r['stop']:.2f}'ye YÜKSELT" if up else ""
-            lines_pos.append(f"• {sym}: {r['last']:.2f} ({r['ret']:+.1f}%, R {r['R']:+.2f}, {r['days']} gün) | stop {r['stop']:.2f} ({st}){mv}  {link(sym)}")
+            ema = ""
+            if r["last"] < r["e21"]:
+                ema = " ⚠️ EMA21 altında kapandı (EMA kuralında TAM çıkış)"
+            elif r["last"] < r["e10"]:
+                ema = " ⚠️ EMA10 altında kapandı (EMA kuralında YARI sat)"
+            lines_pos.append(f"• {sym}: {r['last']:.2f} ({r['ret']:+.1f}%, R {r['R']:+.2f}, {r['days']} gün) | Iz10 stop {r['stop']:.2f} ({st}){mv}"
+                             f" | EMA10 {r['e10']:.2f} EMA21 {r['e21']:.2f}{ema}  {link(sym)}")
     alerts = []
     for sym, df in frames.items():
         try:
@@ -127,10 +137,10 @@ def main() -> None:
         parts.append("📈 Pozisyonlar (iz stop: giriş mumunun dibi → +1R'de girişe → son 10 mumun dibi)\n" + "\n".join(lines_pos))
     if alerts:
         parts.append("🔔 Aday direnç kırılımı (bot etiketi yok, grafikte bak)\n" + "\n".join(alerts))
-    if not parts:
+    if not parts and os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
         print(f"Bugün gönderilecek bir şey yok. Genişlik {br:.2f}")
         return
-    msg = f"🧭 Akşam takibi {last_day:%d.%m.%Y}\n\n" + "\n\n".join(parts) + f"\n\n🌡️ Piyasa genişliği Piyasa genişliği (SMA50 üstü hisse): {br:.2f} ({int(cnt.loc[ok.index[-1]])} hisse) → {zone}"
+    msg = f"🧭 Akşam takibi {last_day:%d.%m.%Y}\n\n" + "\n\n".join(parts) + f"\n\n🌡️ Piyasa genişliği (SMA50 üstü hisse): {br:.2f} ({int(cnt.loc[ok.index[-1]])} hisse) → {zone}"
     print(msg)
     if not args.dry:
         telegram_send(msg)
