@@ -357,9 +357,6 @@ VARIANTS = [
     ("SADECE e kuralı (r kapalı)", dict(shrinkMinD=0.0)),
     ("SADECE r kuralı (e kapalı)", dict(dnBelowSlope=-99.0)),
     ("ikisi de kapalı", dict(shrinkMinD=0.0, dnBelowSlope=-99.0)),
-    ("C1: küçük mumda kapanış sınırı yok (<=0.6 ADR)", dict(cpSmallRng=0.6)),
-    ("C2: küçük mumda kapanış sınırı yok (<=0.8 ADR)", dict(cpSmallRng=0.8)),
-    ("C3: küçük mumda kapanış sınırı yok (<=1.0 ADR)", dict(cpSmallRng=1.0)),
 ]
 
 
