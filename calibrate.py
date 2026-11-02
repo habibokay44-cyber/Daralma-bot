@@ -148,6 +148,9 @@ EXAMPLES = [
     ("MACKO", "2026-10-26", "2026-10-30", True, "ekim 2026 sonu: ~24.48 direnci altında küçük mumlar, sert düşüş sonrası taban (kullanıcı listesi), etiket yok"),
     ("KRGYO", "2026-10-29", "2026-11-02", True, "kasım: ~3.29 direnci altında 5 mum, sonra kırılım"),
     ("CELHA", "2026-10-27", "2026-11-02", True, "kasım: sert düşüş sonrası taban, ~24.9 direnci altında dar mumlar"),
+    ("INVES", "2026-10-22", "2026-11-02", True, "kasım: sert düşüş sonrası taban, EMA altı, 625-650 dar bant"),
+    ("OTKAR", "2026-10-21", "2026-11-02", True, "kasım: sert düşüş sonrası taban, EMA altı, 296-312 dar bant"),
+    ("CCOLA", "2026-10-26", "2026-11-02", False, "kasım: mumlar sert ve çalkantılı, daralma yok"),
 ]
 
 
