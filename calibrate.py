@@ -153,6 +153,7 @@ EXAMPLES = [
     ("CCOLA", "2026-10-26", "2026-11-02", False, "kasım: mumlar sert ve çalkantılı, daralma yok"),
     ("RYSAS", "2023-09-26", "2023-09-29", False, "eylül 2023: düşüş içinde etiket, çizgi yanlış"),
     ("MOBTL", "2025-12-10", "2025-12-15", False, "aralık 2025: çizgi yok, kutu/dinlenme etiketi var, fitilli mumlar, daralma yok"),
+    ("MOBTL", "2024-05-09", "2024-05-14", False, "mayıs 2024: çizgi fitillerin altında kalıyor (yanlış), düşerken daralma etiketi"),
 ]
 
 
@@ -347,6 +348,9 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
+    ("fitil toleransı 1.5", dict(wickADR=1.5)),
+    ("fitil toleransı 1.0", dict(wickADR=1.0)),
+    ("fitil toleransı 0.6", dict(wickADR=0.6)),
 ]
 
 
