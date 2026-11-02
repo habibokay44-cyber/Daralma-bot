@@ -3,7 +3,7 @@ name: Aday daralma listesi
 on:
   schedule:
     # Hafta içi 16:30 UTC = 19:30 Türkiye saati (ana taramadan sonra)
-    - cron: "30 16 * * 1-5"
+    - cron: "41 16 * * 1-5"
   workflow_dispatch:
 
 permissions:
