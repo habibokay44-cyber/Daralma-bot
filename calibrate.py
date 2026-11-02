@@ -146,6 +146,8 @@ EXAMPLES = [
     ("MRGYO", "2022-10-17", "2022-10-18", True, "doğru daralma: 13-18 Ekim yeşil kutu, ~0.556 yatay direnç altı"),
     ("KRGYO", "2026-10-28", "2026-10-30", True, "ekim 2026 sonu: ~3.28 direnci altında küçük mumlar, düşüş sonrası taban (kullanıcı listesi), etiket yok"),
     ("MACKO", "2026-10-26", "2026-10-30", True, "ekim 2026 sonu: ~24.48 direnci altında küçük mumlar, sert düşüş sonrası taban (kullanıcı listesi), etiket yok"),
+    ("KRGYO", "2026-10-29", "2026-11-02", True, "kasım: ~3.29 direnci altında 5 mum, sonra kırılım"),
+    ("CELHA", "2026-10-27", "2026-11-02", True, "kasım: sert düşüş sonrası taban, ~24.9 direnci altında dar mumlar"),
 ]
 
 
