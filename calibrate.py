@@ -152,6 +152,7 @@ EXAMPLES = [
     ("OTKAR", "2026-10-21", "2026-11-02", True, "kasım: sert düşüş sonrası taban, EMA altı, 296-312 dar bant"),
     ("CCOLA", "2026-10-26", "2026-11-02", False, "kasım: mumlar sert ve çalkantılı, daralma yok"),
     ("RYSAS", "2023-09-26", "2023-09-29", False, "eylül 2023: düşüş içinde etiket, çizgi yanlış"),
+    ("MOBTL", "2025-12-10", "2025-12-15", False, "aralık 2025: çizgi yok, kutu/dinlenme etiketi var, fitilli mumlar, daralma yok"),
 ]
 
 
