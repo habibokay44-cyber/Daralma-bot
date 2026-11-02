@@ -345,22 +345,7 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
-    ("ADAY (şimdiki ayar)", {}),
-    ("b7 kuralı kapalı", dict(b7Max=0)),
-    ("art arda düşüş kuralı kapalı", dict(lcMax=0)),
-    ("düşüş trendi temas şartı kapalı", dict(dnMinTb=0)),
-    ("uzun çizgi (lookback 120)", dict(lookback=120)),
-    ("kısa düşen çizgi şartı kapalı", dict(dnMinSp=0)),
-    ("kısa düşen çizgi min 11 mum", dict(dnMinSp=11)),
-    ("Yatay düşüş trendi engeli kapalı", dict(hDnBlock=False)),
-    ("Yatay 10 mum gövde kutusu kuralı kapalı", dict(yBodyMax=0.0)),
-    ("Düşen: r>=0.50", dict(shrinkMinD=0.50)),
-    ("Düşen: r>=0.55 (kırılganlık testi)", dict(shrinkMinD=0.55)),
-    ("Düşen: EMA21 altı + eğim<0 engeli", dict(dnBelowSlope=0.0)),
-    ("ikisi birlikte", dict(shrinkMinD=0.50, dnBelowSlope=0.0)),
-    ("SADECE e kuralı (r kapalı)", dict(shrinkMinD=0.0)),
-    ("SADECE r kuralı (e kapalı)", dict(dnBelowSlope=-99.0)),
-    ("ikisi de kapalı", dict(shrinkMinD=0.0, dnBelowSlope=-99.0)),
+    ("ADAY (şimdiki ayar)", dict(...)),   # senin mevcut satırın, aynen kalsın
 ]
 
 
