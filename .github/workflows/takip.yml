@@ -3,7 +3,7 @@ name: Akşam takibi
 on:
   schedule:
     # Hafta içi 17:00 UTC = 20:00 Türkiye saati (ana taramadan sonra)
-    - cron: "0 17 * * 1-5"
+    - cron: "11 17 * * 1-5"
   workflow_dispatch:
 
 permissions:
