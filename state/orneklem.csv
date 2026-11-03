@@ -1,8 +1,8 @@
 no,hisse,etiket_tarihi,mod,kapanis,direnc,isaret,cizgi,not
 1,TEHOL,2026-05-05,Yatay,25.28,26.44,y,y, o gün çıkan ettikette yok ancak devamında (7-11 mayıs)çizgi ve daralma doğru oluyor. 
-2,ARFYE,2026-05-08,Düşen,32.22,32.86,,,
-3,KRDMA,2026-04-24,Yatay,32.92,33.62,,,
-4,KRDMD,2025-12-05,Yatay,25.58,26.06,,,
+2,ARFYE,2026-05-08,Düşen,32.22,32.86,y,d, fiyat aşağı giderken daralma çıkıyor. 
+3,KRDMA,2026-04-24,Yatay,32.92,33.62,y,d, aşağı giderken daralma çıkıyor (21-24 nisan kutu içerisinde) 24-28 nisan tarihleri arası çıkmalı etiket. 
+4,KRDMD,2025-12-05,Yatay,25.58,26.06,y,d, daralma var ama yine yanlış yerde (2-5 aralık) çıkıyor.5-10 aralık arası çıkmalı. 
 5,CEOEM,2026-03-23,Düşen,21.50,22.51,,,
 6,CATES,2026-04-22,Düşen,44.40,44.70,,,
 7,TCELL,2026-08-18,Düşen,103.50,104.59,,,
