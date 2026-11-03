@@ -32,7 +32,7 @@ no,hisse,etiket_tarihi,mod,kapanis,direnc,isaret,cizgi,not
 31,KOCMT,2025-12-03,Düşen,2.82,2.84,d,d,etiketin kutusu 1 aralıkta başlamlı 28 inde değil ama etiket doğru gün
 32,INDES,2026-04-15,Yatay,9.41,9.53,b,d,mumlar çok daralma gibi değil bir aşağı bir yukarı 
 33,BSOKE,2026-03-30,Düşen,32.80,34.06,y,y,ayın 25 inden yatay çizgi çekilip 7 nisan da etiket çıkmalıydı
-34,EBEBK,2026-02-04,Düşen,60.70,61.45,y,y,çizgide yeterli temas yok sadece iki ve ikincisi etiket mumunda, mumlar çok volatil daralma olmaz 
+34,EBEBK,2026-02-04,Düşen,60.70,61.45,y,y,çizgide yeterli temas yok sadece iki ve ikincisi etiket mumunda mumlar çok volatil daralma olmaz 
 35,ARDYZ,2026-07-22,Yatay,70.85,71.00,d,d,
 36,LIDFA,2026-03-13,Yatay,2.09,2.14,d,d,
 37,KTLEV,2026-02-04,Yatay,10.70,11.31,d,d,ancak tarihlerde kayma var çizginin 1 gün önceden gelip, kutunun 5-9 şubat arası olması lazımdı 
