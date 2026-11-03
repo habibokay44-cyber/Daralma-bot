@@ -9,12 +9,12 @@ no,hisse,etiket_tarihi,mod,kapanis,direnc,isaret,cizgi,not
 8,GMTAS,2025-11-27,Düşen,22.38,23.92,d,d,
 9,DZGYO,2025-12-04,Düşen,7.16,7.22,d,d, yine düşerken gelmiş ama mumlar volatil değil o yüzden daralma mevcut. 
 10,OYYAT,2025-12-02,Kutu,41.94,42.64,d,d,
-11,TRCAS,2025-12-04,Yatay,41.44,41.48,,,
-12,MAGEN,2026-03-18,Yatay,49.22,49.92,,,
-13,ADEL,2026-08-21,Yatay,33.30,34.32,,,
-14,AKFGY,2025-12-23,Düşen,2.71,2.78,,,
-15,TCKRC,2026-02-25,Düşen,89.00,90.46,,,
-16,SURGY,2026-06-04,Yatay,69.15,71.50,,,
+11,TRCAS,2025-12-04,Yatay,41.44,41.48,d,d,
+12,MAGEN,2026-03-18,Yatay,49.22,49.92,y,d,evet daralma mevcut ama 17-23 mart tarihleri arasında çıkmalıydı 
+13,ADEL,2026-08-21,Yatay,33.30,34.32,d,d,
+14,AKFGY,2025-12-23,Düşen,2.71,2.78,y,y, çizgi veya etiket yok pine da
+15,TCKRC,2026-02-25,Düşen,89.00,90.46,d,y, çizgi başka yerden çizilmeliydi. 
+16,SURGY,2026-06-04,Yatay,69.15,71.50,d,d, daralma yanlış yerde 2-4 haziran tarihlerinde çıkmalıydı etiket kutusu. 
 17,GLRMK,2026-02-12,Düşen,189.60,192.42,,,
 18,ATLAS,2026-01-22,Düşen,6.24,6.64,,,
 19,DENGE,2026-07-02,Düşen,2.51,2.62,,,
