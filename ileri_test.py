@@ -30,7 +30,7 @@ def summarize(path: Path) -> str:
     czg = [(r.get("cizgi") or "").strip().lower() for r in rows]
     d, y, b = isr.count("d"), isr.count("y"), isr.count("b")
     bos = len(rows) - d - y - b
-    baslik = "Örneklem" if "orneklem" in path.name else "Kör ileri test"
+    baslik = "Kutu örneklemi" if "orneklem2" in path.name else ("Örneklem" if "orneklem" in path.name else "Kör ileri test")
     out = [f"🧪 {baslik}: {len(rows)} etiket | doğru {d}, yanlış {y}, belirsiz {b} | bakılmamış {bos}"]
     if d + y:
         out.append(f"Etiket isabeti {pct(d, d + y)}")
@@ -40,7 +40,11 @@ def summarize(path: Path) -> str:
             out.append(f"Etiket VE çizgi doğru {pct(both, nc)}")
             lw = sum(1 for i, c in zip(isr, czg) if i == "d" and c == "y")
             out.append(f"Etiket doğru ama çizgi yanlış: {lw}")
-        out.append("Karar için en az 30 işaretli etiket bekle." if d + y < 30 else "n yeterli; örnek-içi oran (%78) ile karşılaştırılabilir.")
+        if "orneklem2" in path.name:
+            out.append("Kutu dedektörü kör sınavı: karar eşiği %75 (eski göstergenin kör isabeti %62). "
+                       + ("Karar için en az 30 işaretli kutu bekle." if d + y < 30 else ("✅ eşik geçildi" if d / (d + y) >= 0.75 else "❌ eşik geçilmedi")))
+        else:
+            out.append("Karar için en az 30 işaretli etiket bekle." if d + y < 30 else "n yeterli; örnek-içi oran (%78) ile karşılaştırılabilir.")
     yy = [f"{r['hisse']} {r['etiket_tarihi']}" for r, i in zip(rows, isr) if i == "y"]
     if yy:
         out.append("Yanlışlar: " + ", ".join(yy))
