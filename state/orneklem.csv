@@ -15,10 +15,10 @@ no,hisse,etiket_tarihi,mod,kapanis,direnc,isaret,cizgi,not
 14,AKFGY,2025-12-23,Düşen,2.71,2.78,y,y, çizgi veya etiket yok pine da
 15,TCKRC,2026-02-25,Düşen,89.00,90.46,d,y, çizgi başka yerden çizilmeliydi. 
 16,SURGY,2026-06-04,Yatay,69.15,71.50,d,d, daralma yanlış yerde 2-4 haziran tarihlerinde çıkmalıydı etiket kutusu. 
-17,GLRMK,2026-02-12,Düşen,189.60,192.42,,,
-18,ATLAS,2026-01-22,Düşen,6.24,6.64,,,
-19,DENGE,2026-07-02,Düşen,2.51,2.62,,,
-20,DURDO,2026-03-19,Düşen,3.65,3.73,,,
+17,GLRMK,2026-02-12,Düşen,189.60,192.42,y,y, çizgi yanlış mumlarda daralma yok 
+18,ATLAS,2026-01-22,Düşen,6.24,6.64,d,d,çizgi yatay olsa daha sağlıklı daralma yapısı var. 
+19,DENGE,2026-07-02,Düşen,2.51,2.62,y,d,yine düşen mumlarda kutu çıkıyor 
+20,DURDO,2026-03-19,Düşen,3.65,3.73,y,y,hemen ardından 27 mart 2 nisan arasındaki mumlarda daralma var. 
 21,AHSGY,2026-04-27,Kutu,18.11,18.48,,,
 22,IEYHO,2026-01-26,Yatay,73.25,73.30,,,
 23,MOBTL,2026-05-04,Düşen,13.23,13.39,,,
