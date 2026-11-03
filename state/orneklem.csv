@@ -19,19 +19,19 @@ no,hisse,etiket_tarihi,mod,kapanis,direnc,isaret,cizgi,not
 18,ATLAS,2026-01-22,Düşen,6.24,6.64,d,d,çizgi yatay olsa daha sağlıklı daralma yapısı var. 
 19,DENGE,2026-07-02,Düşen,2.51,2.62,y,d,yine düşen mumlarda kutu çıkıyor 
 20,DURDO,2026-03-19,Düşen,3.65,3.73,y,y,hemen ardından 27 mart 2 nisan arasındaki mumlarda daralma var. 
-21,AHSGY,2026-04-27,Kutu,18.11,18.48,,,
-22,IEYHO,2026-01-26,Yatay,73.25,73.30,,,
-23,MOBTL,2026-05-04,Düşen,13.23,13.39,,,
-24,KUTPO,2025-12-31,Düşen,104.60,106.71,,,
-25,SVGYO,2026-06-03,Düşen,19.09,20.06,,,
-26,BINBN,2025-11-25,Düşen,182.30,185.87,,,
-27,MEDTR,2025-12-09,Düşen,28.40,28.86,,,
-28,ASGYO,2026-01-22,Düşen,11.56,11.58,,,
-29,DUNYH,2026-04-20,Düşen,107.80,110.78,,,
-30,TUREX,2026-04-14,Düşen,8.16,8.18,,,
-31,KOCMT,2025-12-03,Düşen,2.82,2.84,,,
-32,INDES,2026-04-15,Yatay,9.41,9.53,,,
-33,BSOKE,2026-03-30,Düşen,32.80,34.06,,,
+21,AHSGY,2026-04-27,Kutu,18.11,18.48,d,d,
+22,IEYHO,2026-01-26,Yatay,73.25,73.30,d,d,
+23,MOBTL,2026-05-04,Düşen,13.23,13.39,y,y,
+24,KUTPO,2025-12-31,Düşen,104.60,106.71,d,y,devamında doğru çizgi geliyor ikinci defa 
+25,SVGYO,2026-06-03,Düşen,19.09,20.06,d,y,yatay çizgi lazımdı 
+26,BINBN,2025-11-25,Düşen,182.30,185.87,d,y,yatay çizgi lazımdı bir kaç mum sonra ikinic etikette geliyor 
+27,MEDTR,2025-12-09,Düşen,28.40,28.86,y,y,11-15 aralıkta kutu etiket çıkması lazımdı 
+28,ASGYO,2026-01-22,Düşen,11.56,11.58,d,d,
+29,DUNYH,2026-04-20,Düşen,107.80,110.78,d,d,etiket geriye kaymış 17-21 nisan tarihleri arasında olmalıydı
+30,TUREX,2026-04-14,Düşen,8.16,8.18,d,y,çizgi aslında doğru ama başlangıcı yanlış ve uzun
+31,KOCMT,2025-12-03,Düşen,2.82,2.84,d,d,etiketin kutusu 1 aralıkta başlamlı 28 inde değil ama etiket doğru gün
+32,INDES,2026-04-15,Yatay,9.41,9.53,b,d,mumlar çok daralma gibi değil bir aşağı bir yukarı 
+33,BSOKE,2026-03-30,Düşen,32.80,34.06,y,y,ayın 25 inden yatay çizgi çekilip 7 nisan da etiket çıkmalıydı
 34,EBEBK,2026-02-04,Düşen,60.70,61.45,,,
 35,ARDYZ,2026-07-22,Yatay,70.85,71.00,,,
 36,LIDFA,2026-03-13,Yatay,2.09,2.14,,,
