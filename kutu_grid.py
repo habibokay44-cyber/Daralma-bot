@@ -1,4 +1,4 @@
-"""Bant daraltma denemesi: 3 bant x EMA21 filtresi açık/kapalı = 6 satır. Hiçbir ayarı değiştirmez.
+"""Yakınlık denemesi: 3 yakınlık şartı x 2 bant (1.0/1.5 ADR) x EMA21 filtresi açık/kapalı = 12 satır. Hiçbir ayarı değiştirmez.
 
 ÖNCEDEN YAZILMIŞ SEÇİM KURALI (04.11.2026):
   a) senin 13 kutundan en az 9'u yakalanır
@@ -24,7 +24,8 @@ from kutu_yeni import KP, detect
 from scan import fetch_tv_all, telegram_send
 
 D = pd.Timedelta
-GRID = [(band, pe) for band in (1.0, 1.25, 1.5) for pe in (False, True)]
+PROX = [("stop≤%5", dict(MAX_STOP=5.0)), ("stop≤%7", dict(MAX_STOP=7.0)), ("dirence ≤1 ADR", dict(NEAR_ADR=1.0))]
+GRID = [(pn, pk, band, pe) for pn, pk in PROX for band in (1.0, 1.5) for pe in (False, True)]
 
 
 def score(frames, marks, P):
@@ -72,19 +73,19 @@ def main():
             break
         time.sleep(3)
         frames.update(fetch_tv_all(miss, n_bars=700, budget=3 * 60))
-    out = ["📐 Bant daraltma denemesi (a: senin 13 kutun, b: örneklem doğruları, c: 7 yanlış, d: yoğunluk)",
+    out = ["📐 Yakınlık + bant denemesi (a: senin 13 kutun, b: örneklem doğruları, c: 7 yanlış, d: yoğunluk)",
            "Seçim: a≥9, c≤2, d<15; birden fazlaysa en yüksek b.", ""]
     rows = []
-    for band, pe in GRID:
-        r = score(frames, marks, KP(BAND=band, PRICE_EMA=pe))
+    for pn, pk, band, pe in GRID:
+        r = score(frames, marks, KP(BAND=band, PRICE_EMA=pe, **pk))
         ok = r["a"] >= 9 and r["c"] <= 2 and r["dens"] < 15
-        rows.append((ok, r["b"], band, pe))
-        out.append(f"• bant {band} ADR, EMA21 filtresi {'açık' if pe else 'kapalı'}: a {r['a']}/13 | b {r['b']}/{r['bn']} | "
+        rows.append((ok, r["b"], f"{pn}, bant {band} ADR, EMA21 filtresi {'açık' if pe else 'kapalı'}"))
+        out.append(f"• {pn} | bant {band} | EMA21 {'açık' if pe else 'kapalı'}: a {r['a']}/13 | b {r['b']}/{r['bn']} | "
                    f"c {r['c']}/{r['cn']} {','.join(r['cl'])} | d {r['dens']:.1f} | kutu boyu %{r['hp']:.1f} | "
                    f"stop %{r['sp']:.1f} (4'te 1'i %{r['sp75']:.1f} üstü) {'✅' if ok else ''}")
     win = sorted([x for x in rows if x[0]], key=lambda x: -x[1])
     out.append("")
-    out.append(f"Seçilen: bant {win[0][2]} ADR, EMA21 filtresi {'açık' if win[0][3] else 'kapalı'} -> yeni kör örnekleme geçilebilir"
+    out.append(f"Seçilen: {win[0][2]} -> yeni kör örnekleme geçilebilir"
                if win else "Hiçbir satır seçim kuralını geçmedi -> tanımı birlikte yeniden konuşalım")
     txt = "\n".join(out)
     print(txt)
