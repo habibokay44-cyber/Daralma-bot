@@ -1,7 +1,8 @@
 """Yaşayan kutu dedektörü (taslak v1). Mevcut göstergeden (fd_core) bağımsızdır, hiçbir şeyi değiştirmez.
 
 Tanım (senin tarifinden, 04.11.2026):
-  1. En az MIN_N küçük mum. Küçük = mum aralığı, kutudan önceki REF_N mumun ortalama aralığının SMALL katından küçük.
+  1. En az MIN_N mum, gövdeleri BAND ADR'lik bantta toplanmış; hiçbir mum kutudan önceki REF_N mumun
+     ortalama aralığının SMALL katını geçmiyor (S3: tek tek mum boyuna değil, dar banda bakılır).
   2. Yön yukarı ya da yan: kutudaki kapanışların eğimi >= SLOPE_MIN (ADR/mum) ve hiçbir kapanış kutu tabanının
      (ilk 3 mumun en düşük dibi) altında değil.
   3. Direnç altında: kutudan önce, kutunun tepesinin üstünde kalan ve o zamandan beri üstünde kapanış görmemiş
@@ -26,8 +27,8 @@ import pandas as pd
 class KP:
     MIN_N: int = 3          # en az küçük mum
     REF_N: int = 10         # "küçük" için kutudan önceki kaç muma bakılır
-    SMALL: float = 0.75     # mum aralığı <= SMALL x önceki ortalama
-    BIG: float = 1.0        # kutu içinde aralığı > BIG x önceki ortalama olan mum kutuyu bozar
+    SMALL: float = 1.5      # S3 (04.11 kararın): kutudaki hiçbir mum önceki ortalamanın SMALL katını geçmez; asıl şart BAND
+    BIG: float = 1.5        # kutu içinde aralığı > BIG x önceki ortalama olan mum kutuyu bozar (yukarı kapanırsa 'yukarı çıkış')
     BAND: float = 2.0       # kutudaki gövdelerin toplam bandı (ADR) en fazla
     SLOPE_MIN: float = -0.05  # kapanış eğimi (ADR/mum) en az
     EMA_UP: int = 5         # EMA yönü EMA_UP mum öncesine göre ölçülür
