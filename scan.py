@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import random
@@ -30,6 +31,7 @@ from fd_core import Params, run, summarize
 
 HERE = Path(__file__).resolve().parent
 STATE_FILE = HERE / "state" / "sent.json"
+KAYIT_FILE = HERE / "state" / "etiket_kayit.csv"
 FALLBACK_FILE = HERE / "tickers_fallback.txt"
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"}
 TR_TZ = timezone(timedelta(hours=3))
@@ -377,6 +379,7 @@ def main() -> None:
     # ---- sinyaller ----
     state = load_state()
     m_giris, m_setup, m_iptal = [], [], []
+    kayit: list[list[str]] = []
     for r in results:
         sym = r["sym"]
         for e in r["events"]:
@@ -395,6 +398,9 @@ def main() -> None:
                 continue
             state[key] = dstr
             (m_giris if e["type"] == "giris" else m_setup).append(fmt_event(sym, e))
+            if e["type"] == "setup":
+                kayit.append([datetime.now(TR_TZ).strftime("%Y-%m-%d"), sym, dstr, e["mode"], f"{e['close']:.2f}", f"{e['line']:.2f}",
+                              "iptal" if e.get("cancelled") else "", "", ""])
 
     last_dates = pd.Series([r["last_date"] for r in results])
     ref = last_dates.mode().iloc[0] if len(last_dates) else today
@@ -410,6 +416,14 @@ def main() -> None:
         return
     if body or args.heartbeat:
         telegram_send(head + ("\n\n" + "\n\n".join(body) if body else "\n\nYeni sinyal yok."))
+    if kayit:
+        yeni = not KAYIT_FILE.exists()
+        KAYIT_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with KAYIT_FILE.open("a", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            if yeni:
+                w.writerow(["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "not"])
+            w.writerows(kayit)
     save_state(state)
 
 
