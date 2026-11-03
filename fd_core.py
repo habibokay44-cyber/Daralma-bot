@@ -135,6 +135,7 @@ class Params:
     holdBars: int = 8
     useTrend: bool = False
     cooldown: int = 8
+    persist: int = 1
     cancelBlock: int = 0
     cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
     trigWin: int = 8
@@ -342,6 +343,7 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
     hLock = NAN
     hLockX = NAN
     lastSetupBar = None
+    runLen = 0
     lastBreakBar = None
     lastCancelBar = None
     lblLive = False
@@ -715,7 +717,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         if S.tightOk[t] and not found:
             why.append("L[" + fb.get("info", "") + " " + hz.get("near", "") + "]")
         strong = bool(S.strong[t])
-        setup = setupRaw and (not brokeOut) and (not blocked) and ((not P.onlyStrong) or strong)
+        runLen = runLen + 1 if (setupRaw and not brokeOut) else 0
+        if setupRaw and not brokeOut and runLen < P.persist:
+            why.append(f"O{runLen}")
+        setup = setupRaw and (not brokeOut) and (not blocked) and ((not P.onlyStrong) or strong) and runLen >= P.persist
 
         if setupRaw and (blocked or brokeOut):
             _b = ""
