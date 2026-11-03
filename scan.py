@@ -400,7 +400,7 @@ def main() -> None:
             (m_giris if e["type"] == "giris" else m_setup).append(fmt_event(sym, e))
             if e["type"] == "setup":
                 kayit.append([datetime.now(TR_TZ).strftime("%Y-%m-%d"), sym, dstr, e["mode"], f"{e['close']:.2f}", f"{e['line']:.2f}",
-                              "iptal" if e.get("cancelled") else "", "", ""])
+                              "iptal" if e.get("cancelled") else "", "", "", ""])
 
     last_dates = pd.Series([r["last_date"] for r in results])
     ref = last_dates.mode().iloc[0] if len(last_dates) else today
@@ -422,7 +422,7 @@ def main() -> None:
         with KAYIT_FILE.open("a", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
             if yeni:
-                w.writerow(["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "not"])
+                w.writerow(["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "cizgi", "not"])
             w.writerows(kayit)
     save_state(state)
 
