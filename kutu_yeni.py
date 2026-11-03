@@ -6,7 +6,7 @@ Tanım (senin tarifinden, 04.11.2026):
      (ilk 3 mumun en düşük dibi) altında değil.
   3. Direnç altında: kutudan önce, kutunun tepesinin üstünde kalan ve o zamandan beri üstünde kapanış görmemiş
      en yakın tepe (pivot). Yakınlık önemli değil. Direnç yoksa (zirvede) kutu sayılmaz.
-  4. EMA10 ve EMA21 yükseliyor (bugün > EMA_UP mum önce). PRICE_EMA=True ise ayrıca tüm kapanışlar EMA21
+  4. EMA10 ve EMA21 yükseliyor ya da düz (EMA_UP mumda en fazla %EMA_DROP düşüş). PRICE_EMA=True ise ayrıca tüm kapanışlar EMA21
      üstünde ve son kapanış EMA10'un en fazla EMA10_TOL ADR altında (eski hal, karşılaştırma için).
   5. EMA50 şart değil, sadece bilgi.
 Yaşayan kutu: şartlar ilk sağlandığında kutu açılır (etiket). Mumlar küçük kaldıkça kutu her gün uzar.
@@ -30,7 +30,8 @@ class KP:
     BIG: float = 1.0        # kutu içinde aralığı > BIG x önceki ortalama olan mum kutuyu bozar
     BAND: float = 2.0       # kutudaki gövdelerin toplam bandı (ADR) en fazla
     SLOPE_MIN: float = -0.05  # kapanış eğimi (ADR/mum) en az
-    EMA_UP: int = 5         # EMA yükseliyor: bugün > EMA_UP mum önce
+    EMA_UP: int = 5         # EMA yönü EMA_UP mum öncesine göre ölçülür
+    EMA_DROP: float = 0.5   # EMA bu sürede en fazla %EMA_DROP düşebilir (düz EMA kabul, 04.11 kararın)
     EMA10_TOL: float = 0.25   # son kapanış EMA10'un en fazla bu kadar ADR altında olabilir
     PRICE_EMA: bool = False   # True: kapanışlar EMA21 üstünde ve son kapanış EMA10 yakınında olmalı (eski hal)
     PV: int = 2             # tepe (pivot) için iki yanda kaç mum
@@ -92,7 +93,7 @@ def detect(df: pd.DataFrame, P: KP | None = None) -> list[dict]:
             return None
         if P.PRICE_EMA and (e10[t] - c[t]) / c[t] * 100 / adr[t] > P.EMA10_TOL:
             return None
-        if not (e10[t] > e10[t - P.EMA_UP] and e21[t] > e21[t - P.EMA_UP]):
+        if not ((e10[t] / e10[t - P.EMA_UP] - 1) * 100 > -P.EMA_DROP and (e21[t] / e21[t - P.EMA_UP] - 1) * 100 > -P.EMA_DROP):
             return None
         R = resistance(s, h[s:t + 1].max())
         if not (R == R) or c[s:t + 1].max() >= R:
@@ -185,8 +186,8 @@ def explain(df: pd.DataFrame, a, z, P: KP | None = None) -> dict | None:
         small=(ratios.max() <= P.SMALL, f"en büyük mum {ratios.max():.2f}x (≤{P.SMALL})", [round(float(x), 2) for x in ratios]),
         band=(band <= P.BAND, f"bant {band:.2f} ADR (≤{P.BAND})"),
         slope=(slope >= P.SLOPE_MIN, f"eğim {slope:+.2f} (≥{P.SLOPE_MIN})"),
-        ema10=(e10u > 0, f"EMA10 5 günde %{e10u:+.1f}"),
-        ema21=(e21u > 0, f"EMA21 5 günde %{e21u:+.1f}"),
+        ema10=(e10u > -P.EMA_DROP, f"EMA10 5 günde %{e10u:+.1f}"),
+        ema21=(e21u > -P.EMA_DROP, f"EMA21 5 günde %{e21u:+.1f}"),
         res=(res.startswith("✓"), res),
         floor=(not floor_brk, "taban kırılmadı" if not floor_brk else "kutu içinde taban kırıldı"),
     )
