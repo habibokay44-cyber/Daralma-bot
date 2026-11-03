@@ -142,3 +142,51 @@ def detect(df: pd.DataFrame, P: KP | None = None) -> list[dict]:
         boxes.append(box)
         t = max(u, t + 1)
     return boxes
+
+
+def explain(df: pd.DataFrame, a, z, P: KP | None = None) -> dict | None:
+    """Senin verdiğin kutu [a, z] için her kuralı ayrı ayrı ölçer (detect'i değiştirmez).
+    Kutu en az MIN_N mum olacak şekilde gerekirse geriye uzatılır."""
+    P = P or KP()
+    idx = df.index
+    s = int(idx.searchsorted(pd.Timestamp(a)))
+    t = int(idx.searchsorted(pd.Timestamp(z), side="right")) - 1
+    if t < 0 or s >= len(idx):
+        return None
+    if t - s + 1 < P.MIN_N:
+        s = t - P.MIN_N + 1
+    if s - P.REF_N < 0 or t - P.EMA_UP < 0:
+        return None
+    o, h, l, c = (df[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
+    adr = (pd.Series(h / l).rolling(20).mean().to_numpy() - 1) * 100
+    rng = (h - l) / c * 100
+    e10, e21 = _ema(c, 10), _ema(c, 21)
+    bt, bb = np.maximum(o, c), np.minimum(o, c)
+    ref = rng[s - P.REF_N:s].mean()
+    ratios = rng[s:t + 1] / ref
+    band = (bt[s:t + 1].max() / bb[s:t + 1].min() - 1) * 100 / adr[t]
+    slope = _slope_adr(c[s:t + 1], adr[t])
+    e10u = (e10[t] / e10[t - P.EMA_UP] - 1) * 100
+    e21u = (e21[t] / e21[t - P.EMA_UP] - 1) * 100
+    top = h[s:t + 1].max()
+    piv = [i for i in range(max(P.PV, s - P.LOOK), s - P.PV) if h[i] == h[i - P.PV:i + P.PV + 1].max()]
+    above = [i for i in piv if h[i] > top]
+    clean = [i for i in above if not (c[i + 1:s] > h[i]).any()]
+    if clean:
+        R = min(h[i] for i in clean)
+        res = f"✓{R:.2f}" if c[s:t + 1].max() < R else f"✗kapanış dirençte({R:.2f})"
+    elif above:
+        res = "✗üstteki tepeler daha önce kapanışla aşılmış"
+    else:
+        res = "✗kutu üstünde tepe yok"
+    floor_brk = bool((c[s + P.MIN_N:t + 1] < l[s:s + P.MIN_N].min()).any()) if t - s + 1 > P.MIN_N else False
+    return dict(
+        s=idx[s], t=idx[t], n=t - s + 1,
+        small=(ratios.max() <= P.SMALL, f"en büyük mum {ratios.max():.2f}x (≤{P.SMALL})", [round(float(x), 2) for x in ratios]),
+        band=(band <= P.BAND, f"bant {band:.2f} ADR (≤{P.BAND})"),
+        slope=(slope >= P.SLOPE_MIN, f"eğim {slope:+.2f} (≥{P.SLOPE_MIN})"),
+        ema10=(e10u > 0, f"EMA10 5 günde %{e10u:+.1f}"),
+        ema21=(e21u > 0, f"EMA21 5 günde %{e21u:+.1f}"),
+        res=(res.startswith("✓"), res),
+        floor=(not floor_brk, "taban kırılmadı" if not floor_brk else "kutu içinde taban kırıldı"),
+    )
