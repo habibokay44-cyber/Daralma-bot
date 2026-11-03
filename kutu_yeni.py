@@ -38,6 +38,8 @@ class KP:
     PV: int = 2             # tepe (pivot) için iki yanda kaç mum
     LOOK: int = 120         # direnç için geriye kaç mum
     MAX_N: int = 25         # kutu en fazla bu kadar mum yaşar
+    MAX_STOP: float = 0.0   # >0 ise: dirençten kutu tabanına mesafe en fazla % MAX_STOP (kırılımda girilirse stop)
+    NEAR_ADR: float = 0.0   # >0 ise: kutu tepesi (en yüksek fitil) dirence en fazla NEAR_ADR ADR uzaklıkta
 
 
 def _ema(x: np.ndarray, n: int) -> np.ndarray:
@@ -98,6 +100,11 @@ def detect(df: pd.DataFrame, P: KP | None = None) -> list[dict]:
             return None
         R = resistance(s, h[s:t + 1].max())
         if not (R == R) or c[s:t + 1].max() >= R:
+            return None
+        floor = l[s:t + 1].min()
+        if P.MAX_STOP > 0 and (R / floor - 1) * 100 > P.MAX_STOP:
+            return None
+        if P.NEAR_ADR > 0 and (R / h[s:t + 1].max() - 1) * 100 / adr[t] > P.NEAR_ADR:
             return None
         return dict(s=s, ref=ref, floor=l[s:t + 1].min(), R=R)
 
