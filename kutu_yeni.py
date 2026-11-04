@@ -216,6 +216,9 @@ def explain(df: pd.DataFrame, a, z, P: KP | None = None) -> dict | None:
 #   Kutunun tepesi direnç: üstünde kapanış = KIRILIM; altında kapanış = BOZULMA (taban).
 #   Etiket: ana mum + (LABEL_N-1) mum içeride kalınca, LABEL_N. mumda (4). Kutu kırılana/bozulana kadar uzar.
 #   Pay: açılış/kapanış kutunun en fazla TOL_ADR (0.25) ADR dışına taşarsa içeride sayılır.
+#   v4 (05.11): kutu tepesi en az MIN_TOUCH (2) ayrı temaslı direnç olmalı; temaslar kutudan önceki LOOK mumdan
+#   (son 'üstünde kapanış'tan sonra) ya da kutunun içinden gelebilir; iki temas arasında fiyat seviyenin en az
+#   RETREAT_ADR (1.0) ADR altına inmiş olmalı (geri itilme). Etiket en az LABEL_N mum + MIN_TOUCH temasla.
 #   Korunanlar: EMA10/EMA21 EMA_UP mumda %EMA_DROP'tan fazla düşmüyor; ana mumdan SONRAKİ kapanışların eğimi >= SLOPE_MIN.
 # ---------------------------------------------------------------------------------------------------------------
 @dataclass
@@ -226,6 +229,27 @@ class KK:
     EMA_UP: int = 5
     EMA_DROP: float = 0.5
     SLOPE_MIN: float = -0.05
+    MIN_TOUCH: int = 2      # 05.11 (v4): kutu tepesi en az bu kadar ayrı temaslı direnç olmalı (ana mum dahil; 1 = kapalı)
+    TOUCH_ADR: float = 0.3  # temas: mum tepesi (fitil dahil) kutu tepesine en fazla bu kadar ADR yakın (en fazla 3 katı üstünde)
+    LOOK: int = 120         # geçmiş temaslar için geriye kaç mum
+    RETREAT_ADR: float = 1.0  # yeni temas sayılması için önceki temastan sonra fiyat seviyenin en az bu kadar ADR altına inmiş olmalı
+
+
+def _touch_state(h, l, c, R, s, tolT, tolC, look, retreat):
+    """s'den önceki geçerli pencerede (son 'R üstünde kapanış'tan sonra) kaç ayrı temas var.
+    Yeni temas sayılması için önceki temastan sonra bir dip R - retreat altına inmiş olmalı (seviyeden geri itilme).
+    Döner: (temas sayısı, son temastan beri geri çekilme oldu mu)."""
+    a0 = max(0, s - look)
+    above = np.where(c[a0:s] > R + tolC)[0]
+    start = a0 + int(above[-1]) + 1 if len(above) else a0
+    ev, armed = 0, True
+    for i in range(start, s):
+        if armed and R - tolT <= h[i] <= R + 3 * tolT:
+            ev += 1
+            armed = False
+        if l[i] <= R - retreat:
+            armed = True
+    return ev, armed
 
 
 def _inside(o, c, L, H, u, tol=0.0):
@@ -248,6 +272,13 @@ def detect_kume(df: pd.DataFrame, P: KK | None = None) -> list[dict]:
     s = max(20, P.EMA_UP)
     while s < n - 1:
         L, H = l[s], h[s]
+        a_s = adr[s] if adr[s] == adr[s] else 0.0
+        tolT = P.TOUCH_ADR * a_s / 100 * H
+        ret = P.RETREAT_ADR * a_s / 100 * H
+        ev, armed = _touch_state(h, l, c, H, s, tolT, P.TOL_ADR * a_s / 100 * H, P.LOOK, ret) if P.MIN_TOUCH > 1 else (0, True)
+        if armed:
+            ev += 1  # ana mumun tepesi bir temas
+        armed = l[s] <= H - ret
         u = s + 1
         status, why, label_t = "canlı", "", None
         while u < n:
@@ -264,7 +295,12 @@ def detect_kume(df: pd.DataFrame, P: KK | None = None) -> list[dict]:
             if u - s + 1 >= P.MAX_N:
                 status, why = "bozuldu", "uzun"
                 break
-            if label_t is None and u - s + 1 == P.LABEL_N:
+            if armed and H - tolT <= h[u] <= H + 3 * tolT:
+                ev += 1
+                armed = False
+            if l[u] <= H - ret:
+                armed = True
+            if label_t is None and u - s + 1 >= P.LABEL_N and (P.MIN_TOUCH <= 1 or ev >= P.MIN_TOUCH):
                 ok_ema = ((e10[u] / e10[u - P.EMA_UP] - 1) * 100 > -P.EMA_DROP
                           and (e21[u] / e21[u - P.EMA_UP] - 1) * 100 > -P.EMA_DROP)
                 ok_sl = adr[u] == adr[u] and adr[u] > 0 and _slope_adr(c[s + 1:u + 1], adr[u]) >= P.SLOPE_MIN
@@ -275,7 +311,7 @@ def detect_kume(df: pd.DataFrame, P: KK | None = None) -> list[dict]:
             u += 1
         end_t = u - 1
         if label_t is not None:
-            b = dict(start=s, label_t=label_t, end_t=end_t, status=status, why=why, R=float(H), floor=float(L),
+            b = dict(start=s, label_t=label_t, end_t=end_t, status=status, why=why, R=float(H), floor=float(L), touches=int(ev),
                      start_d=d[s], label_d=d[label_t], end_d=d[end_t], n=end_t - s + 1)
             if status == "kırılım":
                 b["break_t"] = u
@@ -311,6 +347,20 @@ def explain_kume(df: pd.DataFrame, a, P: KK | None = None) -> str:
         parts.append("kutu uzun sürdü")
     inside_n = u - s
     parts.append(f"içeride {inside_n} mum")
+    a_s = adr[s] if adr[s] == adr[s] else 0.0
+    tolT = P.TOUCH_ADR * a_s / 100 * H
+    ret = P.RETREAT_ADR * a_s / 100 * H
+    ev, armed = _touch_state(h, l, c, H, s, tolT, P.TOL_ADR * a_s / 100 * H, P.LOOK, ret)
+    if armed:
+        ev += 1
+    armed = l[s] <= H - ret
+    for k in range(s + 1, u):
+        if armed and H - tolT <= h[k] <= H + 3 * tolT:
+            ev += 1
+            armed = False
+        if l[k] <= H - ret:
+            armed = True
+    parts.append(f"direnç temas {ev} (en az {P.MIN_TOUCH})")
     if inside_n >= P.LABEL_N:
         t = s + P.LABEL_N - 1
         e10, e21 = _ema(c, 10), _ema(c, 21)
