@@ -207,3 +207,104 @@ def explain(df: pd.DataFrame, a, z, P: KP | None = None) -> dict | None:
         res=(res.startswith("✓"), res),
         floor=(not floor_brk, "taban kırılmadı" if not floor_brk else "kutu içinde taban kırıldı"),
     )
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Kümelenme kutusu (taslak v3, 04.11.2026, senin tarifin):
+#   Ana mum: kümenin ilk mumu; kutu = ana mumun dibi..tepesi.
+#   Sonraki mumların açılış ve kapanışı kutunun içinde kalır (fitiller serbest).
+#   Kutunun tepesi direnç: üstünde kapanış = KIRILIM; altında kapanış = BOZULMA (taban).
+#   Etiket: ana mum + (LABEL_N-1) mum içeride kalınca, LABEL_N. mumda. Kutu kırılana/bozulana kadar uzar.
+#   Korunanlar: EMA10/EMA21 EMA_UP mumda %EMA_DROP'tan fazla düşmüyor; ana mumdan SONRAKİ kapanışların eğimi >= SLOPE_MIN.
+# ---------------------------------------------------------------------------------------------------------------
+@dataclass
+class KK:
+    LABEL_N: int = 5
+    MAX_N: int = 25
+    EMA_UP: int = 5
+    EMA_DROP: float = 0.5
+    SLOPE_MIN: float = -0.05
+
+
+def _inside(o, c, L, H, u):
+    return L <= o[u] <= H and L <= c[u] <= H
+
+
+def detect_kume(df: pd.DataFrame, P: KK | None = None) -> list[dict]:
+    P = P or KK()
+    o, h, l, c = (df[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
+    n = len(c)
+    adr = (pd.Series(h / l).rolling(20).mean().to_numpy() - 1) * 100
+    e10, e21 = _ema(c, 10), _ema(c, 21)
+    d = df.index
+    boxes: list[dict] = []
+    s = max(20, P.EMA_UP)
+    while s < n - 1:
+        L, H = l[s], h[s]
+        u = s + 1
+        status, why, label_t = "canlı", "", None
+        while u < n:
+            if c[u] > H:
+                status = "kırılım"
+                break
+            if c[u] < L:
+                status, why = "bozuldu", "taban"
+                break
+            if not _inside(o, c, L, H, u):
+                status, why = "bozuldu", "açılış dışarıda"
+                break
+            if u - s + 1 >= P.MAX_N:
+                status, why = "bozuldu", "uzun"
+                break
+            if label_t is None and u - s + 1 == P.LABEL_N:
+                ok_ema = ((e10[u] / e10[u - P.EMA_UP] - 1) * 100 > -P.EMA_DROP
+                          and (e21[u] / e21[u - P.EMA_UP] - 1) * 100 > -P.EMA_DROP)
+                ok_sl = adr[u] == adr[u] and adr[u] > 0 and _slope_adr(c[s + 1:u + 1], adr[u]) >= P.SLOPE_MIN
+                if not (ok_ema and ok_sl):
+                    status, why = "etiketsiz", ("EMA" if not ok_ema else "eğim")
+                    break
+                label_t = u
+            u += 1
+        end_t = u - 1
+        if label_t is not None:
+            b = dict(start=s, label_t=label_t, end_t=end_t, status=status, why=why, R=float(H), floor=float(L),
+                     start_d=d[s], label_d=d[label_t], end_d=d[end_t], n=end_t - s + 1)
+            if status == "kırılım":
+                b["break_t"] = u
+            elif status == "bozuldu":
+                b["stop_t"] = u
+            boxes.append(b)
+            s = u  # aynı kümeden ikinci etiket yok
+        else:
+            s += 1  # bu ana mumla küme olmadı, sonraki mumu ana mum olarak dene
+    return boxes
+
+
+def explain_kume(df: pd.DataFrame, a, P: KK | None = None) -> str:
+    """Verilen gün ana mum olsaydı: hangi mum kutudan çıktı, etiket gününde EMA/eğim ne durumda."""
+    P = P or KK()
+    o, h, l, c = (df[k].to_numpy(float) for k in ("Open", "High", "Low", "Close"))
+    idx = df.index
+    s = int(idx.searchsorted(pd.Timestamp(a)))
+    if s >= len(c) - 1:
+        return "ölçülemedi"
+    L, H = l[s], h[s]
+    parts = [f"ana mum {idx[s]:%d.%m} [{L:.2f}-{H:.2f}]"]
+    u = s + 1
+    while u < len(c) and u - s + 1 <= P.MAX_N:
+        if not _inside(o, c, L, H, u):
+            yer = "üstte kapanış" if c[u] > H else ("altta kapanış" if c[u] < L else "açılış dışarıda")
+            parts.append(f"{u - s + 1}. mum {idx[u]:%d.%m} dışarı ({yer}, kapanış {c[u]:.2f})")
+            break
+        u += 1
+    else:
+        parts.append("kutu uzun sürdü")
+    inside_n = u - s
+    parts.append(f"içeride {inside_n} mum")
+    if inside_n >= P.LABEL_N:
+        t = s + P.LABEL_N - 1
+        e10, e21 = _ema(c, 10), _ema(c, 21)
+        adr = (pd.Series(h / l).rolling(20).mean().to_numpy() - 1) * 100
+        parts.append(f"etiket günü {idx[t]:%d.%m}: EMA10 %{(e10[t] / e10[t - P.EMA_UP] - 1) * 100:+.1f} "
+                     f"EMA21 %{(e21[t] / e21[t - P.EMA_UP] - 1) * 100:+.1f} eğim(ana mum hariç) {_slope_adr(c[s + 1:t + 1], adr[t]):+.2f}")
+    return " | ".join(parts)
