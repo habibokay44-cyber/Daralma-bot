@@ -23,4 +23,4 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python ileri_test.py state/etiket_kayit.csv state/orneklem.csv state/orneklem2.csv --telegram
+        run: python ileri_test.py state/etiket_kayit.csv state/orneklem.csv state/orneklem2.csv state/orneklem3.csv --telegram
