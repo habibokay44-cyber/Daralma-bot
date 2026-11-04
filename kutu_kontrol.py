@@ -22,7 +22,7 @@ KUMELER = [
     ("PINSU", "2026-04-07", "2026-04-13"),
     ("KAPLM", "2026-03-25", "2026-04-02"),
     ("DCTTR", "2025-01-02", "2025-01-15"),
-    ("DCTTR", "2026-03-27", "2026-04-02"),
+    ("DCTTR", "2025-03-25", "2025-04-03"),  # senin düzeltmen
 ]
 D = pd.Timedelta
 
@@ -30,7 +30,7 @@ D = pd.Timedelta
 def main():
     syms = sorted({k[0] for k in KUMELER})
     frames = fetch_tv_all(syms, n_bars=900, budget=5 * 60)
-    out = ["🔍 Kümelenme kutusu kontrolü (ana mum + içeride kalan mumlar, etiket 5. mumda):"]
+    out = ["🔍 Kümelenme kutusu kontrolü (ana mum + içeride kalan mumlar, etiket 4. mumda, 0.25 ADR pay):"]
     ok = 0
     for sym, a, z in KUMELER:
         df = frames.get(sym)
