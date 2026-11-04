@@ -31,7 +31,7 @@ def summarize(path: Path) -> str:
     d, y, b = isr.count("d"), isr.count("y"), isr.count("b")
     bos = len(rows) - d - y - b
     kutu = path.name in ("orneklem2.csv", "orneklem3.csv")
-    baslik = ("Kutu örneklemi 2 (etiket 5. mumda)" if path.name == "orneklem3.csv" else "Kutu örneklemi") if kutu else ("Örneklem" if "orneklem" in path.name else "Kör ileri test")
+    baslik = ("Kümelenme kutusu örneklemi" if path.name == "orneklem3.csv" else "Kutu örneklemi") if kutu else ("Örneklem" if "orneklem" in path.name else "Kör ileri test")
     out = [f"🧪 {baslik}: {len(rows)} etiket | doğru {d}, yanlış {y}, belirsiz {b} | bakılmamış {bos}"]
     if d + y:
         out.append(f"Etiket isabeti {pct(d, d + y)}")
@@ -42,7 +42,7 @@ def summarize(path: Path) -> str:
             lw = sum(1 for i, c in zip(isr, czg) if i == "d" and c == "y")
             out.append(f"Etiket doğru ama çizgi yanlış: {lw}")
         if kutu:
-            out.append("Kutu dedektörü kör sınavı: karar eşiği %75 (eski göstergenin kör isabeti %62). "
+            out.append("Kutu dedektörü kör sınavı: karar eşiği %75 (eski gösterge kör %62, ilk kutu dedektörü %49). "
                        + ("Karar için en az 30 işaretli kutu bekle." if d + y < 30 else ("✅ eşik geçildi" if d / (d + y) >= 0.75 else "❌ eşik geçilmedi")))
         else:
             out.append("Karar için en az 30 işaretli etiket bekle." if d + y < 30 else "n yeterli; örnek-içi oran (%78) ile karşılaştırılabilir.")
