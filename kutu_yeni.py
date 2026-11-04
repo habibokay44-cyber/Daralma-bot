@@ -214,20 +214,27 @@ def explain(df: pd.DataFrame, a, z, P: KP | None = None) -> dict | None:
 #   Ana mum: kümenin ilk mumu; kutu = ana mumun dibi..tepesi.
 #   Sonraki mumların açılış ve kapanışı kutunun içinde kalır (fitiller serbest).
 #   Kutunun tepesi direnç: üstünde kapanış = KIRILIM; altında kapanış = BOZULMA (taban).
-#   Etiket: ana mum + (LABEL_N-1) mum içeride kalınca, LABEL_N. mumda. Kutu kırılana/bozulana kadar uzar.
+#   Etiket: ana mum + (LABEL_N-1) mum içeride kalınca, LABEL_N. mumda (4). Kutu kırılana/bozulana kadar uzar.
+#   Pay: açılış/kapanış kutunun en fazla TOL_ADR (0.25) ADR dışına taşarsa içeride sayılır.
 #   Korunanlar: EMA10/EMA21 EMA_UP mumda %EMA_DROP'tan fazla düşmüyor; ana mumdan SONRAKİ kapanışların eğimi >= SLOPE_MIN.
 # ---------------------------------------------------------------------------------------------------------------
 @dataclass
 class KK:
-    LABEL_N: int = 5
+    LABEL_N: int = 4        # 04.11: ana mum + 3 mum içeride kalınca etiket
+    TOL_ADR: float = 0.25   # 04.11: açılış/kapanış kutunun en fazla bu kadar ADR dışına taşarsa içeride sayılır
     MAX_N: int = 25
     EMA_UP: int = 5
     EMA_DROP: float = 0.5
     SLOPE_MIN: float = -0.05
 
 
-def _inside(o, c, L, H, u):
-    return L <= o[u] <= H and L <= c[u] <= H
+def _inside(o, c, L, H, u, tol=0.0):
+    return L - tol <= o[u] <= H + tol and L - tol <= c[u] <= H + tol
+
+
+def _tol(P, adr, c, u):
+    a = adr[u] if adr[u] == adr[u] else 0.0
+    return P.TOL_ADR * a / 100 * c[u]
 
 
 def detect_kume(df: pd.DataFrame, P: KK | None = None) -> list[dict]:
@@ -244,13 +251,14 @@ def detect_kume(df: pd.DataFrame, P: KK | None = None) -> list[dict]:
         u = s + 1
         status, why, label_t = "canlı", "", None
         while u < n:
-            if c[u] > H:
+            tl = _tol(P, adr, c, u)
+            if c[u] > H + tl:
                 status = "kırılım"
                 break
-            if c[u] < L:
+            if c[u] < L - tl:
                 status, why = "bozuldu", "taban"
                 break
-            if not _inside(o, c, L, H, u):
+            if not _inside(o, c, L, H, u, tl):
                 status, why = "bozuldu", "açılış dışarıda"
                 break
             if u - s + 1 >= P.MAX_N:
@@ -289,11 +297,13 @@ def explain_kume(df: pd.DataFrame, a, P: KK | None = None) -> str:
     if s >= len(c) - 1:
         return "ölçülemedi"
     L, H = l[s], h[s]
+    adr = (pd.Series(h / l).rolling(20).mean().to_numpy() - 1) * 100
     parts = [f"ana mum {idx[s]:%d.%m} [{L:.2f}-{H:.2f}]"]
     u = s + 1
     while u < len(c) and u - s + 1 <= P.MAX_N:
-        if not _inside(o, c, L, H, u):
-            yer = "üstte kapanış" if c[u] > H else ("altta kapanış" if c[u] < L else "açılış dışarıda")
+        tl = _tol(P, adr, c, u)
+        if not _inside(o, c, L, H, u, tl):
+            yer = "üstte kapanış" if c[u] > H + tl else ("altta kapanış" if c[u] < L - tl else "açılış dışarıda")
             parts.append(f"{u - s + 1}. mum {idx[u]:%d.%m} dışarı ({yer}, kapanış {c[u]:.2f})")
             break
         u += 1
@@ -304,7 +314,6 @@ def explain_kume(df: pd.DataFrame, a, P: KK | None = None) -> str:
     if inside_n >= P.LABEL_N:
         t = s + P.LABEL_N - 1
         e10, e21 = _ema(c, 10), _ema(c, 21)
-        adr = (pd.Series(h / l).rolling(20).mean().to_numpy() - 1) * 100
         parts.append(f"etiket günü {idx[t]:%d.%m}: EMA10 %{(e10[t] / e10[t - P.EMA_UP] - 1) * 100:+.1f} "
                      f"EMA21 %{(e21[t] / e21[t - P.EMA_UP] - 1) * 100:+.1f} eğim(ana mum hariç) {_slope_adr(c[s + 1:t + 1], adr[t]):+.2f}")
     return " | ".join(parts)
