@@ -3,7 +3,7 @@
 DONDURULMUŞ TANIM (04.11.2026, senin tarifin):
   Ana mum = kümenin ilk mumu; kutu = ana mumun dibi..tepesi. Sonraki mumların açılış ve kapanışı kutunun içinde
   (fitiller serbest). Kutunun tepesi direnç: üstünde kapanış kırılım, altında kapanış bozulma.
-  Etiket 5. mumda (ana mum + 4 mum içeride). EMA10/EMA21 5 mumda %0.5'ten fazla düşmüyor; ana mumdan sonraki
+  Etiket 4. mumda (ana mum + 3 mum içeride); açılış/kapanış kutunun 0.25 ADR dışına kadar taşabilir. EMA10/EMA21 5 mumda %0.5'ten fazla düşmüyor; ana mumdan sonraki
   kapanışlar aşağı eğimli değil.
 ÖNCEDEN YAZILMIŞ KARAR: işaretli kutularda isabet >= %75 ise Pine'a taşınır; değilse eski gösterge kalır.
 (Eski göstergenin kör isabeti %62, ilk kutu dedektörünün %49.)
@@ -28,7 +28,7 @@ import pandas as pd
 from kutu_yeni import KK, detect_kume
 from scan import fetch_tv_all, get_tickers, link, telegram_send
 
-P = KK(LABEL_N=5)
+P = KK()  # LABEL_N=4, TOL_ADR=0.25
 N = 40
 GUN = 365
 SON_BOS = 10
@@ -82,7 +82,7 @@ def main() -> None:
         w.writerow(["no", "hisse", "kutu_baslangic", "etiket_tarihi", "taban", "direnc", "isaret", "not"])
         for i, (sym, b) in enumerate(sec, 1):
             w.writerow([i, sym, f"{b['start_d']:%Y-%m-%d}", f"{b['label_d']:%Y-%m-%d}", f"{b['floor']:.2f}", f"{b['R']:.2f}", "", ""])
-    head = (f"📦🎲 Kümelenme kutusu kör örneklemi (ana mum + içeride kalan mumlar, etiket 5. mumda): havuzda {len(havuz)} kutu ({len({s for s, _ in havuz})} hisse), {len(sec)} seçildi.\n"
+    head = (f"📦🎲 Kümelenme kutusu kör örneklemi (ana mum + içeride kalan mumlar, etiket 4. mumda): havuzda {len(havuz)} kutu ({len({s for s, _ in havuz})} hisse), {len(sec)} seçildi.\n"
             f"Göstergeyi KAPAT. Bar Replay ile ETİKET gününe git, sonrasını görme. Kutu: ana mum→etiket günü; taban ve tepe (tepe = direnç).\n"
             f"state/orneklem3.csv 'isaret' sütununa d / y / b yaz. Karar: isabet ≥ %75 ise Pine'a taşınır.")
     lines = [f"{i}. {sym} ana mum {b['start_d']:%d.%m.%Y}→etiket {b['label_d']:%d.%m.%Y} taban {b['floor']:.2f} tepe {b['R']:.2f}\n{link(sym)}"
