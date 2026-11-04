@@ -380,6 +380,7 @@ def main() -> None:
     state = load_state()
     m_giris, m_setup, m_iptal = [], [], []
     kayit: list[list[str]] = []
+    grafikler: list = []
     for r in results:
         sym = r["sym"]
         for e in r["events"]:
@@ -399,6 +400,7 @@ def main() -> None:
             state[key] = dstr
             (m_giris if e["type"] == "giris" else m_setup).append(fmt_event(sym, e))
             if e["type"] == "setup":
+                grafikler.append((sym, e))
                 kayit.append([datetime.now(TR_TZ).strftime("%Y-%m-%d"), sym, dstr, e["mode"], f"{e['close']:.2f}", f"{e['line']:.2f}",
                               "iptal" if e.get("cancelled") else "", "", "", ""])
 
@@ -416,6 +418,13 @@ def main() -> None:
         return
     if body or args.heartbeat:
         telegram_send(head + ("\n\n" + "\n\n".join(body) if body else "\n\nYeni sinyal yok."))
+    if grafikler:
+        try:
+            from grafik import gonder_album
+            k = gonder_album([(s_, frames[s_], e_) for s_, e_ in grafikler if s_ in frames])
+            print(f"{k} etiket grafiği gönderildi")
+        except Exception as ex:  # noqa: BLE001
+            print(f"[uyarı] etiket grafikleri gönderilemedi: {ex}", file=sys.stderr)
     if kayit:
         yeni = not KAYIT_FILE.exists()
         KAYIT_FILE.parent.mkdir(parents=True, exist_ok=True)
