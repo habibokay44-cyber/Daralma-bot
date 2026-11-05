@@ -164,7 +164,8 @@ def summarize(path: Path) -> str:
 
 
 def main() -> None:
-    files = [a for a in sys.argv[1:] if not a.startswith("--")]
+    files = [a for a in sys.argv[1:] if not a.startswith("--")
+             and "orneklem" not in a]   # 05.11.2026: biten örneklem testleri özette gösterilmez
     paths = [HERE / f for f in files] if files else [HERE / "state" / "etiket_kayit.csv"]
     out = "\n\n".join(summarize(p) for p in paths)
     print(out)
