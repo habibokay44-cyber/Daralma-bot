@@ -22,7 +22,59 @@ def pct(k: int, n: int) -> str:
     return f"%{100 * p:.0f} (n={n}, ±%{196 * math.sqrt(p * (1 - p) / n):.0f})"
 
 
+def _kural(rows, key, bad):
+    """Önceden yazılı ölçüt: a) elenenlerde kötü oranı >= 2 x kalanlar b) kötülerin >= %30'u c) iyilerin <= %40'ı elenir."""
+    el = [r for r in rows if key(r)]
+    ka = [r for r in rows if not key(r)]
+    nb = sum(1 for r in rows if bad(r))
+    ng = len(rows) - nb
+    if not el or not ka:
+        return f"elenen {len(el)}, kalan {len(ka)} -> ölçülemez"
+    we = sum(1 for r in el if bad(r))
+    wk = sum(1 for r in ka if bad(r))
+    re_, rk = we / len(el), wk / len(ka)
+    a_ = (rk == 0 and re_ > 0) or (rk > 0 and re_ >= 2 * rk)
+    b_, c_ = we >= 0.3 * nb, (len(el) - we) <= 0.4 * ng
+    return (f"elenen {len(el)} ({we} kötü) | kalanda iyi kurulum %{100 * (len(ka) - wk) / len(ka):.0f} | "
+            f"a{'✓' if a_ else '✗'} b{'✓' if b_ else '✗'} c{'✓' if c_ else '✗'} -> {'✅' if a_ and b_ and c_ else '❌'}")
+
+
+def ileri(path: Path) -> str:
+    """İleri test kaydı: buton cevapları (a/g/h) + eski elle işaretler (d/y/b) + v56 gölge ölçümü."""
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    isr = [(r.get("isaret") or "").strip().lower() for r in rows]
+    c = {k: isr.count(k) for k in ("a", "g", "h", "d", "y", "b")}
+    bos = sum(1 for i in isr if not i)
+    out = [f"🧪 Kör ileri test: {len(rows)} etiket | ✅ alırdım {c['a']}, ⏳ başka gün {c['g']}, ❌ almazdım {c['h']}"
+           + (f" | eski işaret d{c['d']} y{c['y']} b{c['b']}" if c['d'] + c['y'] + c['b'] else "") + f" | bakılmamış {bos}"]
+    iyi = [r for r, i in zip(rows, isr) if i in ("a", "g", "d")]
+    kotu = [r for r, i in zip(rows, isr) if i in ("h", "y")]
+    n = len(iyi) + len(kotu)
+    if n:
+        out.append(f"İyi kurulum oranı (alırdım + başka gün) {pct(len(iyi), n)}; o gün alırdım {pct(c['a'], c['a'] + c['g'] + c['h'])}")
+    # v56 gölge: E1, Y1, E1 ve Y1 (05.11.2026'da sabitlendi)
+    ol = [r for r in iyi + kotu if (r.get("e1") or "") in ("0", "1")]
+    if ol:
+        bad = lambda r: (r.get("isaret") or "").lower() in ("h", "y")  # noqa: E731
+        out.append(f"v56 gölge ({len(ol)} işaretli etiket{', karar için 30 bekle' if len(ol) < 30 else ''}):")
+        out.append("  E1 EMA düşüyor: " + _kural(ol, lambda r: r.get("e1") == "1", bad))
+        out.append("  Y1 yükseliş <%15: " + _kural(ol, lambda r: r.get("y1") == "1", bad))
+        out.append("  E1 ve Y1: " + _kural(ol, lambda r: r.get("e1") == "1" and r.get("y1") == "1", bad))
+    # zamanlama: senin alış günün göstergenin Giriş günüyle ±1 iş günü içinde mi
+    zr = [r for r in rows if r.get("alis_tarihi") and r.get("giris_tarihi")]
+    if zr:
+        import numpy as np
+        hit = sum(1 for r in zr if abs(int(np.busday_count(r["giris_tarihi"], r["alis_tarihi"]))) <= 1)
+        out.append(f"Zamanlama: alış günün Giriş etiketiyle ±1 gün içinde {pct(hit, len(zr))}")
+    pend = [f"{r['hisse']} {r['etiket_tarihi']}" for r, i in zip(rows, isr) if not i]
+    if pend:
+        out.append("İşaret bekleyen: " + ", ".join(pend[:25]) + (" …" if len(pend) > 25 else ""))
+    return "\n".join(out)
+
+
 def summarize(path: Path) -> str:
+    if path.exists() and path.name == "etiket_kayit.csv":
+        return ileri(path)
     if not path.exists():
         return f"{path.name} yok. İleri testte ilk etiket çıkınca, örneklemde orneklem.py çalışınca oluşur."
     rows = list(csv.DictReader(path.open(encoding="utf-8")))
