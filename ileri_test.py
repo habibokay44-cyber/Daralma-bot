@@ -15,7 +15,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
-HATALI = {"BAYRK|2026-11-04", "MAKIM|2026-11-04"}
+HATALI = {"BAYRK|2026-11-04", "MAKIM|2026-11-04", "DZGYO|2026-11-02"}
 
 
 def pct(k: int, n: int) -> str:
