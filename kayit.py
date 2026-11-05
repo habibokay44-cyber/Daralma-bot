@@ -11,6 +11,9 @@ Sütunlar:
   v56      : 'elenir' = e1 ve y1 birlikte (gölge; bildirimde gösterilmez)
   giris_tarihi : göstergenin bu etiket için verdiği Giriş günü (tarama yazar)
   alis_tarihi  : senin alış günün (a ise etiket günü; g ise Telegram'da cevap olarak yazdığın tarih)
+  e50      : 1 = kapanış günlük EMA50 altında            (ANA KURAL, 05.11.2026'da önceden seçildi)
+  g1       : 1 = kapanış son 40 mumun dip-tepe aralığının alt yarısında
+  w1       : 1 = haftalık kapanış haftalık EMA10 altında
 """
 from __future__ import annotations
 
@@ -22,7 +25,7 @@ import pandas as pd
 
 F = Path(__file__).resolve().parent / "state" / "etiket_kayit.csv"
 COLS = ["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "cizgi", "not",
-        "e1", "y1", "v56", "giris_tarihi", "alis_tarihi"]
+        "e1", "y1", "v56", "giris_tarihi", "alis_tarihi", "e50", "g1", "w1"]
 
 
 def key(sym: str, date: str) -> str:
@@ -68,4 +71,13 @@ def bayraklar(df: pd.DataFrame, e: dict) -> dict:
         e1 = (e10[t] / e10[t - 5] - 1) * 100 <= -0.5 or (e21[t] / e21[t - 5] - 1) * 100 <= -0.5
     lo = float(np.min(df["Low"].to_numpy(float)[max(0, t - 40):t + 1]))
     y1 = (float(e["line"]) / lo - 1) * 100 < 15 if lo > 0 else False
-    return dict(e1="1" if e1 else "0", y1="1" if y1 else "0", v56="elenir" if (e1 and y1) else "geçer")
+    h = df["High"].to_numpy(float)
+    l = df["Low"].to_numpy(float)
+    cc = c.to_numpy()
+    H40, L40 = h[max(0, t - 39):t + 1].max(), l[max(0, t - 39):t + 1].min()
+    g1 = (cc[t] - L40) / (H40 - L40) < 0.5 if H40 > L40 else False
+    e50 = cc[t] < c.ewm(span=50, adjust=False).mean().iloc[t]
+    wk = c.iloc[:t + 1].resample("W-FRI").last().dropna()
+    w1 = len(wk) >= 10 and wk.iloc[-1] < wk.ewm(span=10, adjust=False).mean().iloc[-1]
+    b = lambda x: "1" if x else "0"  # noqa: E731
+    return dict(e1=b(e1), y1=b(y1), v56="elenir" if (e1 and y1) else "geçer", e50=b(e50), g1=b(g1), w1=b(w1))
