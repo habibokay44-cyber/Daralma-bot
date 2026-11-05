@@ -72,7 +72,8 @@ def ileri(path: Path) -> str:
     bc = [r for r in rows if r.get("mod") == "Base"]    # base v0 canlı (taramadan, 06.11.2026'dan itibaren)
     bv1 = [r for r in rows if r.get("mod") == "BaseV1"]
     bv2 = [r for r in rows if r.get("mod") == "BaseV2"]
-    rows = [r for r in rows if r.get("mod") not in ("BaseV0", "BaseV1", "BaseV2", "Base")]
+    bv3 = [r for r in rows if r.get("mod") == "BaseV3"]
+    rows = [r for r in rows if r.get("mod") not in ("BaseV0", "BaseV1", "BaseV2", "BaseV3", "Base")]
     isr = [(r.get("isaret") or "").strip().lower() for r in rows]
     c = {k: isr.count(k) for k in ("a", "g", "h", "d", "y", "b")}
     bos = sum(1 for i in isr if not i)
@@ -117,6 +118,8 @@ def ileri(path: Path) -> str:
         out += _base_kor(bv1, "Base v1 kör test", 0.7)
     if bv2:  # Base v2 kör testi (05.11.2026): kabul >= %70
         out += _base_kor(bv2, "Base v2 kör test", 0.7)
+    if bv3:  # Base v3 kör testi (05.11.2026): kabul >= %70
+        out += _base_kor(bv3, "Base v3 kör test", 0.7)
     return "\n".join(out)
 
 
