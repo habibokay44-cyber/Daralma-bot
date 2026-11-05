@@ -50,7 +50,8 @@ def kacan_kaydet(text: str):
             w.writerow(["bildirim_tarihi", "hisse", "tarih", "not"])
         w.writerow([f"{bugun:%Y-%m-%d}", sym, d, m.group(3).replace(",", " -").strip()])
     return sym, d
-AD = {"a": "✅ Alırdım", "g": "⏳ Başka gün", "h": "❌ Almazdım", "c": "📐 Çizgi yanlış"}
+STAGE = {"s1": "Stage 1", "s2": "Stage 2", "s3": "Tepe (3)", "s4": "Düşüş (4)"}
+AD = {"a": "✅ Alırdım", "g": "⏳ Başka gün", "h": "❌ Almazdım", "c": "📐 Çizgi yanlış", **STAGE}
 
 
 def api(method, **kw):
@@ -114,6 +115,8 @@ def main() -> int:
                 continue
             if act == "c":
                 r["cizgi"] = "y"
+            elif act in STAGE:
+                r["stage"] = act[1]
             else:
                 r["isaret"] = act
                 if act == "a":
@@ -128,7 +131,8 @@ def main() -> int:
                 pass
             try:
                 cap = (msg.get("caption") or "").split("\n✔")[0]
-                durum = AD.get(r["isaret"], "") + (" · 📐 çizgi yanlış" if r["cizgi"] == "y" else "")
+                durum = " · ".join(x for x in (AD.get(r["isaret"], ""), STAGE.get(f"s{r.get('stage', '')}", ""),
+                                               "📐 çizgi yanlış" if r["cizgi"] == "y" else "") if x)
                 api("editMessageCaption", chat_id=msg["chat"]["id"], message_id=msg["message_id"],
                     caption=f"{cap}\n✔ {durum}", reply_markup=msg.get("reply_markup"))
             except Exception as ex:  # noqa: BLE001
