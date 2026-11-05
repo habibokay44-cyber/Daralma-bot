@@ -1,8 +1,8 @@
 bildirim_tarihi,hisse,etiket_tarihi,mod,kapanis,direnc,iptal,isaret,cizgi,not,e1,y1,v56,giris_tarihi,alis_tarihi,e50,g1,w1,stage
-2026-11-03,DGNMO,2026-11-03,Düşen,4.69,5.13,,h,y,çizgi zaten yanlış olduğu için daralma söz konusu değil,,,,,,,,,1
-2026-11-03,HUBVC,2026-11-03,Düşen,2.05,2.19,,a,y, daralma var ancak o kutuda ve o çizgiyle alaksız. olması gereken 15 ekim tepesinden yatay çekilmeli çünkü fiyat o bölgeye daha sonra 3 kere temas edip dönüyor yani dirneç oluşmuş. daha sonda 2-3 kasım mumlarında ema lar destek görevi görüp fiyatı daraltmış ve bugün kırılım gelmiş bugün işleme girerdim,,,,,2026-11-03,,,,1
-2026-11-03,VERUS,2026-11-03,Düşen,484.00,490.20,,a,d, çizgide daralma kutusada gayet doğru olduğu gibi işleme girerdim. (sadece dirence çok yakın diye tercih etmezdim riski kazanç değeri düşük diye ),,,,,2026-11-03,,,,1
-2026-11-04,OZYSR,2026-11-04,Düşen,11.77,11.91,,h,d, çizgi harika ancak mumlar çok volatil bir aşağı bir yukdarı daralmadan bahsetmek mümkün değil işlem almazdım ,,,,,,,,,1
+2026-11-03,DGNMO,2026-11-03,Düşen,4.69,5.13,,h,y,çizgi zaten yanlış olduğu için daralma söz konusu değil,0,0,geçer,,,1,1,1,1
+2026-11-03,HUBVC,2026-11-03,Düşen,2.05,2.19,,a,y, daralma var ancak o kutuda ve o çizgiyle alaksız. olması gereken 15 ekim tepesinden yatay çekilmeli çünkü fiyat o bölgeye daha sonra 3 kere temas edip dönüyor yani dirneç oluşmuş. daha sonda 2-3 kasım mumlarında ema lar destek görevi görüp fiyatı daraltmış ve bugün kırılım gelmiş bugün işleme girerdim,0,0,geçer,,2026-11-03,1,0,1,1
+2026-11-03,VERUS,2026-11-03,Düşen,484.00,490.20,,a,d, çizgide daralma kutusada gayet doğru olduğu gibi işleme girerdim. (sadece dirence çok yakın diye tercih etmezdim riski kazanç değeri düşük diye ),1,0,geçer,,2026-11-03,1,1,1,1
+2026-11-04,OZYSR,2026-11-04,Düşen,11.77,11.91,,h,d, çizgi harika ancak mumlar çok volatil bir aşağı bir yukdarı daralmadan bahsetmek mümkün değil işlem almazdım ,0,0,geçer,2026-11-05,,0,0,1,1
 2026-11-05,GSRAY,2023-01-31,BaseV0,1.257,1.189,,,,,,,,2023-01-31,,,,,
 2026-11-05,SKTAS,2023-04-17,BaseV0,1.679,1.654,,,,,,,,2023-04-17,,,,,
 2026-11-05,ZEDUR,2023-06-02,BaseV0,6.195,5.937,,,,,,,,2023-06-02,,,,,
@@ -43,3 +43,6 @@ bildirim_tarihi,hisse,etiket_tarihi,mod,kapanis,direnc,iptal,isaret,cizgi,not,e1
 2026-11-05,BIGTK,2026-05-12,BaseV0,232.8,226.1,,h,,,,,,2026-05-12,,,,,1
 2026-11-05,ICBCT,2026-05-15,BaseV0,18.43,17.48,,h,,,,,,2026-05-15,,,,,2
 2026-11-05,VESTL,2026-09-02,BaseV0,24.86,24.18,,h,,,,,,2026-09-02,,,,,1
+2026-11-05,BAYRK,2026-11-04,Düşen,2.95,2.99,,,,,1,0,geçer,,,1,1,1,
+2026-11-05,DURDO,2026-11-05,Yatay,5.68,6.20,,,,,1,0,geçer,,,0,0,0,
+2026-11-05,MAKIM,2026-11-04,Düşen,12.19,13.25,,,,,1,0,geçer,,,1,1,1,
