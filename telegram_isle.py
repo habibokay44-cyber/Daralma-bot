@@ -2,6 +2,8 @@
 
 Grafiklerin altındaki butonlar: ✅ Alırdım (a) · ⏳ Başka gün (g) · ❌ Almazdım (h) · 📐 Çizgi yanlış.
 Bir grafiğe cevap olarak tarih yazarsan (örn. 12.11) alış günün olarak kaydedilir ve işaret 'g' olur.
+Sistemin vermediği ama senin aldığın kurulumlar: bota "kaçan KRGYO 30.10" yaz (isteğe bağlı sonuna not)
+-> state/kacan.csv'ye kaydedilir; kacan_tani.py hangi kapının engellediğini gösterir.
 Tarih dışındaki yazı not alanına eklenir. Fikrini değiştirirsen başka bir butona basman yeterli.
 
 Telegram mesajları bekletir; bu script 3 saatte bir (ve elle) çalışıp bekleyenleri işler.
@@ -24,6 +26,30 @@ import kayit
 HERE = Path(__file__).resolve().parent
 OFFSET = HERE / "state" / "tg_offset.json"
 ESLE = HERE / "state" / "tg_mesaj.json"
+KACAN = HERE / "state" / "kacan.csv"
+KACAN_RE = re.compile(r"^\s*ka[çc]an\s+([A-Za-zÇĞİÖŞÜçğıöşü0-9]+)\s+(\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?)\s*(.*)$", re.I)
+
+
+def kacan_kaydet(text: str):
+    m = KACAN_RE.match(text)
+    if not m:
+        return None
+    sym = m.group(1).upper().replace("İ", "I")
+    bugun = pd.Timestamp.now(tz="Europe/Istanbul").tz_localize(None).normalize()
+    d, _ = tarih_bul(m.group(2), f"{bugun:%Y-%m-%d}")
+    if d and pd.Timestamp(d) > bugun + pd.Timedelta(days=5):
+        d = f"{pd.Timestamp(d) - pd.DateOffset(years=1):%Y-%m-%d}"
+    if not d:
+        return None
+    import csv
+    yeni = not KACAN.exists()
+    KACAN.parent.mkdir(parents=True, exist_ok=True)
+    with KACAN.open("a", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        if yeni:
+            w.writerow(["bildirim_tarihi", "hisse", "tarih", "not"])
+        w.writerow([f"{bugun:%Y-%m-%d}", sym, d, m.group(3).replace(",", " -").strip()])
+    return sym, d
 AD = {"a": "✅ Alırdım", "g": "⏳ Başka gün", "h": "❌ Almazdım", "c": "📐 Çizgi yanlış"}
 
 
@@ -109,6 +135,16 @@ def main() -> int:
                 print(f"[bilgi] açıklama güncellenemedi: {ex}")
             continue
         m = u.get("message")
+        if m and str((m.get("chat") or {}).get("id")) == chat and m.get("text") and not m.get("reply_to_message"):
+            kk = kacan_kaydet(m["text"])
+            if kk:
+                islenen.append(f"kaçan {kk[0]} {kk[1]}")
+                try:
+                    api("sendMessage", chat_id=m["chat"]["id"], reply_to_message_id=m["message_id"],
+                        text=f"✔ Kaçan kurulum kaydedildi: {kk[0]} {pd.Timestamp(kk[1]):%d.%m.%Y}")
+                except Exception as ex:  # noqa: BLE001
+                    print(f"[bilgi] {ex}")
+            continue
         if m and str((m.get("chat") or {}).get("id")) == chat and m.get("reply_to_message") and m.get("text"):
             k = esle.get(str(m["reply_to_message"]["message_id"]))
             r = idx.get(k) if k else None
@@ -130,8 +166,9 @@ def main() -> int:
                 print(f"[bilgi] {ex}")
     if degisti:
         kayit.save(rows)
+    if islenen:
         try:
-            api("sendMessage", chat_id=chat, text=f"✔ {len(islenen)} işaret kaydedildi: " + ", ".join(islenen)[:3500])
+            api("sendMessage", chat_id=chat, text=f"✔ {len(islenen)} kayıt işlendi: " + ", ".join(islenen)[:3500])
         except Exception as ex:  # noqa: BLE001
             print(f"[bilgi] özet mesajı gönderilemedi: {ex}")
     if off:
