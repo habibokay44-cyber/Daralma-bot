@@ -122,7 +122,7 @@ def _tv_df(tv, sym: str, n_bars: int) -> pd.DataFrame | None:
     return df
 
 
-def fetch_tv_all(tickers: list[str], n_bars: int = 500, budget: int = 22 * 60) -> dict[str, pd.DataFrame]:
+def fetch_tv_all(tickers: list[str], n_bars: int = 500, budget: int = 22 * 60, min_bars: int = 120) -> dict[str, pd.DataFrame]:
     try:
         from tvDatafeed import TvDatafeed
     except Exception as e:  # noqa: BLE001
@@ -148,7 +148,7 @@ def fetch_tv_all(tickers: list[str], n_bars: int = 500, budget: int = 22 * 60) -
                     tv = TvDatafeed()
                 except Exception:  # noqa: BLE001
                     pass
-        if df is not None and len(df) >= 120:
+        if df is not None and len(df) >= min_bars:
             out[s] = df
         else:
             fail += 1
@@ -157,6 +157,9 @@ def fetch_tv_all(tickers: list[str], n_bars: int = 500, budget: int = 22 * 60) -
         if not out and fail >= 15:
             raise SystemExit("TradingView'dan da veri alınamadı (ilk 15 hisse başarısız). Sinyal gönderilmedi.")
     return out
+
+
+MIN_BARS_YENI = 30   # 05.11.2026: yeni arzlar Base v0 için 30 mumdan itibaren taranır (ana gösterge yine 120+ ister)
 
 
 def load_frames(tickers: list[str], args) -> dict[str, pd.DataFrame]:
@@ -172,11 +175,11 @@ def load_frames(tickers: list[str], args) -> dict[str, pd.DataFrame]:
             futs = {ex.submit(fetch_yahoo, s, args.range): s for s in tickers}
             for f in as_completed(futs):
                 df = f.result()
-                if df is not None and len(df) >= 120:
+                if df is not None and len(df) >= MIN_BARS_YENI:
                     frames[futs[f]] = df
         print(f"Yahoo HTTP durumları: {_codes}")
     else:
-        frames = fetch_tv_all(tickers)
+        frames = fetch_tv_all(tickers, min_bars=MIN_BARS_YENI)
     return frames
 
 
@@ -354,12 +357,15 @@ def main() -> None:
 
     today = pd.Timestamp(datetime.now(TR_TZ).date())
     jobs = []
+    taze = {}
     for s, df in frames.items():
         if (today - df.index[-1]).days > args.max_stale_days:
             continue
         if args.min_turnover > 0 and (df["Close"] * df["Volume"]).tail(20).mean() < args.min_turnover:
             continue
-        jobs.append((s, df, args.days, False))
+        taze[s] = df
+        if len(df) >= 120:   # ana gösterge 120+ mum ister; daha kısa (yeni arz) hisseler sadece Base v0'da
+            jobs.append((s, df, args.days, False))
 
     results = []
     with ProcessPoolExecutor(max_workers=os.cpu_count() or 2) as ex:
@@ -414,11 +420,47 @@ def main() -> None:
                     print(f"[uyarı] {sym} v56 bayrakları hesaplanamadı: {ex}", file=sys.stderr)
                 yeni_kayit.append(row)
 
+    # ---- Base v0 (gölge/deneme, 05.11.2026 kör testi geçti: %62 alırdım) ----
+    m_base, base_graf = [], []
+    try:
+        from base_v0 import sinyaller as base_sinyaller
+        from base_v2 import sinyaller as v2_sinyaller
+        from base_v3 import sinyaller as v3_sinyaller
+        for s_, df_ in taze.items():
+            for e_ in base_sinyaller(df_):
+                if e_["t"] < len(df_) - args.days:
+                    continue
+                dstr = f"{e_['date']:%Y-%m-%d}"
+                key = f"{s_}|basev0|{dstr}"
+                if key in state:
+                    continue
+                state[key] = dstr
+                e_ = {**e_, "mode": "Base"}
+                yeni_arz = " · 🆕 yeni arz" if len(df_) < 120 else ""
+                m_base.append(f"🧱 {s_} · {e_['date']:%d.%m.%Y} · kapanış {e_['close']:.2f} · base üstü {e_['line']:.2f}"
+                              f" · base dibi {e_['stop']:.2f} (-%{(1 - e_['stop'] / e_['close']) * 100:.1f}){yeni_arz}")
+                base_graf.append((s_, e_))
+                golge = {}
+                for ad_, fn_ in (("b_v2", v2_sinyaller), ("b_v3", v3_sinyaller)):
+                    try:
+                        ofs = max(0, len(df_) - 60)   # son 60 mum yeterli; t'yi tam veriye göre kaydır
+                        golge[ad_] = "1" if any(abs(x["t"] + ofs - e_["t"]) <= 2 for x in fn_(df_.iloc[ofs:])) else "0"
+                    except Exception:  # noqa: BLE001
+                        golge[ad_] = ""
+                yeni_kayit.append(dict(bildirim_tarihi=datetime.now(TR_TZ).strftime("%Y-%m-%d"), hisse=s_, etiket_tarihi=dstr,
+                                       mod="Base", kapanis=f"{e_['close']:.2f}", direnc=f"{e_['line']:.2f}", giris_tarihi=dstr,
+                                       **golge))
+    except Exception as ex:  # noqa: BLE001
+        print(f"[uyarı] Base v0 taranamadı: {ex}", file=sys.stderr)
+
     last_dates = pd.Series([r["last_date"] for r in results])
     ref = last_dates.mode().iloc[0] if len(last_dates) else today
     head = (f"📊 BIST taraması · veri tarihi {ref:%d.%m.%Y} · {len(results)} hisse · "
             f"{len(m_setup)} daralma · {len(m_giris)} giriş · {len(m_iptal)} iptal")
     body = m_giris + m_setup + m_iptal
+    if m_base:
+        head += f" · {len(m_base)} base"
+        body = body + ["🧱 Base kırılımı (deneme, ileri testte):\n" + "\n".join(m_base)]
     print(head)
     for m in body:
         print("\n" + m)
@@ -428,10 +470,10 @@ def main() -> None:
         return
     if body or args.heartbeat:
         telegram_send(head + ("\n\n" + "\n\n".join(body) if body else "\n\nYeni sinyal yok."))
-    if grafikler:
+    if grafikler or base_graf:
         try:
             from grafik import gonder_butonlu
-            esle = gonder_butonlu([(s_, frames[s_], e_) for s_, e_ in grafikler if s_ in frames])
+            esle = gonder_butonlu([(s_, frames[s_], e_) for s_, e_ in grafikler + base_graf if s_ in frames])
             ep = HERE / "state" / "tg_mesaj.json"
             try:
                 eski = json.loads(ep.read_text())
@@ -444,7 +486,7 @@ def main() -> None:
         except Exception as ex:  # noqa: BLE001
             print(f"[uyarı] etiket grafikleri gönderilemedi: {ex}", file=sys.stderr)
     import kayit
-    if yeni_kayit or girisler or any(not (r.get("e1") and r.get("e50")) for r in kayit.load()):
+    if yeni_kayit or girisler or any(not (r.get("e1") and r.get("e50")) and r.get("mod") not in ("Base", "BaseV0") for r in kayit.load()):
         rows = kayit.load()
         var = {kayit.key(r["hisse"], r["etiket_tarihi"]) for r in rows}
         for r_ in yeni_kayit:
@@ -454,7 +496,8 @@ def main() -> None:
         # bayrağı boş kalmış son 60 günün etiketleri için gölge bayraklarını sonradan hesapla
         sinir = (today - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
         for r_ in rows:
-            if (r_.get("e1") and r_.get("e50")) or r_["etiket_tarihi"] < sinir or r_["hisse"] not in frames:
+            if ((r_.get("e1") and r_.get("e50")) or r_["etiket_tarihi"] < sinir or r_["hisse"] not in frames
+                    or r_.get("mod") in ("Base", "BaseV0") or len(frames[r_["hisse"]]) < 120):
                 continue
             try:
                 from kayit import bayraklar
