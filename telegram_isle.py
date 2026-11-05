@@ -27,6 +27,7 @@ HERE = Path(__file__).resolve().parent
 OFFSET = HERE / "state" / "tg_offset.json"
 ESLE = HERE / "state" / "tg_mesaj.json"
 KACAN = HERE / "state" / "kacan.csv"
+DIRENC_RE = re.compile(r"^\s*diren[çc]\s*:?\s*(yok|\d+(?:[.,]\d+)?)\s*(?:(\d+)\s*(?:temas)?)?\s*(.*)$", re.I)
 KACAN_RE = re.compile(r"^\s*ka[çc]an\s+([A-Za-zÇĞİÖŞÜçğıöşü0-9]+)\s+(\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?)\s*(.*)$", re.I)
 
 
@@ -171,6 +172,20 @@ def main() -> int:
             k = esle.get(str(m["reply_to_message"]["message_id"]))
             r = idx.get(k) if k else None
             if r is None:
+                continue
+            dm = DIRENC_RE.match(m["text"])
+            if dm:  # "direnç 12,40 3 [not]" ya da "direnç yok": senin gördüğün direnç ve temas sayısı
+                r["direnc_sen"] = dm.group(1).lower().replace(",", ".")
+                r["temas_sen"] = dm.group(2) or ""
+                if dm.group(3).strip():
+                    r["not"] = (r["not"] + " - " if r["not"] else "") + dm.group(3).strip().replace(",", " -")
+                degisti = True
+                islenen.append(f"{r['hisse']} direnç {r['direnc_sen']}" + (f" ({r['temas_sen']} temas)" if r["temas_sen"] else ""))
+                try:
+                    api("sendMessage", chat_id=m["chat"]["id"], reply_to_message_id=m["message_id"],
+                        text=f"✔ {r['hisse']}: direnç {r['direnc_sen']}" + (f", {r['temas_sen']} temas" if r["temas_sen"] else ""))
+                except Exception as ex:  # noqa: BLE001
+                    print(f"[bilgi] {ex}")
                 continue
             d, rest = tarih_bul(m["text"], r["etiket_tarihi"])
             if d:
