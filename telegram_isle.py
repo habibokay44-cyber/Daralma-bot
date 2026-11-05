@@ -140,12 +140,22 @@ def main() -> int:
             continue
         m = u.get("message")
         if m and str((m.get("chat") or {}).get("id")) == chat and m.get("text") and not m.get("reply_to_message"):
-            kk = kacan_kaydet(m["text"])
-            if kk:
-                islenen.append(f"kaçan {kk[0]} {kk[1]}")
+            # Bir mesajda birden çok satır olabilir: her "kaçan ..." satırı ayrı kaydedilir
+            ok, red = [], []
+            for line in m["text"].splitlines():
+                if not line.strip():
+                    continue
+                kk = kacan_kaydet(line)
+                if kk:
+                    ok.append(kk)
+                    islenen.append(f"kaçan {kk[0]} {kk[1]}")
+                elif re.match(r"^\s*ka[çc]an\b", line, re.I):
+                    red.append(line.strip()[:40])
+            if ok or red:
                 try:
                     api("sendMessage", chat_id=m["chat"]["id"], reply_to_message_id=m["message_id"],
-                        text=f"✔ Kaçan kurulum kaydedildi: {kk[0]} {pd.Timestamp(kk[1]):%d.%m.%Y}")
+                        text=("✔ Kaçan kaydedildi: " + ", ".join(f"{s} {pd.Timestamp(d):%d.%m.%Y}" for s, d in ok) if ok else "")
+                        + ("\n⚠ Okunamadı (biçim: kaçan HISSE GG.AA.YYYY not): " + " | ".join(red) if red else ""))
                 except Exception as ex:  # noqa: BLE001
                     print(f"[bilgi] {ex}")
             continue
