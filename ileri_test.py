@@ -83,6 +83,10 @@ def ileri(path: Path) -> str:
         out.append(f"\n🧱 Base v0 kör test: {len(bv)} grafik | ✅ {na_} ⏳ {ng} ❌ {nh} | bakılmamış {len(bv) - n}"
                    + (f" | alırdım {pct(na_, n)} -> {'✅ KABUL' if na_ >= 0.5 * n else '❌ red'}" if n else "")
                    + (" (karar için en az 30 işaret)" if n < 30 else ""))
+        bek = [f"{r['hisse']} {r['etiket_tarihi'][8:10]}.{r['etiket_tarihi'][5:7]}.{r['etiket_tarihi'][2:4]}"
+               for r, i in zip(bv, bi) if i not in ("a", "g", "h")]
+        if bek:
+            out.append("   işaret bekleyen: " + ", ".join(bek))
         st = [r.get("stage") for r in bv if r.get("stage")]
         if st:
             out.append("   stage işaretlerin: " + ", ".join(f"S{k} {st.count(k)}" for k in "1234" if st.count(k)))
