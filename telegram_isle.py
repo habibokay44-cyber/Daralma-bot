@@ -117,7 +117,7 @@ def main() -> int:
                 r = {c: "" for c in kayit.COLS}
                 r.update(bildirim_tarihi=f"{pd.Timestamp.now(tz='Europe/Istanbul'):%Y-%m-%d}", hisse=sym,
                          etiket_tarihi=f"{d8[:4]}-{d8[4:6]}-{d8[6:]}", mod=parca[2].strip() if len(parca) >= 3 else "")
-                if r["mod"] in ("BaseV0", "BaseV1", "BaseV2", "Base"):
+                if r["mod"] in ("BaseV0", "BaseV1", "BaseV2", "BaseV3", "Base"):
                     r["giris_tarihi"] = r["etiket_tarihi"]
                 rows.append(r)
                 idx[k] = r
