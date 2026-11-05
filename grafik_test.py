@@ -1,16 +1,18 @@
-"""Grafik albümü testi: state/etiket_kayit.csv'deki son N etiketin grafiğini Telegram'a albüm olarak gönderir.
-Taramayı ve kayıtları etkilemez. Çalıştırma: python grafik_test.py [N]   (varsayılan 5)
+"""Grafik testi: state/etiket_kayit.csv'deki son N etiketin grafiğini Telegram'a BUTONLU olarak gönderir
+(Alırdım / Başka gün / Almazdım / Çizgi yanlış). Butonlar "Isaretleri isle" ile kayda işlenir.
+Taramayı etkilemez. Çalıştırma: python grafik_test.py [N]   (varsayılan 5)
 """
 from __future__ import annotations
 
 import csv
+import json
 import sys
 from pathlib import Path
 
 import pandas as pd
 
 from fd_core import Params, run
-from grafik import gonder_album
+from grafik import gonder_butonlu
 from scan import fetch_tv_all, telegram_send
 
 F = Path(__file__).resolve().parent / "state" / "etiket_kayit.csv"
@@ -35,8 +37,15 @@ def main():
             eks.append(f"{r['hisse']}(etiket bulunamadı)")
             continue
         items.append((r["hisse"], df, ev[0]))
-    k = gonder_album(items) if items else 0
-    print(f"{k} grafik gönderildi" + (f"; eşleşmeyen: {', '.join(eks)}" if eks else ""))
+    esle = gonder_butonlu(items) if items else {}
+    ep = F.parent / "tg_mesaj.json"
+    try:
+        eski = json.loads(ep.read_text())
+    except Exception:  # noqa: BLE001
+        eski = {}
+    eski.update(esle)
+    ep.write_text(json.dumps(dict(list(eski.items())[-500:]), indent=0))
+    print(f"{len(esle)} butonlu grafik gönderildi" + (f"; eşleşmeyen: {', '.join(eks)}" if eks else ""))
     if eks:
         telegram_send("Grafik testi, eşleşmeyen: " + ", ".join(eks))
 
