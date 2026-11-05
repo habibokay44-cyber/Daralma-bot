@@ -15,6 +15,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
+HATALI = {"BAYRK|2026-11-04", "MAKIM|2026-11-04"}
+
+
 def pct(k: int, n: int) -> str:
     if not n:
         return "-"
@@ -68,6 +71,8 @@ def _base_kor(bv, baslik, esik):
 def ileri(path: Path) -> str:
     """İleri test kaydı: buton cevapları (a/g/h) + eski elle işaretler (d/y/b) + v56 gölge ölçümü."""
     rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    # 05.11.2026: EMA kapısı hatası (fd_core girinti) yüzünden çıkan, Pine'da olmayan etiketler sayılmaz
+    rows = [r for r in rows if f"{r.get('hisse')}|{r.get('etiket_tarihi')}" not in HATALI]
     bv = [r for r in rows if r.get("mod") == "BaseV0"]  # base v0 kör testi ayrı sayılır
     bc = [r for r in rows if r.get("mod") == "Base"]    # base v0 canlı (taramadan, 06.11.2026'dan itibaren)
     bv1 = [r for r in rows if r.get("mod") == "BaseV1"]
