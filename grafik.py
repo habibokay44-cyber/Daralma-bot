@@ -92,7 +92,11 @@ BUTONLAR = [("✅ Alırdım", "a"), ("⏳ Başka gün", "g"), ("❌ Almazdım", 
 def klavye(sym: str, date) -> str:
     k = f"{sym}|{date:%Y%m%d}"
     return json.dumps({"inline_keyboard": [[{"text": t, "callback_data": f"i|{k}|{v}"} for t, v in BUTONLAR],
+                                           [{"text": t, "callback_data": f"i|{k}|{v}"} for t, v in STAGE_BUTON],
                                            [{"text": "📐 Çizgi yanlış", "callback_data": f"i|{k}|c"}]]}, ensure_ascii=False)
+
+
+STAGE_BUTON = [("Stage 1", "s1"), ("Stage 2", "s2"), ("Tepe (3)", "s3"), ("Düşüş (4)", "s4")]
 
 
 def gonder_butonlu(items: list[tuple[str, pd.DataFrame, dict]]) -> dict[str, str]:
@@ -105,7 +109,7 @@ def gonder_butonlu(items: list[tuple[str, pd.DataFrame, dict]]) -> dict[str, str
             print(f"[uyarı] {sym} grafiği çizilemedi: {ex}")
             continue
         cap = (f"{sym} · {e['date']:%d.%m.%Y} · {e['mode']}\n"
-               f"İşlem alır mıydın? 'Başka gün' dersen bu mesaja alış tarihini cevap olarak yaz (örn. 12.11).")
+               f"İşlem alır mıydın? Büyük resim hangi stage? 'Başka gün' dersen bu mesaja alış tarihini cevap olarak yaz (örn. 12.11).")
         res = _post("sendPhoto", {"caption": cap, "reply_markup": klavye(sym, e["date"])},
                     {"photo": ("0.png", png, "image/png")})
         mid = (res.get("result") or {}).get("message_id")
