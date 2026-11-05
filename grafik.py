@@ -1,5 +1,5 @@
-"""Etiket grafikleri: akşam taramasındaki her yeni daralma etiketinin küçük grafiğini çizer ve Telegram'a albüm
-olarak gönderir. Göstergeyi değiştirmez; sadece görsel özet. Hata olursa tarama etkilenmez (scan.py yakalar).
+"""Etiket grafikleri: akşam taramasındaki her yeni daralma etiketinin küçük grafiğini çizer ve Telegram'a gönderir
+(gonder_butonlu: her etiket ayrı fotoğraf + Alırdım / Başka gün / Almazdım / Çizgi yanlış butonları; gonder_album: albüm). Göstergeyi değiştirmez; sadece görsel özet. Hata olursa tarama etkilenmez (scan.py yakalar).
 
 Her grafikte: son ~60 mum, EMA10 (turkuaz), EMA21 (pembe), EMA50 (lacivert), direnç çizgisi (turuncu),
 stop (sıkışma dibi, kırmızı kesikli), etiket mumu (turuncu üçgen).
@@ -73,13 +73,46 @@ def cizim(sym: str, df: pd.DataFrame, e: dict) -> bytes:
     return buf.getvalue()
 
 
-def _post(method: str, data: dict, files: dict) -> None:
+def _post(method: str, data: dict, files: dict) -> dict:
     token, chat = os.environ.get("TELEGRAM_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not token or not chat:
         raise RuntimeError("TELEGRAM_TOKEN / TELEGRAM_CHAT_ID yok")
     r = requests.post(f"https://api.telegram.org/bot{token}/{method}", data={"chat_id": chat, **data}, files=files, timeout=90)
     if not r.ok:
         raise RuntimeError(f"Telegram {method} hatası: {r.status_code} {r.text[:200]}")
+    try:
+        return r.json()
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+BUTONLAR = [("✅ Alırdım", "a"), ("⏳ Başka gün", "g"), ("❌ Almazdım", "h")]
+
+
+def klavye(sym: str, date) -> str:
+    k = f"{sym}|{date:%Y%m%d}"
+    return json.dumps({"inline_keyboard": [[{"text": t, "callback_data": f"i|{k}|{v}"} for t, v in BUTONLAR],
+                                           [{"text": "📐 Çizgi yanlış", "callback_data": f"i|{k}|c"}]]}, ensure_ascii=False)
+
+
+def gonder_butonlu(items: list[tuple[str, pd.DataFrame, dict]]) -> dict[str, str]:
+    """Her etiket ayrı fotoğraf + cevap butonları. Döner: {mesaj_id: 'HISSE|YYYY-MM-DD'} (cevapları eşlemek için)."""
+    esle: dict[str, str] = {}
+    for sym, df, e in items[:MAX_RESIM]:
+        try:
+            png = cizim(sym, df, e)
+        except Exception as ex:  # noqa: BLE001
+            print(f"[uyarı] {sym} grafiği çizilemedi: {ex}")
+            continue
+        cap = (f"{sym} · {e['date']:%d.%m.%Y} · {e['mode']}\n"
+               f"İşlem alır mıydın? 'Başka gün' dersen bu mesaja alış tarihini cevap olarak yaz (örn. 12.11).")
+        res = _post("sendPhoto", {"caption": cap, "reply_markup": klavye(sym, e["date"])},
+                    {"photo": ("0.png", png, "image/png")})
+        mid = (res.get("result") or {}).get("message_id")
+        if mid is not None:
+            esle[str(mid)] = f"{sym}|{e['date']:%Y-%m-%d}"
+        time.sleep(1)
+    return esle
 
 
 def gonder_album(items: list[tuple[str, pd.DataFrame, dict]]) -> int:
