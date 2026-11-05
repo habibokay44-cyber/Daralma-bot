@@ -444,7 +444,7 @@ def main() -> None:
         except Exception as ex:  # noqa: BLE001
             print(f"[uyarı] etiket grafikleri gönderilemedi: {ex}", file=sys.stderr)
     import kayit
-    if yeni_kayit or girisler or any(not r.get("e1") for r in kayit.load()):
+    if yeni_kayit or girisler or any(not (r.get("e1") and r.get("e50")) for r in kayit.load()):
         rows = kayit.load()
         var = {kayit.key(r["hisse"], r["etiket_tarihi"]) for r in rows}
         for r_ in yeni_kayit:
@@ -454,7 +454,7 @@ def main() -> None:
         # bayrağı boş kalmış son 60 günün etiketleri için gölge bayraklarını sonradan hesapla
         sinir = (today - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
         for r_ in rows:
-            if r_.get("e1") or r_["etiket_tarihi"] < sinir or r_["hisse"] not in frames:
+            if (r_.get("e1") and r_.get("e50")) or r_["etiket_tarihi"] < sinir or r_["hisse"] not in frames:
                 continue
             try:
                 from kayit import bayraklar
