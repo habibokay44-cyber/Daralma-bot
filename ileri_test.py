@@ -112,6 +112,11 @@ def ileri(path: Path) -> str:
         n = ca + cg + ch
         out.append(f"\n🧱 Base canlı: {len(bc)} sinyal | ✅ {ca} ⏳ {cg} ❌ {ch} | bakılmamış {len(bc) - n}"
                    + (f" | alırdım {pct(ca, n)}" + ((f" -> {'✅ KABUL' if ca >= 0.5 * n else '❌ red'}") if n >= 30 else " (karar için 30 işaret)") if n else ""))
+        for ad_ in ("b_v2", "b_v3"):  # gölge: v2/v3 de sinyal verenlerde alırdım oranı daha mı yüksek (bilgi)
+            g1 = [i for r, i in zip(bc, ci) if r.get(ad_) == "1" and i in ("a", "g", "h")]
+            g0 = [i for r, i in zip(bc, ci) if r.get(ad_) == "0" and i in ("a", "g", "h")]
+            if g1 or g0:
+                out.append(f"   gölge {ad_[2:]}: verenlerde alırdım {pct(g1.count('a'), len(g1))} | vermeyenlerde {pct(g0.count('a'), len(g0))}")
     if bv:  # Base v0 kör testi (05.11.2026): kabul >= %50
         out += _base_kor(bv, "Base v0 kör test", 0.5)
     if bv1:  # Base v1 kör testi (05.11.2026): kabul >= %70
