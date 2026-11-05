@@ -98,12 +98,15 @@ def main() -> int:
             islenen.append(f"{sym} {AD[act]}")
             try:
                 api("answerCallbackQuery", callback_query_id=cq["id"], text=f"Kaydedildi: {AD[act]}")
+            except Exception:  # noqa: BLE001  (birkaç saniyeden eski basışlarda Telegram süresi dolar; zararsız)
+                pass
+            try:
                 cap = (msg.get("caption") or "").split("\n✔")[0]
                 durum = AD.get(r["isaret"], "") + (" · 📐 çizgi yanlış" if r["cizgi"] == "y" else "")
                 api("editMessageCaption", chat_id=msg["chat"]["id"], message_id=msg["message_id"],
                     caption=f"{cap}\n✔ {durum}", reply_markup=msg.get("reply_markup"))
-            except Exception as ex:  # noqa: BLE001  (eski butonlarda Telegram cevap süresi dolmuş olabilir)
-                print(f"[bilgi] {ex}")
+            except Exception as ex:  # noqa: BLE001
+                print(f"[bilgi] açıklama güncellenemedi: {ex}")
             continue
         m = u.get("message")
         if m and str((m.get("chat") or {}).get("id")) == chat and m.get("reply_to_message") and m.get("text"):
@@ -127,6 +130,10 @@ def main() -> int:
                 print(f"[bilgi] {ex}")
     if degisti:
         kayit.save(rows)
+        try:
+            api("sendMessage", chat_id=chat, text=f"✔ {len(islenen)} işaret kaydedildi: " + ", ".join(islenen)[:3500])
+        except Exception as ex:  # noqa: BLE001
+            print(f"[bilgi] özet mesajı gönderilemedi: {ex}")
     if off:
         OFFSET.parent.mkdir(parents=True, exist_ok=True)
         OFFSET.write_text(json.dumps({"offset": off}))
