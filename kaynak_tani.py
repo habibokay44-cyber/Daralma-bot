@@ -8,14 +8,19 @@ import sys
 
 import pandas as pd
 
+from dataclasses import replace
+
 from fd_core import Params, run
+
+# Pine v55'te olmayan / farklı olan Python ayarları (05.11.2026 karşılaştırması)
+PINE55 = dict(hDnBlock=False, yBodyMax=0.0, cancelClearsCooldown=False, slopeMinD=-0.6)
 from scan import fetch_tv_all, fetch_yahoo, telegram_send
 
 SON = 6
 
 
-def ozet(df, ad):
-    res = run(df, Params())
+def ozet(df, ad, P=None):
+    res = run(df, P or Params())
     n = len(df)
     ev = [e for e in res.events if e["t"] >= n - SON]
     s = [f"  {ad}: son mum {df.index[-1]:%d.%m} | olaylar: "
@@ -48,6 +53,10 @@ def main():
         for df, ad in ((y, "Yahoo"), (t, "TV   ")):
             if df is not None and len(df) >= 120:
                 out += ozet(df, ad)
+        if t is not None and len(t) >= 120:
+            for k, v in PINE55.items():   # her farkı tek tek: hangisi etiketi değiştiriyor
+                out += [x for x in ozet(t, f"TV + {k}={v}", replace(Params(), **{k: v}))[:1]]
+            out += ozet(t, "TV + Pine v55 ayarlarının hepsi", replace(Params(), **PINE55))[:1]
     txt = "\n".join(out)
     print(txt)
     if "--telegram" in sys.argv:
