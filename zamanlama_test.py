@@ -9,6 +9,9 @@ Veri: rastgele örneklemin (state/orneklem.csv) 40 etiketi için 05.11.2026'da v
   Z2: etiketten 4 işlem günü sonra, kutu sağlamsa
   Z3: etiketten en az 2 gün sonra ilk gün ki: kutu sağlam, kapanış kutunun üst yarısında (stop..direnç),
       o günün mum aralığı son 5 mumun ortalamasından küçük (en fazla 15 gün beklenir)
+EK (05.11.2026, sonuca bakmadan): GİRİŞ testi. Göstergenin kendi Giriş etiketi (etiketten sonraki ilk 'giris' olayı,
+  en fazla 15 gün) senin alış gününün ±1 iş günü içinde mi? Başarı: 15 'g'den en az 9'u.
+  Ayrıca her g için kutunun (stop..direnç) ilk bozulduğu gün ve yönü (yukarı = kapanış direnç üstünde, aşağı = stop altında).
 BAŞARI: 15 'g' etiketinden (gecikmesi 12 iş gününden uzun olan 3'ü hariç) en az 9'unda sinyal senin alış gününün
   ±1 iş günü içinde. Bilgi: 'a' etiketlerinde gecikme, 'h' etiketlerinde sinyal çıkma oranı.
 Çalıştırma: python zamanlama_test.py --telegram
@@ -73,6 +76,17 @@ def signals(df, e):
     return out
 
 
+def first_break(df, e):
+    h, c = df["High"].to_numpy(float), df["Close"].to_numpy(float)
+    t, stop = int(e["t"]), float(e["stop"])
+    for u in range(t + 1, min(t + MAXWAIT + 1, len(c))):
+        if c[u] > line_at(h, e, u):
+            return u - t, "↑"
+        if c[u] < stop:
+            return u - t, "↓"
+    return None, ""
+
+
 def main():
     syms = sorted({r[0] for r in ROWS})
     frames = fetch_tv_all(syms, n_bars=700, budget=10 * 60)
@@ -85,6 +99,7 @@ def main():
     P = Params()
     res = {z: dict(g_hit=0, g_n=0, a_lag=[], h_fire=0, h_n=0, gl=[]) for z in ("Z1", "Z2", "Z3")}
     lags, eks, uzun = [], [], []
+    gir = dict(g_hit=0, g_n=0, gl=[], a=[], h=0, hn=0)
     for sym, ld, ans, bd in ROWS:
         df = frames.get(sym)
         if df is None:
@@ -98,6 +113,10 @@ def main():
         e = min(ev, key=lambda x: abs((x["date"] - L).days))
         t = int(e["t"])
         sg = signals(df, e)
+        evs = run(df, P).events
+        gi = [x for x in evs if x["type"] == "giris" and t < x["t"] <= t + MAXWAIT]
+        gu = gi[0]["t"] if gi else None
+        bk, yon = first_break(df, e)
         if ans == "g":
             b = int(df.index.searchsorted(pd.Timestamp(bd)))
             lag = b - t
@@ -105,6 +124,16 @@ def main():
             if lag > 12:
                 uzun.append(f"{sym}({lag}g)")
                 continue
+        if ans == "g":
+            gir["g_n"] += 1
+            okg = gu is not None and abs(gu - b) <= 1
+            gir["g_hit"] += okg
+            gir["gl"].append(f"{sym}{'✓' if okg else '✗'}(giriş {'-' if gu is None else gu - t}/sen {lag}/kutu {'-' if bk is None else str(bk) + yon})")
+        elif ans == "a":
+            gir["a"].append(None if gu is None else gu - t)
+        else:
+            gir["hn"] += 1
+            gir["h"] += gu is not None
         for z, u in sg.items():
             R = res[z]
             if ans == "g":
@@ -127,6 +156,10 @@ def main():
         out.append(f"\n• {z}: g yakalanan {R['g_hit']}/{R['g_n']} {'✅' if ok else '❌'} | "
                    f"a etiketlerinde sinyal {len(al)}/{len(R['a_lag'])} (gecikme {al}) | h etiketlerinde sinyal {R['h_fire']}/{R['h_n']}")
         out.append("   " + " ".join(R["gl"]) + "   (sinyal gecikmesi/senin gecikmen)")
+    ga = [x for x in gir["a"] if x is not None]
+    out.append(f"\n• GİRİŞ etiketi: g yakalanan {gir['g_hit']}/{gir['g_n']} {'✅' if gir['g_hit'] >= 9 else '❌'} | "
+               f"a etiketlerinde giriş {len(ga)}/{len(gir['a'])} (gecikme {ga}) | h etiketlerinde giriş {gir['h']}/{gir['hn']}")
+    out.append("   " + " ".join(gir["gl"]) + "   (giriş gecikmesi / senin gecikmen / kutunun ilk bozulduğu gün ve yönü)")
     if eks:
         out.append("Eşleşmeyen: " + ", ".join(eks))
     out.append("Başarı: en az 9 g yakalanan. Not: aynı örneklem; geçen kural ileri testte doğrulanacak.")
