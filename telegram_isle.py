@@ -111,8 +111,16 @@ def main() -> int:
             k = kayit.key(sym, f"{d8[:4]}-{d8[4:6]}-{d8[6:]}")
             r = idx.get(k)
             if r is None:
-                api("answerCallbackQuery", callback_query_id=cq["id"], text="Bu etiket kayıtta yok")
-                continue
+                # Kayıtta yoksa (ör. kayıt commit'i başarısız olduysa) satırı grafik açıklamasından kur: "HISSE · tarih · mod"
+                parca = (msg.get("caption") or "").split("\n")[0].split(" · ")
+                r = {c: "" for c in kayit.COLS}
+                r.update(bildirim_tarihi=f"{pd.Timestamp.now(tz='Europe/Istanbul'):%Y-%m-%d}", hisse=sym,
+                         etiket_tarihi=f"{d8[:4]}-{d8[4:6]}-{d8[6:]}", mod=parca[2].strip() if len(parca) >= 3 else "")
+                if r["mod"] == "BaseV0":
+                    r["giris_tarihi"] = r["etiket_tarihi"]
+                rows.append(r)
+                idx[k] = r
+                print(f"[bilgi] {sym} {r['etiket_tarihi']} kayıtta yoktu, açıklamadan eklendi ({r['mod'] or 'mod?'})")
             if act == "c":
                 r["cizgi"] = "y"
             elif act in STAGE:
