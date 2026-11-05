@@ -26,8 +26,11 @@ def ozet(df, ad, P=None):
     s = [f"  {ad}: son mum {df.index[-1]:%d.%m} | olaylar: "
          + (", ".join(f"{e['date']:%d.%m} {e['type']}{'/' + e['mode'] if e.get('mode') else ''}"
                       + (' (iptal)' if e.get('cancelled') else '') for e in ev) or "yok")]
+    S = res.S
     for i in range(max(0, n - 3), n):
         s.append(f"    {df.index[i]:%d.%m} engel: {(res.diag.get(i) or '-')[:90]}")
+        s.append(f"          kapanış {df['Close'].iloc[i]:.4g} | EMA21 eğimi e {S.emaSlope[i]:.3f} (sınır -0.5) | "
+                 f"EMA21 uzaklık {S.emaDist[i]:.2f} | ADR %{S.adr[i]:.2f} | mum/ADR {S.tightVal[i]:.2f}")
     return s
 
 
