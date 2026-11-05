@@ -60,6 +60,11 @@ def ileri(path: Path) -> str:
         out.append("  E1 EMA düşüyor: " + _kural(ol, lambda r: r.get("e1") == "1", bad))
         out.append("  Y1 yükseliş <%15: " + _kural(ol, lambda r: r.get("y1") == "1", bad))
         out.append("  E1 ve Y1: " + _kural(ol, lambda r: r.get("e1") == "1" and r.get("y1") == "1", bad))
+        ol2 = [r for r in ol if (r.get("e50") or "") in ("0", "1")]
+        if ol2:
+            out.append(f"  ANA KURAL E50 (EMA50 altı) [{len(ol2)}]: " + _kural(ol2, lambda r: r.get("e50") == "1", bad))
+            out.append("  yan bilgi G1 (yükselişin alt yarısı): " + _kural(ol2, lambda r: r.get("g1") == "1", bad))
+            out.append("  yan bilgi W1 (haftalık EMA10 altı): " + _kural(ol2, lambda r: r.get("w1") == "1", bad))
     # zamanlama: senin alış günün göstergenin Giriş günüyle ±1 iş günü içinde mi
     zr = [r for r in rows if r.get("alis_tarihi") and r.get("giris_tarihi")]
     if zr:
