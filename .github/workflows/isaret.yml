@@ -37,7 +37,7 @@ jobs:
         run: |
           git config user.name "bist-tarayici"
           git config user.email "bist-tarayici@users.noreply.github.com"
-          git add state/etiket_kayit.csv state/tg_offset.json || true
+          git add state/etiket_kayit.csv state/tg_offset.json state/kacan.csv || true
           if ! git diff --cached --quiet; then
             git commit -m "isaretler islendi"
             git pull --rebase
