@@ -262,8 +262,8 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     if P.useEmaTr:
         S.emaOk = (S.emaSlope >= P.emaSlopeMin) & (S.emaDist >= -P.emaBelowMax)
         S.emaOk = S.emaOk | np.isnan(S.emaSlope)
-    if P.emaKurtarma:
-        S.emaOk = S.emaOk | ((S.emaDist >= 0) & (c >= S.ema50))
+        if P.emaKurtarma:
+            S.emaOk = S.emaOk | ((S.emaDist >= 0) & (c >= S.ema50))
     else:
         S.emaOk = np.ones(len(c), bool)
     S.jumpOk = ((S.jump <= P.jumpMax) | np.isnan(S.jump)) if P.useJump else np.ones(len(c), bool)
