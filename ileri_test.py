@@ -43,7 +43,8 @@ def ileri(path: Path) -> str:
     """İleri test kaydı: buton cevapları (a/g/h) + eski elle işaretler (d/y/b) + v56 gölge ölçümü."""
     rows = list(csv.DictReader(path.open(encoding="utf-8")))
     bv = [r for r in rows if r.get("mod") == "BaseV0"]  # base v0 kör testi ayrı sayılır
-    rows = [r for r in rows if r.get("mod") != "BaseV0"]
+    bc = [r for r in rows if r.get("mod") == "Base"]    # base v0 canlı (taramadan, 06.11.2026'dan itibaren)
+    rows = [r for r in rows if r.get("mod") not in ("BaseV0", "Base")]
     isr = [(r.get("isaret") or "").strip().lower() for r in rows]
     c = {k: isr.count(k) for k in ("a", "g", "h", "d", "y", "b")}
     bos = sum(1 for i in isr if not i)
@@ -76,6 +77,12 @@ def ileri(path: Path) -> str:
     pend = [f"{r['hisse']} {r['etiket_tarihi']}" for r, i in zip(rows, isr) if not i]
     if pend:
         out.append("İşaret bekleyen: " + ", ".join(pend[:25]) + (" …" if len(pend) > 25 else ""))
+    if bc:  # Base v0 canlı ileri test: kör testteki %62'yi doğrulamalı (önceden yazılı: >= 30 işarette alırdım >= %50)
+        ci = [(r.get("isaret") or "").strip().lower() for r in bc]
+        ca, cg, ch = ci.count("a"), ci.count("g"), ci.count("h")
+        n = ca + cg + ch
+        out.append(f"\n🧱 Base canlı: {len(bc)} sinyal | ✅ {ca} ⏳ {cg} ❌ {ch} | bakılmamış {len(bc) - n}"
+                   + (f" | alırdım {pct(ca, n)}" + ((f" -> {'✅ KABUL' if ca >= 0.5 * n else '❌ red'}") if n >= 30 else " (karar için 30 işaret)") if n else ""))
     if bv:  # Base v0 kör testi (05.11.2026): kabul = işaretlenenlerin >= %50'si 'alırdım'
         bi = [(r.get("isaret") or "").strip().lower() for r in bv]
         na_, ng, nh = bi.count("a"), bi.count("g"), bi.count("h")
@@ -87,9 +94,16 @@ def ileri(path: Path) -> str:
                for r, i in zip(bv, bi) if i not in ("a", "g", "h")]
         if bek:
             out.append("   işaret bekleyen: " + ", ".join(bek))
+        nt = [f"{r['hisse']} {r['etiket_tarihi'][2:]} ({i}): {r['not']}" for r, i in zip(bv, bi) if (r.get("not") or "").strip()]
+        if nt:
+            out.append("   notların:\n     " + "\n     ".join(nt))
         st = [r.get("stage") for r in bv if r.get("stage")]
         if st:
             out.append("   stage işaretlerin: " + ", ".join(f"S{k} {st.count(k)}" for k in "1234" if st.count(k)))
+            for k in "1234":
+                g = [i for r, i in zip(bv, bi) if r.get("stage") == k and i in ("a", "g", "h")]
+                if g:
+                    out.append(f"   Stage {k}: alırdım {pct(g.count('a'), len(g))}")
     return "\n".join(out)
 
 
