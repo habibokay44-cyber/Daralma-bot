@@ -121,16 +121,6 @@ def summarize(path: Path) -> str:
     pend = [f"{r['hisse']} {r['etiket_tarihi']}" for r, i in zip(rows, isr) if not i]
     if pend:
         out.append("İşaret bekleyen: " + ", ".join(pend[:25]) + (" …" if len(pend) > 25 else ""))
-    if bv:  # Base v0 kör testi (05.11.2026): kabul = işaretlenenlerin >= %50'si 'alırdım'
-        bi = [(r.get("isaret") or "").strip().lower() for r in bv]
-        na_, ng, nh = bi.count("a"), bi.count("g"), bi.count("h")
-        n = na_ + ng + nh
-        out.append(f"\n🧱 Base v0 kör test: {len(bv)} grafik | ✅ {na_} ⏳ {ng} ❌ {nh} | bakılmamış {len(bv) - n}"
-                   + (f" | alırdım {pct(na_, n)} -> {'✅ KABUL' if na_ >= 0.5 * n else '❌ red'}" if n else "")
-                   + (" (karar için en az 30 işaret)" if n < 30 else ""))
-        st = [r.get("stage") for r in bv if r.get("stage")]
-        if st:
-            out.append("   stage işaretlerin: " + ", ".join(f"S{k} {st.count(k)}" for k in "1234" if st.count(k)))
     return "\n".join(out)
 
 
