@@ -7,6 +7,13 @@ on:
         description: "Kayıttaki son kaç etiketin grafiği gönderilsin"
         default: "5"
 
+permissions:
+  contents: write
+
+concurrency:
+  group: bist-tarama
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -29,3 +36,14 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python grafik_test.py ${{ github.event.inputs.adet || '5' }}
+
+      - name: Mesaj eslemesini kaydet (grafige tarih cevabi yazabilmen icin)
+        run: |
+          git config user.name "bist-tarayici"
+          git config user.email "bist-tarayici@users.noreply.github.com"
+          git add state/tg_mesaj.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "grafik test eslemesi"
+            git pull --rebase
+            git push
+          fi
