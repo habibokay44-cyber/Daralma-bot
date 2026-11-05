@@ -22,17 +22,10 @@ jobs:
 
       - name: Biten base denemelerini sil
         run: |
-          # base_v0 / base_v2 / base_v3 .py KALIR (tarama bunları kullanıyor); sadece bitmiş test workflow'ları silinir
+          # base_v0 / base_v2 / base_v3 .py KALIR (tarama bunları kullanıyor).
+          # Workflow (.yml) dosyalarına GitHub otomatik dokunulmasına izin vermiyor; onlar elle silinir.
           PY="base_v1 base_kesif"
-          YML="base_v0 base_v1 base_v2 base_v3 base_kesif temizlik temizlik2 temizlik3"
           for f in $PY; do git rm -q --ignore-unmatch "$f.py"; done
-          for f in $YML; do git rm -q --ignore-unmatch ".github/workflows/$f.yml"; done
-
-      - name: Ileri test ozetinden biten orneklemleri cikar
-        run: |
-          sed -i 's#run: python ileri_test.py.*#run: python ileri_test.py --telegram#' .github/workflows/ileri.yml
-          grep -n "ileri_test" .github/workflows/ileri.yml
-          git add .github/workflows/ileri.yml
 
       - name: Kalan dosyalar calisiyor mu (calismiyorsa hicbir sey silinmez)
         run: |
