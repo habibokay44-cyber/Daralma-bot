@@ -31,7 +31,7 @@ from fd_core import Params, run, summarize
 
 HERE = Path(__file__).resolve().parent
 STATE_FILE = HERE / "state" / "sent.json"
-KAYIT_FILE = HERE / "state" / "etiket_kayit.csv"
+KAYIT_FILE = HERE / "state" / "etiket_kayit.csv"  # kör ileri test: her yeni etiket buraya yazılır, işareti sen doldurursun
 FALLBACK_FILE = HERE / "tickers_fallback.txt"
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"}
 TR_TZ = timezone(timedelta(hours=3))
@@ -379,7 +379,8 @@ def main() -> None:
     # ---- sinyaller ----
     state = load_state()
     m_giris, m_setup, m_iptal = [], [], []
-    kayit: list[list[str]] = []
+    yeni_kayit: list[dict] = []
+    girisler: list[tuple] = []
     grafikler: list = []
     for r in results:
         sym = r["sym"]
@@ -399,10 +400,19 @@ def main() -> None:
                 continue
             state[key] = dstr
             (m_giris if e["type"] == "giris" else m_setup).append(fmt_event(sym, e))
+            if e["type"] == "giris" and e.get("setup_date") is not None:
+                girisler.append((sym, f"{e['setup_date']:%Y-%m-%d}", dstr))
             if e["type"] == "setup":
                 grafikler.append((sym, e))
-                kayit.append([datetime.now(TR_TZ).strftime("%Y-%m-%d"), sym, dstr, e["mode"], f"{e['close']:.2f}", f"{e['line']:.2f}",
-                              "iptal" if e.get("cancelled") else "", "", "", ""])
+                row = dict(bildirim_tarihi=datetime.now(TR_TZ).strftime("%Y-%m-%d"), hisse=sym, etiket_tarihi=dstr,
+                           mod=e["mode"], kapanis=f"{e['close']:.2f}", direnc=f"{e['line']:.2f}",
+                           iptal="iptal" if e.get("cancelled") else "")
+                try:
+                    from kayit import bayraklar
+                    row.update(bayraklar(frames[sym], e))
+                except Exception as ex:  # noqa: BLE001
+                    print(f"[uyarı] {sym} v56 bayrakları hesaplanamadı: {ex}", file=sys.stderr)
+                yeni_kayit.append(row)
 
     last_dates = pd.Series([r["last_date"] for r in results])
     ref = last_dates.mode().iloc[0] if len(last_dates) else today
@@ -420,19 +430,45 @@ def main() -> None:
         telegram_send(head + ("\n\n" + "\n\n".join(body) if body else "\n\nYeni sinyal yok."))
     if grafikler:
         try:
-            from grafik import gonder_album
-            k = gonder_album([(s_, frames[s_], e_) for s_, e_ in grafikler if s_ in frames])
-            print(f"{k} etiket grafiği gönderildi")
+            from grafik import gonder_butonlu
+            esle = gonder_butonlu([(s_, frames[s_], e_) for s_, e_ in grafikler if s_ in frames])
+            ep = HERE / "state" / "tg_mesaj.json"
+            try:
+                eski = json.loads(ep.read_text())
+            except Exception:  # noqa: BLE001
+                eski = {}
+            eski.update(esle)
+            ep.parent.mkdir(parents=True, exist_ok=True)
+            ep.write_text(json.dumps(dict(list(eski.items())[-500:]), indent=0))
+            print(f"{len(esle)} butonlu etiket grafiği gönderildi")
         except Exception as ex:  # noqa: BLE001
             print(f"[uyarı] etiket grafikleri gönderilemedi: {ex}", file=sys.stderr)
-    if kayit:
-        yeni = not KAYIT_FILE.exists()
-        KAYIT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with KAYIT_FILE.open("a", newline="", encoding="utf-8") as fh:
-            w = csv.writer(fh)
-            if yeni:
-                w.writerow(["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "cizgi", "not"])
-            w.writerows(kayit)
+    import kayit
+    if yeni_kayit or girisler or any(not r.get("e1") for r in kayit.load()):
+        rows = kayit.load()
+        var = {kayit.key(r["hisse"], r["etiket_tarihi"]) for r in rows}
+        for r_ in yeni_kayit:
+            if kayit.key(r_["hisse"], r_["etiket_tarihi"]) not in var:
+                rows.append({**{c: "" for c in kayit.COLS}, **r_})
+        idx = {kayit.key(r["hisse"], r["etiket_tarihi"]): r for r in rows}
+        # bayrağı boş kalmış son 60 günün etiketleri için gölge bayraklarını sonradan hesapla
+        sinir = (today - pd.Timedelta(days=60)).strftime("%Y-%m-%d")
+        for r_ in rows:
+            if r_.get("e1") or r_["etiket_tarihi"] < sinir or r_["hisse"] not in frames:
+                continue
+            try:
+                from kayit import bayraklar
+                df_ = frames[r_["hisse"]]
+                ev_ = [x for x in run(df_, Params()).events if x["type"] == "setup" and f"{x['date']:%Y-%m-%d}" == r_["etiket_tarihi"]]
+                if ev_:
+                    r_.update(bayraklar(df_, ev_[0]))
+            except Exception as ex:  # noqa: BLE001
+                print(f"[uyarı] {r_['hisse']} bayrak sonradan hesaplanamadı: {ex}", file=sys.stderr)
+        for s_, sd_, gd_ in girisler:
+            r_ = idx.get(kayit.key(s_, sd_))
+            if r_ is not None and not r_.get("giris_tarihi"):
+                r_["giris_tarihi"] = gd_
+        kayit.save(rows)
     save_state(state)
 
 
