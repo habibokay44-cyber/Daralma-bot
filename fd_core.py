@@ -94,6 +94,7 @@ class Params:
     useEmaTr: bool = True           # trend: EMA21 düşüyorsa / fiyat EMA21'in çok altındaysa daralma sayılmaz
     emaSlopeMin: float = -0.5       # EMA21'in 10 mumluk eğimi (ADR katı) min.
     emaBelowMax: float = 0.5        # kapanış EMA21'in en fazla bu kadar (ADR katı) altında olabilir
+    emaKurtarma: bool = False
     ddMax: float = 5.0              # 40 mumluk tepeden düşüş (ADR katı) bundan büyükse daralma sayılmaz (0 = kapalı)
     shrinkMinD: float = 0.50       # Düşen modu: sıkışma oranı (r) bundan küçükse etiket yok (0 = kapalı)
     slopeMinG: float = -99.0        # Düşen/Yatay: yakın eğim (slopeVal) bundan küçükse etiket yok (-99 = kapalı)
@@ -261,6 +262,8 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     if P.useEmaTr:
         S.emaOk = (S.emaSlope >= P.emaSlopeMin) & (S.emaDist >= -P.emaBelowMax)
         S.emaOk = S.emaOk | np.isnan(S.emaSlope)
+    if P.emaKurtarma:
+        S.emaOk = S.emaOk | ((S.emaDist >= 0) & (c >= S.ema50))
     else:
         S.emaOk = np.ones(len(c), bool)
     S.jumpOk = ((S.jump <= P.jumpMax) | np.isnan(S.jump)) if P.useJump else np.ones(len(c), bool)
