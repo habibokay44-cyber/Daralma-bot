@@ -14,6 +14,7 @@ Sütunlar:
   e50      : 1 = kapanış günlük EMA50 altında            (ANA KURAL, 05.11.2026'da önceden seçildi)
   g1       : 1 = kapanış son 40 mumun dip-tepe aralığının alt yarısında
   w1       : 1 = haftalık kapanış haftalık EMA10 altında
+  stage    : senin büyük resim işaretin (butonla): 1 = Stage 1, 2 = Stage 2, 3 = tepe, 4 = düşüş
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ import pandas as pd
 
 F = Path(__file__).resolve().parent / "state" / "etiket_kayit.csv"
 COLS = ["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "cizgi", "not",
-        "e1", "y1", "v56", "giris_tarihi", "alis_tarihi", "e50", "g1", "w1"]
+        "e1", "y1", "v56", "giris_tarihi", "alis_tarihi", "e50", "g1", "w1", "stage"]
 
 
 def key(sym: str, date: str) -> str:
