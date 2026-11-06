@@ -1,5 +1,5 @@
 bildirim_tarihi,hisse,etiket_tarihi,mod,kapanis,direnc,iptal,isaret,cizgi,not,e1,y1,v56,giris_tarihi,alis_tarihi,e50,g1,w1,stage,direnc_sen,temas_sen,b_v2,b_v3
-2026-11-03,DGNMO,2026-11-03,Düşen,4.69,5.13,,h,y,çizgi zaten yanlış olduğu için daralma söz konusu değil,0,0,geçer,,,1,1,1,1,,,,
+2026-11-03,DGNMO,2026-11-03,Düşen,4.69,5.13,,h,y,çizgi zaten yanlış olduğu için daralma söz konusu değil,0,0,geçer,2026-11-06,,1,1,1,1,,,,
 2026-11-03,HUBVC,2026-11-03,Düşen,2.05,2.19,,a,y, daralma var ancak o kutuda ve o çizgiyle alaksız. olması gereken 15 ekim tepesinden yatay çekilmeli çünkü fiyat o bölgeye daha sonra 3 kere temas edip dönüyor yani dirneç oluşmuş. daha sonda 2-3 kasım mumlarında ema lar destek görevi görüp fiyatı daraltmış ve bugün kırılım gelmiş bugün işleme girerdim,0,0,geçer,,2026-11-03,1,0,1,1,,,,
 2026-11-03,VERUS,2026-11-03,Düşen,484.00,490.20,,a,d, çizgide daralma kutusada gayet doğru olduğu gibi işleme girerdim. (sadece dirence çok yakın diye tercih etmezdim riski kazanç değeri düşük diye ),1,0,geçer,,2026-11-03,1,1,1,1,,,,
 2026-11-04,OZYSR,2026-11-04,Düşen,11.77,11.91,,h,d, çizgi harika ancak mumlar çok volatil bir aşağı bir yukdarı daralmadan bahsetmek mümkün değil işlem almazdım  - V dönüşü kümelenme yok,0,0,geçer,2026-11-05,,0,0,1,1,,,,
@@ -46,3 +46,4 @@ bildirim_tarihi,hisse,etiket_tarihi,mod,kapanis,direnc,iptal,isaret,cizgi,not,e1
 2026-11-05,BAYRK,2026-11-04,Düşen,2.95,2.99,,,,,1,0,geçer,,,1,1,1,,,,,
 2026-11-05,DURDO,2026-11-05,Yatay,5.68,6.20,,,,,1,0,geçer,,,0,0,0,,,,,
 2026-11-05,MAKIM,2026-11-04,Düşen,12.19,13.25,,,,,1,0,geçer,,,1,1,1,,,,,
+2026-11-06,DGNMO,2026-11-06,Base,5.41,5.28,,,,,,,,2026-11-06,,,,,,,,1,0
