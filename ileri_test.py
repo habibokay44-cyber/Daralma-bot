@@ -79,6 +79,8 @@ def ileri(path: Path) -> str:
     bv2 = [r for r in rows if r.get("mod") == "BaseV2"]
     bv3 = [r for r in rows if r.get("mod") == "BaseV3"]
     bv0b = [r for r in rows if r.get("mod") == "BaseV0b"]
+    o4 = [r for r in rows if str(r.get("mod", "")).startswith("Örneklem4")]
+    rows = [r for r in rows if not str(r.get("mod", "")).startswith("Örneklem4")]
     rows = [r for r in rows if r.get("mod") not in ("BaseV0", "BaseV0b", "BaseV1", "BaseV2", "BaseV3", "Base")]
     isr = [(r.get("isaret") or "").strip().lower() for r in rows]
     c = {k: isr.count(k) for k in ("a", "g", "h", "d", "y", "b")}
@@ -131,6 +133,17 @@ def ileri(path: Path) -> str:
         out += _base_kor(bv2, "Base v2 kör test", 0.7)
     if bv3:  # Base v3 kör testi (05.11.2026): kabul >= %70
         out += _base_kor(bv3, "Base v3 kör test", 0.7)
+    if o4:  # Örneklem 4 (07.11.2026): kural tasarımı için (çizgi + kurulum filtresi)
+        oi = [(r.get("isaret") or "").strip().lower() for r in o4]
+        n = sum(i in ("a", "g", "h") for i in oi)
+        out.append(f"\n🧪 Örneklem 4: {len(o4)} etiket | ✅ {oi.count('a')} ⏳ {oi.count('g')} ❌ {oi.count('h')} | bakılmamış {len(o4) - n}"
+                   + (f" | iyi kurulum {pct(oi.count('a') + oi.count('g'), n)} · o gün alırdım {pct(oi.count('a'), n)}" if n else ""))
+        cz = sum(1 for r in o4 if r.get("cizgi") == "y")
+        dr = sum(1 for r in o4 if (r.get("direnc_sen") or ""))
+        out.append(f"   çizgi yanlış {cz} · direnç cevabı {dr}")
+        bek = [f"{r['hisse']} {r['etiket_tarihi'][2:]}" for r, i in zip(o4, oi) if i not in ("a", "g", "h")]
+        if bek:
+            out.append("   işaret bekleyen: " + ", ".join(bek))
     if bv0b:  # Base v0b kör testi (06.11.2026): v0b'nin fazladan sinyalleri, kabul >= %50
         out += _base_kor(bv0b, "Base v0b kör test (fazladan sinyaller)", 0.5)
     return "\n".join(out)
