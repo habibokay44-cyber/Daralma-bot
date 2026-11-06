@@ -14,12 +14,18 @@ EK (05.11.2026, sonuca bakmadan): GİRİŞ testi. Göstergenin kendi Giriş etik
   Ayrıca her g için kutunun (stop..direnç) ilk bozulduğu gün ve yönü (yukarı = kapanış direnç üstünde, aşağı = stop altında).
 BAŞARI: 15 'g' etiketinden (gecikmesi 12 iş gününden uzun olan 3'ü hariç) en az 9'unda sinyal senin alış gününün
   ±1 iş günü içinde. Bilgi: 'a' etiketlerinde gecikme, 'h' etiketlerinde sinyal çıkma oranı.
+EK 2 (06.11.2026, sonuca bakmadan): GİRİŞ YENİLEME. Daralma sürdükçe Giriş bekleme süresi (8 mum) yeniden başlar.
+  KABUL (ikisi birden): a) 'g' etiketlerinde alış gününü ±1 yakalayan Giriş sayısı mevcuttan FAZLA
+  b) 'h' (almazdım) etiketlerinde Giriş sayısı en fazla 2 artar. Ayrıca kalibrasyonda: etiketler aynı kalmalı,
+  geçmiş testte işlem başı R mevcuttan en fazla 0.05, PF en fazla 0.10 düşük olabilir.
 Çalıştırma: python zamanlama_test.py --telegram
 """
 from __future__ import annotations
 
 import sys
 import time
+
+from dataclasses import replace
 
 import numpy as np
 import pandas as pd
@@ -97,6 +103,8 @@ def main():
         time.sleep(3)
         frames.update(fetch_tv_all(miss, n_bars=700, budget=3 * 60))
     P = Params()
+    P2 = replace(Params(), girisYenile=True)   # 06.11.2026 deneme
+    gir2 = dict(g_hit=0, g_n=0, gl=[], a=[], h=0, hn=0)
     res = {z: dict(g_hit=0, g_n=0, a_lag=[], h_fire=0, h_n=0, gl=[]) for z in ("Z1", "Z2", "Z3")}
     lags, eks, uzun = [], [], []
     gir = dict(g_hit=0, g_n=0, gl=[], a=[], h=0, hn=0)
@@ -116,6 +124,8 @@ def main():
         evs = run(df, P).events
         gi = [x for x in evs if x["type"] == "giris" and t < x["t"] <= t + MAXWAIT]
         gu = gi[0]["t"] if gi else None
+        gi2 = [x for x in run(df, P2).events if x["type"] == "giris" and t < x["t"] <= t + MAXWAIT]
+        gu2 = gi2[0]["t"] if gi2 else None
         bk, yon = first_break(df, e)
         if ans == "g":
             b = int(df.index.searchsorted(pd.Timestamp(bd)))
@@ -134,6 +144,16 @@ def main():
         else:
             gir["hn"] += 1
             gir["h"] += gu is not None
+        if ans == "g":
+            gir2["g_n"] += 1
+            ok2 = gu2 is not None and abs(gu2 - b) <= 1
+            gir2["g_hit"] += ok2
+            gir2["gl"].append(f"{sym}{'✓' if ok2 else '✗'}({'-' if gu2 is None else gu2 - t}/{lag})")
+        elif ans == "a":
+            gir2["a"].append(None if gu2 is None else gu2 - t)
+        else:
+            gir2["hn"] += 1
+            gir2["h"] += gu2 is not None
         for z, u in sg.items():
             R = res[z]
             if ans == "g":
@@ -160,6 +180,12 @@ def main():
     out.append(f"\n• GİRİŞ etiketi: g yakalanan {gir['g_hit']}/{gir['g_n']} {'✅' if gir['g_hit'] >= 9 else '❌'} | "
                f"a etiketlerinde giriş {len(ga)}/{len(gir['a'])} (gecikme {ga}) | h etiketlerinde giriş {gir['h']}/{gir['hn']}")
     out.append("   " + " ".join(gir["gl"]) + "   (giriş gecikmesi / senin gecikmen / kutunun ilk bozulduğu gün ve yönü)")
+    ga2 = [x for x in gir2["a"] if x is not None]
+    kab = gir2["g_hit"] > gir["g_hit"] and gir2["h"] - gir["h"] <= 2
+    out.append(f"\n• GİRİŞ YENİLEMELİ (06.11 deneme): g yakalanan {gir2['g_hit']}/{gir2['g_n']} (mevcut {gir['g_hit']}) | "
+               f"a etiketlerinde giriş {len(ga2)}/{len(gir2['a'])} (gecikme {ga2}) | h etiketlerinde giriş {gir2['h']}/{gir2['hn']} "
+               f"(mevcut {gir['h']}) -> {'✅ KABUL' if kab else '❌ red'} (ölçüt: g daha fazla VE h en fazla +2)")
+    out.append("   " + " ".join(gir2["gl"]) + "   (giriş gecikmesi / senin gecikmen)")
     if eks:
         out.append("Eşleşmeyen: " + ", ".join(eks))
     out.append("Başarı: en az 9 g yakalanan. Not: aynı örneklem; geçen kural ileri testte doğrulanacak.")

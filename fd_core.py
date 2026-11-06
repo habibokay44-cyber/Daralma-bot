@@ -140,6 +140,7 @@ class Params:
     cancelBlock: int = 0
     cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
     trigWin: int = 8
+    girisYenile: bool = False       # 06.11.2026 deneme: daralma (setup) sürdükçe Giriş bekleme süresi (trigWin) yeniden başlar
     trigVol: float = 0.0
     useStop: bool = True
     stopBuf: float = 0.5
@@ -802,6 +803,10 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                 lblStop = float(S.stopLvl[t])
                 lblClose = float(close_t)
                 lblLive = True
+                armed = True
+            elif P.girisYenile and lblLive:
+                # aynı daralma sürüyor (yeni etiket yok): Giriş bekleme penceresi bugünden yeniden başlar
+                lblBar = t
                 armed = True
         if newSetup:
             curSetupEv = dict(

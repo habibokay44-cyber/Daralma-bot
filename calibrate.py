@@ -349,7 +349,7 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("EMA kurtarma", dict(emaKurtarma=True)),
+    ("Giriş yenileme (daralma sürdükçe Giriş bekleme süresi yenilenir)", dict(girisYenile=True)),
 ]
 
 
