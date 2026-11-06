@@ -388,6 +388,7 @@ def main() -> None:
     yeni_kayit: list[dict] = []
     girisler: list[tuple] = []
     grafikler: list = []
+    port_sig: list[dict] = []   # sanal portföy (portfoy.py) için yeni Giriş ve Base sinyalleri
     for r in results:
         sym = r["sym"]
         for e in r["events"]:
@@ -408,6 +409,8 @@ def main() -> None:
             (m_giris if e["type"] == "giris" else m_setup).append(fmt_event(sym, e))
             if e["type"] == "giris" and e.get("setup_date") is not None:
                 girisler.append((sym, f"{e['setup_date']:%Y-%m-%d}", dstr))
+            if e["type"] == "giris":
+                port_sig.append(dict(sym=sym, kaynak="Giriş", tarih=dstr, kapanis=e["close"], dip=e["sl"]))
             if e["type"] == "setup":
                 grafikler.append((sym, e))
                 row = dict(bildirim_tarihi=datetime.now(TR_TZ).strftime("%Y-%m-%d"), hisse=sym, etiket_tarihi=dstr,
@@ -440,6 +443,8 @@ def main() -> None:
                 m_base.append(f"🧱 {s_} · {e_['date']:%d.%m.%Y} · kapanış {e_['close']:.2f} · base üstü {e_['line']:.2f}"
                               f" · base dibi {e_['stop']:.2f} (-%{(1 - e_['stop'] / e_['close']) * 100:.1f}){yeni_arz}")
                 base_graf.append((s_, e_))
+                port_sig.append(dict(sym=s_, kaynak="Base", tarih=dstr, kapanis=e_["close"],
+                                     dip=float(df_["Low"].iloc[e_["t"]])))
                 golge = {}
                 for ad_, fn_ in (("b_v2", v2_sinyaller), ("b_v3", v3_sinyaller)):
                     try:
@@ -485,6 +490,11 @@ def main() -> None:
             print(f"{len(esle)} butonlu etiket grafiği gönderildi")
         except Exception as ex:  # noqa: BLE001
             print(f"[uyarı] etiket grafikleri gönderilemedi: {ex}", file=sys.stderr)
+    try:   # sanal portföy: açık işlemleri güncelle, bugünün sinyallerini al, özeti gönder
+        import portfoy
+        telegram_send(portfoy.gunluk(frames, port_sig, ref))
+    except Exception as ex:  # noqa: BLE001
+        print(f"[uyarı] sanal portföy güncellenemedi: {ex}", file=sys.stderr)
     import kayit
     if yeni_kayit or girisler or any(not (r.get("e1") and r.get("e50")) and r.get("mod") not in ("Base", "BaseV0") for r in kayit.load()):
         rows = kayit.load()
