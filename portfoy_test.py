@@ -4,7 +4,6 @@ Telegram'a 'TEST' başlığıyla gönderir. Asıl portföy kaydına (state/portf
 """
 from __future__ import annotations
 
-import random
 import sys
 import tempfile
 from pathlib import Path
@@ -21,8 +20,7 @@ def main():
     gun = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 10
     portfoy.F = Path(tempfile.mkdtemp()) / "portfoy_test.json"
     tick = get_tickers()
-    syms = sorted(set(random.Random(1).sample(tick, min(250, len(tick)))) | {"DGNMO", "OZYSR"})
-    frames = fetch_tv_all(syms, n_bars=400, budget=8 * 60, min_bars=30)
+    frames = fetch_tv_all(sorted(tick), n_bars=400, budget=25 * 60, min_bars=30)   # tüm BIST, tarama gibi
     ref = pd.Series([df.index[-1] for df in frames.values()]).mode().iloc[0]
     gunler = [d for d in next(iter(frames.values())).index if d <= ref][-gun:]
     sig = []
