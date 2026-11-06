@@ -50,7 +50,10 @@ def main():
     if len(args) >= 2:
         rows.append(dict(hisse=args[0].upper(), tarih=args[1], not_=""))
     elif F.exists():
-        rows = [dict(hisse=r["hisse"], tarih=r["tarih"], not_=r.get("not", "")) for r in csv.DictReader(F.open(encoding="utf-8"))]
+        tek = {}
+        for r in csv.DictReader(F.open(encoding="utf-8")):  # aynı hisse+tarih tekrarlarını birleştir
+            tek[(r["hisse"], r["tarih"])] = dict(hisse=r["hisse"], tarih=r["tarih"], not_=r.get("not", ""))
+        rows = list(tek.values())
     if not rows:
         print("Kaçan kurulum yok. Telegram'a 'kaçan HISSE GG.AA' yaz.")
         return
