@@ -36,7 +36,9 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 
 ## 5. Sinyal seçimi ve portföy · 3 ve 4'ten sonra · 🔄
 - Yer yokken hangi sinyal alınır (sıralama kuralı) — geriye dönük testte en büyük şans faktörü
-- İşlem sayısı / risk oranı (5, 10, 15 işlem varyantları test ediliyor)
+- ✅ İşlem sayısı / risk: geriye dönük testte 15 işlem %0.5 risk en dar aralığı verdi (en kötü 3,5 / medyan 4,7 milyon),
+  5 işlem %1 risk en geniş (1,7 / 4,6 / 13,6 milyon). KARAR (07.11.2026, kullanıcı): **5 işlem, %1 risk** — gerçekçi ve
+  kullanıcının işlem tarzı. Sonuç: 5 yerde şans faktörü büyük → sinyal kalitesi (1–4) ve sıralama kuralı daha da önemli.
 
 ## 6. Doğrulama · 2–3 ay · ⬜
 - Sanal portföy sabit kurallarla; başarı ölçütü önceden yazılır (örn. en az 50 işlem, PF > 1.5, en büyük düşüş sınırı)
