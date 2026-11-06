@@ -34,11 +34,12 @@ from fd_core import Params, run
 from scan import fetch_tv_all, telegram_send
 
 # (hisse, etiket günü, cevap, alış günü)
+# 06.11.2026: MAGEN alış günü 31.03 -> 23.03 (kullanıcı: Giriş günü de doğru ve sağlıklı; 31.03 ikinci daralma)
 ROWS = [
     ("TEHOL", "2026-05-05", "g", "2026-05-11"), ("ARFYE", "2026-05-08", "h", None), ("KRDMA", "2026-04-24", "g", "2026-04-29"),
     ("KRDMD", "2025-12-05", "g", "2025-12-11"), ("CEOEM", "2026-03-23", "h", None), ("CATES", "2026-04-22", "h", None),
     ("TCELL", "2026-08-18", "h", None), ("GMTAS", "2025-11-27", "g", "2026-01-07"), ("DZGYO", "2025-12-04", "g", "2025-12-05"),
-    ("OYYAT", "2025-12-02", "h", None), ("TRCAS", "2025-12-04", "h", None), ("MAGEN", "2026-03-18", "g", "2026-03-31"),
+    ("OYYAT", "2025-12-02", "h", None), ("TRCAS", "2025-12-04", "h", None), ("MAGEN", "2026-03-18", "g", "2026-03-23"),
     ("ADEL", "2026-08-21", "a", None), ("AKFGY", "2025-12-23", "h", None), ("TCKRC", "2026-02-25", "g", "2026-03-06"),
     ("SURGY", "2026-06-04", "g", "2026-06-05"), ("GLRMK", "2026-02-12", "h", None), ("ATLAS", "2026-01-22", "g", "2026-01-26"),
     ("DENGE", "2026-07-02", "h", None), ("DURDO", "2026-03-19", "h", None), ("AHSGY", "2026-04-27", "h", None),
