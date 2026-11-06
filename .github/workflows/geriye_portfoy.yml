@@ -9,6 +9,9 @@ on:
       sermaye:
         description: "Başlangıç sermayesi (TL)"
         default: "1000000"
+      ek:
+        description: "Ek seçenek (--dagilim = işlem sayısı/risk varyantları)"
+        default: ""
 
 jobs:
   test:
@@ -31,4 +34,4 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python geriye_portfoy.py ${{ github.event.inputs.baslangic }} ${{ github.event.inputs.sermaye }} --telegram
+        run: python geriye_portfoy.py ${{ github.event.inputs.baslangic }} ${{ github.event.inputs.sermaye }} ${{ github.event.inputs.ek }} --telegram

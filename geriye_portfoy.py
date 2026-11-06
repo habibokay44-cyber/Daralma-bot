@@ -23,7 +23,7 @@ from scan import fetch_tv_all, get_tickers, telegram_send
 RISK, MAXPOZ, KOM, ARM, TRAIL = 0.01, 5, 0.001, 1.0, 10
 
 
-def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minhacim=0.0, sira="kural"):
+def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minhacim=0.0, sira="kural", maxpoz=MAXPOZ, risk=RISK):
     """mod: 'kapanis' = sinyal günü kapanışından al / stop günü kapanışından sat;
             'acilis'  = ertesi işlem günü açılışından al / stop kapanışından sonraki gün açılıştan sat.
     kayma: alışta fiyat x(1+kayma), satışta x(1-kayma). minhacim: 20 günlük ort. TL hacmi bunun altındaysa alınmaz.
@@ -53,7 +53,7 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
         R = px - s["dip"]
         if R <= 0:
             return
-        lot = math.floor(min(ozs * RISK / R, ozs / MAXPOZ / px, nakit / (px * (1 + KOM))))
+        lot = math.floor(min(ozs * risk / R, ozs / maxpoz / px, nakit / (px * (1 + KOM))))
         if lot <= 0:
             atlanan += 1
             return
@@ -61,7 +61,7 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
         nakit -= maliyet
         hacim = arr[s["sym"]][4][s["i"]]
         acik.append(dict(sym=s["sym"], kaynak=s["kaynak"], tarih=d, i0=i, giris=px, R=R, stop=s["dip"], lot=lot,
-                         maliyet=maliyet, son=px, armed=False, cik=False, risk_tl=ozs * RISK,
+                         maliyet=maliyet, son=px, armed=False, cik=False, risk_tl=ozs * risk,
                          hacim_pay=(maliyet / hacim) if hacim and hacim > 0 else np.nan))
 
     for d in gunler:
@@ -81,7 +81,7 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
             if i is None:
                 yeni.append(s)          # hissede bugün işlem yok, bir sonraki mumu bekle
                 continue
-            if len(acik) < MAXPOZ and not any(a["sym"] == s["sym"] for a in acik):
+            if len(acik) < maxpoz and not any(a["sym"] == s["sym"] for a in acik):
                 ac(s, arr[s["sym"]][0][i], i, d, ozs)
             else:
                 atlanan += 1
@@ -117,7 +117,7 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
         for s in bugun:
             if any(a["sym"] == s["sym"] for a in acik) or any(b["sym"] == s["sym"] for b in bekleyen):
                 continue
-            if len(acik) + (len(bekleyen) if mod == "acilis" else 0) >= MAXPOZ:
+            if len(acik) + (len(bekleyen) if mod == "acilis" else 0) >= maxpoz:
                 atlanan += 1
                 continue
             if mod == "kapanis":
@@ -180,10 +180,32 @@ def main():
             print(f"[uyarı] {s}: {ex}")
     out = [f"💰 Geriye dönük portföy testi · {bas:%d.%m.%Y}'den bugüne · {len(frames)} hisse · başlangıç {sermaye:,.0f} TL",
            "Kurallar sanal portföyle aynı (%1 risk, en fazla 5 işlem, kapanışla Iz10, %0.1 komisyon)."]
+    xr = 0.0
     if xu is not None:
         xs = xu[xu.index >= bas]
+        xr = xs.iloc[-1] / xs.iloc[0] - 1
         out.append(f"Karşılaştırma: aynı dönemde XU100 al-tut %{(xs.iloc[-1] / xs.iloc[0] - 1) * 100:+.0f}")
     GB = ("Giriş", "Base")
+    if "--dagilim" in sys.argv:   # 07.11.2026: işlem sayısı / risk varyantları, her biri 20 rastgele seçimle
+        out.append("\nSenaryo D (açılıştan, %0.5 kayma, hacim >= 10 milyon TL), yer yokken rastgele seçim, 20 deneme:")
+        for mp, rk in ((5, 0.01), (10, 0.01), (10, 0.005), (15, 0.005)):
+            sonlar, dds, nis = [], [], []
+            for tohum in range(20):
+                kap, ac_, eg, at = simule(frames, sig, bas, sermaye, GB, mod="acilis", kayma=0.005, minhacim=1e7,
+                                          sira=tohum, maxpoz=mp, risk=rk)
+                sonlar.append(eg.iloc[-1])
+                dds.append((eg / eg.cummax() - 1).min())
+                nis.append(len(kap))
+            so = np.sort(sonlar)
+            out.append(f"• {mp} işlem, işlem başı risk %{rk * 100:.1f} (pozisyon en çok 1/{mp}): son değer en kötü {so[0]:,.0f} · "
+                       f"medyan {np.median(so):,.0f} · en iyi {so[-1]:,.0f} TL | en büyük düşüş ort %{np.mean(dds) * 100:.0f}, "
+                       f"en kötü %{min(dds) * 100:.0f} | ~{np.mean(nis):.0f} işlem | 20 denemenin {sum(x > sermaye for x in so)}'ü artıda, "
+                       f"{sum(x > sermaye * (1 + xr) for x in so)}'i XU100'ü geçti")
+        txt = "\n".join(out)
+        print(txt)
+        if "--telegram" in sys.argv:
+            telegram_send(txt[:3900])
+        return
     for ad, k, kw in (("A) Giriş + Base · kapanıştan (önceki test)", GB, {}),
                       ("B) Giriş + Base · ertesi gün açılıştan", GB, dict(mod="acilis")),
                       ("C) B + %0.5 kayma", GB, dict(mod="acilis", kayma=0.005)),
