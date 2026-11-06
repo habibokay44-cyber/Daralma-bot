@@ -9,8 +9,9 @@ KURALLAR (önceden sabitlendi):
   Risk        : işlem başı özsermayenin en fazla %1'i (stop olursa kayıp ≈ %1).
   Büyüklük    : en fazla özsermayenin 1/5'i (100.000'de 20.000 TL), en fazla 5 açık işlem, aynı hissede tek işlem.
                 Yer yoksa / nakit yetmezse sinyal 'atlandı' diye kaydedilir.
-  Çıkış (Iz10): fiyat girişin +1R üstünü görünce stop girişe çekilir; sonra son 10 mumun dibini izler (sadece yukarı).
-                Açılış stopun altındaysa açılıştan çıkılır. Hedef ve süre sınırı yok.
+  Çıkış (Iz10, KAPANIŞLA - 06.11.2026): fiyat girişin +1R üstünü görünce stop girişe çekilir; sonra son 10 mumun dibini
+                izler (sadece yukarı). Gün KAPANIŞI stopun altındaysa o kapanıştan çıkılır; gün içi stopa değmek çıkış değildir.
+                Hedef ve süre sınırı yok. (Kapanışla çıkış, kaybın bazen -1R'yi aşması demektir; mesajda R olarak görünür.)
 Durum dosyası: state/portfoy.json
 """
 from __future__ import annotations
@@ -44,8 +45,8 @@ def iz(df: pd.DataFrame, giris_tarihi: str, giris: float, stop0: float) -> dict:
     R = giris - stop0
     s, armed = stop0, False
     for k in range(t + 1, len(c)):
-        if o[k] <= s or l[k] <= s:
-            return dict(kapandi=True, tarih=f"{df.index[k]:%Y-%m-%d}", cikis=float(min(o[k], s)) if o[k] <= s else float(s))
+        if c[k] < s:   # KAPANIŞ stopun altındaysa o günün kapanışından çıkılır (gün içi değme çıkış değil)
+            return dict(kapandi=True, tarih=f"{df.index[k]:%Y-%m-%d}", cikis=float(c[k]))
         if not armed and h[k] >= giris + ARM * R:
             armed = True
             s = max(s, giris)

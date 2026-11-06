@@ -1,6 +1,6 @@
 """Akşam takibi: açık pozisyonların iz süren stop seviyesi + aday kırılım uyarısı + piyasa genişliği.
 
-Çıkış kuralı (testte seçilen 'Iz10'): stop = giriş mumunun dibi. Fiyat girişin +1R (R = giriş - stop) üstünü görünce
+Çıkış kuralı (testte seçilen 'Iz10', 06.11.2026'dan itibaren KAPANIŞLA: gün kapanışı stopun altındaysa çık): stop = giriş mumunun dibi. Fiyat girişin +1R (R = giriş - stop) üstünü görünce
 stop girişe çekilir; sonra son 10 mumun dibini izler, sadece yukarı. Hedef ve süre sınırı yok.
 Bu bir öneridir, emir vermez; stopu aracı kurumunda sen güncellersin.
 
@@ -65,8 +65,8 @@ def track(df: pd.DataFrame, date: str, price: float) -> dict:
     s_prev = s
     for k in range(t + 1, n):
         s_prev = s
-        if o[k] <= s or l[k] <= s:
-            x = o[k] if o[k] <= s else s
+        if c[k] < s:   # 06.11.2026: kapanış stopun altındaysa çıkış (gün içi değme çıkış değil)
+            x = c[k]
             return dict(closed=True, k=k, date=df.index[k], exit=float(x), R=(x - price) / R, ago=n - 1 - k)
         if not armed and h[k] >= price + ARM * R:
             armed = True
