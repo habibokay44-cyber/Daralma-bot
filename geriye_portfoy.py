@@ -4,11 +4,13 @@ alış sinyal günü kapanışı, stop sinyal mumunun dibi, Iz10 çıkışı KAP
 Aynı gün 5'ten fazla sinyal varsa önce Giriş, sonra Base, kendi içinde stop mesafesi küçük olan önce.
 UYARILAR: (1) gösterge ayarları bu geçmiş üzerinde seçildi (örnek içi, iyimser), (2) bugün borsada olan hisseler (kotasyondan
 çıkanlar yok), (3) kapanıştan alım varsayımı ve kayma (slippage) yok, (4) sığ hisselerde bu büyüklükte işlem gerçekçi olmayabilir.
+R = işlemin TL kâr/zararı / girişteki özsermayenin %1'i (planlanan risk birimi).
 Çalıştırma: python geriye_portfoy.py [başlangıç YYYY-AA-GG] [sermaye] --telegram
 """
 from __future__ import annotations
 
 import math
+import random
 import sys
 
 import numpy as np
@@ -21,58 +23,107 @@ from scan import fetch_tv_all, get_tickers, telegram_send
 RISK, MAXPOZ, KOM, ARM, TRAIL = 0.01, 5, 0.001, 1.0, 10
 
 
-def simule(frames, sig, bas, sermaye, kaynaklar):
+def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minhacim=0.0, sira="kural"):
+    """mod: 'kapanis' = sinyal günü kapanışından al / stop günü kapanışından sat;
+            'acilis'  = ertesi işlem günü açılışından al / stop kapanışından sonraki gün açılıştan sat.
+    kayma: alışta fiyat x(1+kayma), satışta x(1-kayma). minhacim: 20 günlük ort. TL hacmi bunun altındaysa alınmaz.
+    sira: 'kural' (önce Giriş, sonra kısa stop) ya da tamsayı tohum (yer yoksa rastgele seçim)."""
+    rnd = None if sira == "kural" else random.Random(sira)
     sig = [s for s in sig if s["kaynak"] in kaynaklar and s["tarih"] >= bas]
     gunler = sorted({d for df in frames.values() for d in df.index if d >= bas})
     by_day = {}
     for s in sig:
         by_day.setdefault(s["tarih"], []).append(s)
     nakit, acik, kapali, egri, atlanan = sermaye, [], [], [], 0
+    bekleyen = []      # açılışta alınacaklar (mod='acilis')
     idx = {k: {d: i for i, d in enumerate(df.index)} for k, df in frames.items()}
-    arr = {k: (df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float),
+    arr = {k: (df["Open"].to_numpy(float), df["High"].to_numpy(float), df["Low"].to_numpy(float), df["Close"].to_numpy(float),
                (df["Close"] * df["Volume"]).rolling(20).mean().to_numpy()) for k, df in frames.items()}
+
+    def kapat(a, px, d):
+        nonlocal nakit
+        px = px * (1 - kayma)
+        net = a["lot"] * px * (1 - KOM)
+        nakit += net
+        kapali.append(dict(a, cikis=px, cikis_tarihi=d, kz=net - a["maliyet"], R=(net - a["maliyet"]) / a["risk_tl"]))
+
+    def ac(s, px, i, d, ozs):
+        nonlocal nakit, atlanan
+        px = px * (1 + kayma)
+        R = px - s["dip"]
+        if R <= 0:
+            return
+        lot = math.floor(min(ozs * RISK / R, ozs / MAXPOZ / px, nakit / (px * (1 + KOM))))
+        if lot <= 0:
+            atlanan += 1
+            return
+        maliyet = lot * px * (1 + KOM)
+        nakit -= maliyet
+        hacim = arr[s["sym"]][4][s["i"]]
+        acik.append(dict(sym=s["sym"], kaynak=s["kaynak"], tarih=d, i0=i, giris=px, R=R, stop=s["dip"], lot=lot,
+                         maliyet=maliyet, son=px, armed=False, cik=False, risk_tl=ozs * RISK,
+                         hacim_pay=(maliyet / hacim) if hacim and hacim > 0 else np.nan))
+
     for d in gunler:
+        ozs = nakit + sum(a["lot"] * a["son"] for a in acik)
+        # 1) açılış işlemleri: dünkü stop sinyallerinin satışı, dünkü sinyallerin alışı
         kalan = []
         for a in acik:
             i = idx[a["sym"]].get(d)
-            if i is None or i <= a["i0"]:
+            if a["cik"] and i is not None:
+                kapat(a, arr[a["sym"]][0][i], d)
+            else:
+                kalan.append(a)
+        acik = kalan
+        yeni = []
+        for s in bekleyen:
+            i = idx[s["sym"]].get(d)
+            if i is None:
+                yeni.append(s)          # hissede bugün işlem yok, bir sonraki mumu bekle
+                continue
+            if len(acik) < MAXPOZ and not any(a["sym"] == s["sym"] for a in acik):
+                ac(s, arr[s["sym"]][0][i], i, d, ozs)
+            else:
+                atlanan += 1
+        bekleyen = yeni
+        # 2) gün sonu: stop kontrolü (kapanışla) ve iz süren stop
+        kalan = []
+        for a in acik:
+            i = idx[a["sym"]].get(d)
+            if i is None or i < a["i0"] or (mod == "kapanis" and i == a["i0"]):
                 kalan.append(a)
                 continue
-            h, l, c, _ = arr[a["sym"]]
+            o, h, l, c, _ = arr[a["sym"]]
             a["son"] = c[i]
             if c[i] < a["stop"]:
-                net = a["lot"] * c[i] * (1 - KOM)
-                nakit += net
-                kapali.append(dict(a, cikis=c[i], cikis_tarihi=d, kz=net - a["maliyet"], R=(c[i] - a["giris"]) / a["R"]))
-                continue
+                if mod == "kapanis":
+                    kapat(a, c[i], d)
+                    continue
+                a["cik"] = True
             if not a["armed"] and h[i] >= a["giris"] + ARM * a["R"]:
                 a["armed"] = True
                 a["stop"] = max(a["stop"], a["giris"])
-            if a["armed"]:
+            if a["armed"] and i > a["i0"]:
                 a["stop"] = max(a["stop"], float(l[max(a["i0"] + 1, i - TRAIL + 1):i + 1].min()))
             kalan.append(a)
         acik = kalan
+        # 3) bugünün sinyalleri
         ozs = nakit + sum(a["lot"] * a["son"] for a in acik)
-        bugun = sorted(by_day.get(d, []), key=lambda s: (s["kaynak"] != "Giriş", (s["kapanis"] - s["dip"]) / s["kapanis"]))
+        bugun = [s for s in by_day.get(d, []) if not (minhacim and not (arr[s["sym"]][4][s["i"]] >= minhacim))]
+        if rnd is None:
+            bugun.sort(key=lambda s: (s["kaynak"] != "Giriş", (s["kapanis"] - s["dip"]) / s["kapanis"]))
+        else:
+            rnd.shuffle(bugun)
         for s in bugun:
-            if any(a["sym"] == s["sym"] for a in acik):
+            if any(a["sym"] == s["sym"] for a in acik) or any(b["sym"] == s["sym"] for b in bekleyen):
                 continue
-            if len(acik) >= MAXPOZ:
+            if len(acik) + (len(bekleyen) if mod == "acilis" else 0) >= MAXPOZ:
                 atlanan += 1
                 continue
-            R = s["kapanis"] - s["dip"]
-            if R <= 0:
-                continue
-            lot = math.floor(min(ozs * RISK / R, ozs / MAXPOZ / s["kapanis"], nakit / (s["kapanis"] * (1 + KOM))))
-            if lot <= 0:
-                atlanan += 1
-                continue
-            maliyet = lot * s["kapanis"] * (1 + KOM)
-            nakit -= maliyet
-            hacim = arr[s["sym"]][3][s["i"]]
-            acik.append(dict(sym=s["sym"], kaynak=s["kaynak"], tarih=d, i0=s["i"], giris=s["kapanis"], R=R, stop=s["dip"],
-                             lot=lot, maliyet=maliyet, son=s["kapanis"], armed=False,
-                             hacim_pay=(maliyet / hacim) if hacim and hacim > 0 else np.nan))
+            if mod == "kapanis":
+                ac(s, s["kapanis"], s["i"], d, ozs)
+            else:
+                bekleyen.append(s)
         egri.append((d, nakit + sum(a["lot"] * a["son"] for a in acik)))
     return kapali, acik, pd.Series(dict(egri)), atlanan
 
@@ -132,9 +183,24 @@ def main():
     if xu is not None:
         xs = xu[xu.index >= bas]
         out.append(f"Karşılaştırma: aynı dönemde XU100 al-tut %{(xs.iloc[-1] / xs.iloc[0] - 1) * 100:+.0f}")
-    for ad, k in (("Giriş + Base", ("Giriş", "Base")), ("Sadece Giriş", ("Giriş",)), ("Sadece Base", ("Base",))):
-        kap, ac, eg, at = simule(frames, sig, bas, sermaye, k)
-        out += rapor(ad, kap, ac, eg, at, sermaye, xu)
+    GB = ("Giriş", "Base")
+    for ad, k, kw in (("A) Giriş + Base · kapanıştan (önceki test)", GB, {}),
+                      ("B) Giriş + Base · ertesi gün açılıştan", GB, dict(mod="acilis")),
+                      ("C) B + %0.5 kayma", GB, dict(mod="acilis", kayma=0.005)),
+                      ("D) C + 20 günlük ort. hacim >= 10 milyon TL", GB, dict(mod="acilis", kayma=0.005, minhacim=1e7)),
+                      ("D) sadece Giriş", ("Giriş",), dict(mod="acilis", kayma=0.005, minhacim=1e7)),
+                      ("D) sadece Base", ("Base",), dict(mod="acilis", kayma=0.005, minhacim=1e7))):
+        kap, ac_, eg, at = simule(frames, sig, bas, sermaye, k, **kw)
+        out += rapor(ad, kap, ac_, eg, at, sermaye, xu)
+    sonlar, dds = [], []
+    for tohum in range(20):
+        kap, ac_, eg, at = simule(frames, sig, bas, sermaye, GB, mod="acilis", kayma=0.005, minhacim=1e7, sira=tohum)
+        sonlar.append(eg.iloc[-1])
+        dds.append((eg / eg.cummax() - 1).min())
+    sonlar = np.sort(sonlar)
+    out.append(f"\n🎲 D senaryosu, yer yokken RASTGELE seçimle 20 deneme: son değer en kötü {sonlar[0]:,.0f} · "
+               f"medyan {np.median(sonlar):,.0f} · en iyi {sonlar[-1]:,.0f} TL | en büyük düşüş ortalaması %{np.mean(dds) * 100:.0f}"
+               f" (en kötü %{min(dds) * 100:.0f})")
     out.append("\n⚠️ İyimser tarafta: gösterge ayarları bu geçmişte seçildi; kotasyondan çıkan hisseler yok; kayma ve "
                "kapanış seansı riski yok. Gerçek beklenti bunun altında olmalı; doğrulama sanal portföyde.")
     txt = "\n".join(out)
