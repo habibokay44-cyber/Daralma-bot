@@ -349,8 +349,8 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("GY1 Giriş: kapanış son 10 mumun GÖVDE tepesini de geçmeli", dict(girisYatayN=10)),
-    ("GY2 Giriş: kapanış son 10 mumun FİTİL tepesini de geçmeli", dict(girisYatayN=10, girisYatayFitil=True)),
+    ("TM1 Giriş: en çok temas eden çizgi (150 mum) kırılmalı", dict(girisTemasN=150)),
+    ("TM2 Giriş: en çok temas eden çizgi (250 mum) kırılmalı", dict(girisTemasN=250)),
 ]
 
 

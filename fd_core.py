@@ -143,6 +143,9 @@ class Params:
     girisYenile: bool = False       # 06.11.2026 deneme: daralma (setup) sürdükçe Giriş bekleme süresi (trigWin) yeniden başlar
     girisYatayN: int = 0            # 07.11.2026 deneme: Giriş için kapanış son N mumun yatay tepesini de geçmeli (0 = kapalı)
     girisYatayFitil: bool = False   # yatay tepe: False = gövde tepeleri, True = fitil tepeleri
+    girisTemasN: int = 0            # 07.11.2026 deneme: son N mumda EN ÇOK TEMAS eden çizgi (eğim serbest, gövde üstünde kapanış yok);
+                                    # Giriş için kapanış o çizginin de üstünde olmalı (0 = kapalı)
+    girisTemasMin: int = 3          # bu çizginin sayılması için en az temas
     trigVol: float = 0.0
     useStop: bool = True
     stopBuf: float = 0.5
@@ -324,6 +327,43 @@ def prepare(df: pd.DataFrame, P: Params) -> SimpleNamespace:
     S.smcPh = _pivot_high(h, P.smcL, P.smcR)
     return S
 
+
+
+def _temas_cizgi(S, t: int, P) -> tuple[float, int, int, int]:
+    """t mumundan ÖNCEKİ mumlarla (geleceği görmeden): son girisTemasN mumda tepe pivotlarından (±2 mum) geçen
+    çizgilerden, başlangıcından t-1'e kadar hiçbir GÖVDE üstünde kapanmayan (fitil geçebilir, pay 0.1 ADR) ve EN ÇOK
+    temas eden çizgi (temas: pivot tepesi çizgiye 0.25 ADR yakın ya da fitil üstünde, gövde altında).
+    Eşitlikte daha uzun (eski başlangıçlı) çizgi. Döner: (çizginin t'deki değeri, temas, başlangıç mumu, ikinci nokta)
+    Uygun çizgi yoksa (-inf, 0, -1, -1) -> şart yok sayılır."""
+    cache = S.__dict__.setdefault("_tc", {})
+    key = (t, P.girisTemasN, P.girisTemasMin)
+    if key in cache:
+        return cache[key]
+    h, bt = S.h, S.bodyTop
+    a0 = max(2, t - P.girisTemasN)
+    hi = t - 3                                   # pivot sağında 2 mum olmalı (t-1'e kadar)
+    piv = [i for i in range(a0, hi + 1) if h[i] >= h[i - 2:i + 3].max()]
+    adrp = S.adr[t - 1] / 100 * S.c[t - 1] if np.isfinite(S.adr[t - 1]) else 0.0
+    best = (-np.inf, 0, -1, -1)
+    if len(piv) >= 2 and adrp > 0:
+        P_ = np.array(piv)
+        hp = h[P_]
+        for ai, i in enumerate(piv):
+            ks = np.arange(i, t)
+            for j in piv[ai + 1:]:
+                sl = (h[j] - h[i]) / (j - i)
+                line = h[i] + sl * (ks - i)
+                if np.any(bt[i:t] > line + 0.1 * adrp):
+                    continue
+                m = P_ >= i
+                lp = h[i] + sl * (P_[m] - i)
+                tc = int(np.sum(hp[m] >= lp - 0.25 * adrp))
+                if tc > best[1] or (tc == best[1] and best[2] >= 0 and i < best[2]):
+                    best = (float(h[i] + sl * (t - i)), tc, i, j)
+    if best[1] < P.girisTemasMin:
+        best = (-np.inf, best[1], -1, -1)
+    cache[key] = best
+    return best
 
 
 # ---------------------------------------------------------------- ana motor
@@ -786,7 +826,8 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                    and ((not P.useAboveLbl) or close_t > nz(lblClose, 0.0))
                    and (P.trigVol == 0 or v[t] > S.volAvg[t] * P.trigVol)
                    and (P.girisYatayN <= 0 or t < P.girisYatayN
-                        or close_t > float(((h if P.girisYatayFitil else S.bodyTop)[t - P.girisYatayN:t]).max())))
+                        or close_t > float(((h if P.girisYatayFitil else S.bodyTop)[t - P.girisYatayN:t]).max()))
+                   and (P.girisTemasN <= 0 or close_t > _temas_cizgi(S, t, P)[0]))
         if trigger:
             armed = False
             lastBreakBar = t
