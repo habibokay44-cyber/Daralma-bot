@@ -27,7 +27,8 @@ HERE = Path(__file__).resolve().parent
 OFFSET = HERE / "state" / "tg_offset.json"
 ESLE = HERE / "state" / "tg_mesaj.json"
 KACAN = HERE / "state" / "kacan.csv"
-DIRENC_RE = re.compile(r"^\s*diren[çc]\s*:?\s*(yok|\d+(?:[.,]\d+)?)\s*(?:(\d+)\s*(?:temas)?)?\s*(.*)$", re.I)
+DIRENC_RE = re.compile(r"^\s*diren[çc]\s*:?\s*(yok|\d+(?:[.,]\d+)?)\s*(?:(\d{1,2})(?![\d.,/-])\s*(?:temas)?)?\s*(.*)$", re.I)
+# 07.11.2026: temas sayısı sadece arkasından tarih gelmiyorsa okunur ("direnç 29,74 10.11.23 ..." -> temas yok, not tam)
 KACAN_RE = re.compile(r"^\s*ka[çc]an\s+([A-Za-zÇĞİÖŞÜçğıöşü0-9]+)\s+(\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?)\s*(.*)$", re.I)
 
 
@@ -187,7 +188,11 @@ def main() -> int:
                 except Exception as ex:  # noqa: BLE001
                     print(f"[bilgi] {ex}")
                 continue
-            d, rest = tarih_bul(m["text"], r["etiket_tarihi"])
+            # 07.11.2026: alış tarihi sadece cevap TARİHLE BAŞLIYORSA alınır (nottaki tarihler alış sayılmaz)
+            if re.match(r"^\s*\d{1,2}[./-]\d{1,2}", m["text"]):
+                d, rest = tarih_bul(m["text"], r["etiket_tarihi"])
+            else:
+                d, rest = None, m["text"].strip()
             if d:
                 r["alis_tarihi"] = d
                 if r["isaret"] in ("", "a"):
