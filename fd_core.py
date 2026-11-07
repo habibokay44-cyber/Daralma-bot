@@ -141,6 +141,8 @@ class Params:
     cancelClearsCooldown: bool = True   # iptal olunca setup bekleme süresi (cooldown) sıfırlansın, sadece cancelBlock geçerli olsun
     trigWin: int = 8
     girisYenile: bool = False       # 06.11.2026 deneme: daralma (setup) sürdükçe Giriş bekleme süresi (trigWin) yeniden başlar
+    girisYatayN: int = 0            # 07.11.2026 deneme: Giriş için kapanış son N mumun yatay tepesini de geçmeli (0 = kapalı)
+    girisYatayFitil: bool = False   # yatay tepe: False = gövde tepeleri, True = fitil tepeleri
     trigVol: float = 0.0
     useStop: bool = True
     stopBuf: float = 0.5
@@ -782,7 +784,9 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
         inWin = armed and lblBar is not None and t > lblBar and t - lblBar <= P.trigWin
         trigger = (inWin and (not invalid) and close_t > projNow and bool(S.entryTrendOk[t])
                    and ((not P.useAboveLbl) or close_t > nz(lblClose, 0.0))
-                   and (P.trigVol == 0 or v[t] > S.volAvg[t] * P.trigVol))
+                   and (P.trigVol == 0 or v[t] > S.volAvg[t] * P.trigVol)
+                   and (P.girisYatayN <= 0 or t < P.girisYatayN
+                        or close_t > float(((h if P.girisYatayFitil else S.bodyTop)[t - P.girisYatayN:t]).max())))
         if trigger:
             armed = False
             lastBreakBar = t
