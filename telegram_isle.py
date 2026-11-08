@@ -98,7 +98,13 @@ def main() -> int:
     kw = {"timeout": 0, "allowed_updates": ["callback_query", "message"]}
     if off:
         kw["offset"] = off
-    ups = api("getUpdates", **kw) or []
+    ups = []
+    for _ in range(20):  # Telegram tek seferde en fazla 100 güncelleme verir: hepsi gelene kadar devam
+        part = api("getUpdates", **kw) or []
+        ups += part
+        if len(part) < 100:
+            break
+        kw["offset"] = part[-1]["update_id"] + 1
     rows = kayit.load()
     idx = {kayit.key(r["hisse"], r["etiket_tarihi"]): r for r in rows}
     degisti, islenen = False, []
