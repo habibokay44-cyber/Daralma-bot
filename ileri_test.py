@@ -49,7 +49,7 @@ def _base_kor(bv, baslik, esik):
     na_, ng, nh = bi.count("a"), bi.count("g"), bi.count("h")
     n = na_ + ng + nh
     out.append(f"\n🧱 {baslik}: {len(bv)} grafik | ✅ {na_} ⏳ {ng} ❌ {nh} | bakılmamış {len(bv) - n}"
-               + (f" | alırdım {pct(na_, n)} -> {'✅ KABUL' if na_ >= esik * n else '❌ red'} (eşik %{esik * 100:.0f})" if n else "")
+               + (f" | alırdım {pct(na_, n)}" + (f" -> {'✅ KABUL' if na_ >= esik * n else '❌ red'} (eşik %{esik * 100:.0f})" if esik > 0 else "") if n else "")
                + (" (karar için en az 30 işaret)" if n < 30 else ""))
     bek = [f"{r['hisse']} {r['etiket_tarihi'][8:10]}.{r['etiket_tarihi'][5:7]}.{r['etiket_tarihi'][2:4]}"
            for r, i in zip(bv, bi) if i not in ("a", "g", "h")]
@@ -79,9 +79,10 @@ def ileri(path: Path) -> str:
     bv2 = [r for r in rows if r.get("mod") == "BaseV2"]
     bv3 = [r for r in rows if r.get("mod") == "BaseV3"]
     bv0b = [r for r in rows if r.get("mod") == "BaseV0b"]
+    bt2 = [r for r in rows if r.get("mod") == "BaseT2"]
     o4 = [r for r in rows if str(r.get("mod", "")).startswith("Örneklem4")]
     rows = [r for r in rows if not str(r.get("mod", "")).startswith("Örneklem4")]
-    rows = [r for r in rows if r.get("mod") not in ("BaseV0", "BaseV0b", "BaseV1", "BaseV2", "BaseV3", "Base")]
+    rows = [r for r in rows if r.get("mod") not in ("BaseV0", "BaseV0b", "BaseV1", "BaseV2", "BaseV3", "Base", "BaseT2")]
     isr = [(r.get("isaret") or "").strip().lower() for r in rows]
     c = {k: isr.count(k) for k in ("a", "g", "h", "d", "y", "b")}
     bos = sum(1 for i in isr if not i)
@@ -146,6 +147,20 @@ def ileri(path: Path) -> str:
             out.append("   işaret bekleyen: " + ", ".join(bek))
     if bv0b:  # Base v0b kör testi (06.11.2026): v0b'nin fazladan sinyalleri, kabul >= %50
         out += _base_kor(bv0b, "Base v0b kör test (fazladan sinyaller)", 0.5)
+    if bt2:
+        out += _base_kor(bt2, "Base T2 kör test (40 yeni grafik)", 0.0)[:1]
+        isd = lambda r: (r.get("isaret") or "").strip().lower()  # noqa: E731
+        G = [isd(r) for r in bt2 if r.get("t2", "") not in ("", "0", "1") and isd(r) in ("a", "g", "h")]
+        E = [isd(r) for r in bt2 if r.get("t2", "") in ("0", "1") and isd(r) in ("a", "g", "h")]
+        ga = G.count("a") / len(G) if G else 0
+        ea = E.count("a") / len(E) if E else 0
+        ok = ga >= 0.7 and ea <= ga - 0.2
+        out.append(f"   T2 geçen: alırdım {pct(G.count('a'), len(G))} · T2 elenen: alırdım {pct(E.count('a'), len(E))}"
+                   + (f" -> {'✅ KABUL' if ok else '❌ red'} (geçen >= %70 ve elenen 20 puan düşük)" if len(G) + len(E) >= 30
+                      else " (karar için en az 30 işaret)"))
+        nt = [f"{r['hisse']} {r['etiket_tarihi'][2:]} ({isd(r)}): {r['not']}" for r in bt2 if (r.get("not") or "").strip()]
+        if nt:
+            out.append("   notların:\n     " + "\n     ".join(nt))
     return "\n".join(out)
 
 

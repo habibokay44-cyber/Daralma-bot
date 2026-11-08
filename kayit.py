@@ -16,6 +16,7 @@ Sütunlar:
   w1       : 1 = haftalık kapanış haftalık EMA10 altında
   direnc_sen, temas_sen : grafiğe "direnç 12,40 3" diye cevap yazınca: senin gördüğün direnç fiyatı ve temas sayısı
   b_v2, b_v3 : canlı Base sinyalinde v2 / v3 kuralı da (±2 mum) sinyal veriyor mu (1/0) — gölge, 05.11.2026
+  t2       : Base T2 kör testinde ayrı temas sayısı (gizli; >= 2 = T2 geçer), 08.11.2026
   stage    : senin büyük resim işaretin (butonla): 1 = Stage 1, 2 = Stage 2, 3 = tepe, 4 = düşüş
 """
 from __future__ import annotations
@@ -29,7 +30,7 @@ import pandas as pd
 F = Path(__file__).resolve().parent / "state" / "etiket_kayit.csv"
 COLS = ["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "cizgi", "not",
         "e1", "y1", "v56", "giris_tarihi", "alis_tarihi", "e50", "g1", "w1", "stage",
-        "direnc_sen", "temas_sen", "b_v2", "b_v3"]
+        "direnc_sen", "temas_sen", "b_v2", "b_v3", "t2"]
 
 
 def key(sym: str, date: str) -> str:
