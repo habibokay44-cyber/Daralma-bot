@@ -1,4 +1,4 @@
-# Yol haritası (07.11.2026)
+# Yol haritası (güncelleme 08.11.2026)
 
 Amaç: senin "işlem alırdım" dediğin kurulumları doğru günde veren, sanal portföyde kendini kanıtlamış bir sistem.
 Kural: her değişiklik ÖNCEDEN YAZILMIŞ ölçütle test edilir; geçmeyen kural eklenmez. Hız, işaretlerin birikmesine bağlı.
@@ -14,11 +14,14 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 - ❌ Base v1 / v2 / v3 / v0b (ön kontrol ya da yoğunluk ölçütü geçmedi)
 - ❌ Giriş yenileme, zamanlama örnekleminde fark yaratmadı → gölge portföyde ileri teste aday
 
-## 1. Çizgi seçimi · tahmini 1–2 hafta · ⬜
-- Veri: 20–30 `direnç X` cevabı (ana gösterge + Base grafiklerinde)
-- Aday yöntemler: seviyeyi gövdeden bulmak (levelSrc=Gövde), yatayı düşen çizgiye tercih (hPrefer / flatPrefer),
-  en çok değilen seviye
-- Kabul: senin çizgine ortalama uzaklık en küçük olan + kalibrasyonda doğru etiket sayısı düşmez → Pine'a eklenir
+## 1. Çizgi seçimi · ⏸ canlı veri bekliyor
+- Ölçüm: göstergenin seviyesi senin seviyene zaten yakın (medyan 0.64 ADR); fark çizginin ŞEKLİ ve hangi tepenin seçildiği
+- ❌ 07.11 çizgi ayarları sıkılaştırma / yeni çizgi (cizgi_test) — ölçüt geçmedi
+- ❌ 07.11 Giriş yatay kırılım şartı GY1 / GY2 — kötü 2–3/7 kalktı (ölçüt 5)
+- ❌ 07.11 en çok temas eden çizgi TM1 / TM2 — kötüleri temizledi ama iyilerin 4–6/14'ü kaldı (ölçüt 12)
+- Sonuç: seçimin bağlama bağlı (IHYAY'da uzun eski çizgi, ENKAI'de yeni alçak base tepesi); basit kural yakalamıyor.
+  Aynı 7 kötü örnekle denemeye devam = kural uydurma. Canlı `direnç X` cevapları birikince yeni testle dönülecek.
+- Yan bulgu (karar değil): V3 fitil payı ve GY1 kalibrasyonda yanlış etiketi 14 → 11'e indiriyor; ayrı test adayı
 
 ## 2. Giriş kalitesi · tahmini 2–3 hafta (1 ile paralel) · ⬜
 - Kırılım mumu kalitesi (TCKRC): Giriş mumu son mumlardan belirgin büyük ve direncin üstünde kapanır
@@ -30,9 +33,17 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 - E50 (ana kural), stage işaretleri, V dönüşü / kümelenme süresi (OZYSR)
 - "Almazdım" dediklerini etiket aşamasında elemek
 
-## 4. Base modu · 20–30 kaçandan sonra · ⬜
-- s1 / s2 base'ler ayrı analiz; v0'ın takıldığı şartlar (20 mum penceresi, temas)
-- Base için daha yakın stop (base dibi bazen -%20)
+## 4. Base modu · 🔄 v0 kabul, filtre için canlı veri
+- ✅ Base v0 iki kör testte tutarlı: %62 (39 grafik), %58 (T2 örneklemi, 40 grafik)
+- ❌ 08.11 Base T2 (en az 2 ayrı temas, kırılım mumu sayılmaz), YENİ 40 kör grafikte: geçen alırdım %65, elenen %50
+  (ölçüt: >= %70 ve 20 puan fark)
+- 08.11 ayırt ölçümü (73 grafik, 12 ölçü): hiçbir ölçü tek başına ayırmıyor (en iyi AUC 0.65–0.68: temas sayısı,
+  tepelerin dağınıklığı, base yüksekliği)
+- ÖNEMLİ BULGU: senin `direnç` cevabın ayırıyor — "direnç yok" dediğin 16 grafiğin 14'ü almazdım, fiyat yazdığın 12'nin
+  12'si alırdım/başka gün. Yani karar geometriden çok senin bütüne bakışın → canlı Base sinyallerinde `direnç` cevabı
+  yazmaya devam; birkaç yüz işaretle ileride öğrenen model adayı
+- Bekleyen: kaçan base listesi (ESEN, SVGYO, KTLEV, RALYH, ...) 20–30'a çıkınca s1/s2 ve kaçış nedenleri;
+  Base için daha yakın stop (base dibi bazen -%20)
 
 ## 5. Sinyal seçimi ve portföy · 3 ve 4'ten sonra · 🔄
 - Yer yokken hangi sinyal alınır (sıralama kuralı) — geriye dönük testte en büyük şans faktörü
@@ -44,8 +55,12 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 - Sanal portföy sabit kurallarla; başarı ölçütü önceden yazılır (örn. en az 50 işlem, PF > 1.5, en büyük düşüş sınırı)
 - Geçerse yarı otomatik (bot emir önerir, onay senden)
 
+## Takvim
+- 09.11.2026 akşamı: sanal portföy başlar (ilk 💼 mesajı)
+- 12.11.2026 19:31: tutarlılık kontrolü (10 eski grafik, eski işaretler gizli)
+
 ## Senin tarafın (her gün / hafta)
-- Gelen grafiklere buton; çizgi yanlışsa 📐 + `direnç X`; almadıklarına kısa not
+- Gelen grafiklere buton; çizgi yanlışsa 📐 + `direnç X`; Base sinyallerinde `direnç X` ya da `direnç yok`; almadıklarına kısa not
 - Kaçırdıkların: `kaçan KOD GG.AA base s1` / `base s2`
 - Haftada bir "Ileri test ozeti"
 
