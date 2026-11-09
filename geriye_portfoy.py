@@ -28,7 +28,8 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
             'acilis'  = ertesi işlem günü açılışından al / stop kapanışından sonraki gün açılıştan sat.
     kayma: alışta fiyat x(1+kayma), satışta x(1-kayma). minhacim: 20 günlük ort. TL hacmi bunun altındaysa alınmaz.
     sira: 'kural' (önce Giriş, sonra kısa stop) ya da tamsayı tohum (yer yoksa rastgele seçim)."""
-    rnd = None if sira == "kural" else random.Random(sira)
+    alan = sira[5:] if isinstance(sira, str) and sira.startswith("alan:") else None   # 'alan:rs60' = o alana göre büyükten küçüğe
+    rnd = None if (sira == "kural" or alan) else random.Random(sira)
     sig = [s for s in sig if s["kaynak"] in kaynaklar and s["tarih"] >= bas]
     gunler = sorted({d for df in frames.values() for d in df.index if d >= bas})
     by_day = {}
@@ -110,7 +111,9 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
         # 3) bugünün sinyalleri
         ozs = nakit + sum(a["lot"] * a["son"] for a in acik)
         bugun = [s for s in by_day.get(d, []) if not (minhacim and not (arr[s["sym"]][4][s["i"]] >= minhacim))]
-        if rnd is None:
+        if alan:
+            bugun.sort(key=lambda s: -(s.get(alan) if s.get(alan) == s.get(alan) and s.get(alan) is not None else -1e9))
+        elif rnd is None:
             bugun.sort(key=lambda s: (s["kaynak"] != "Giriş", (s["kapanis"] - s["dip"]) / s["kapanis"]))
         else:
             rnd.shuffle(bugun)
