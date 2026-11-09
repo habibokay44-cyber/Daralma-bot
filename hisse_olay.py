@@ -55,6 +55,18 @@ def main():
                 out.append(f"   → 8 mum içinde şartlar oluşmadı (süre doldu). Not: düşen çizgide çizgi her gün aşağı iner.")
         elif e["type"] == "giris":
             out.append(f"🟢 {e['date']:%d.%m} GİRİŞ {e['close']:.4g} (etiket {e['setup_date']:%d.%m})")
+    # Base v0: aralıktaki sinyaller + son mumda şartlar
+    from base_v0 import HMAX, TOL, W, WT, sinyaller
+    v0 = [e for e in sinyaller(df) if bas <= e["date"] <= bit]
+    out.append("\n🧱 Base v0: " + (", ".join(f"{e['date']:%d.%m} (direnç {e['line']:.4g})" for e in v0) or "sinyal yok"))
+    hh, ll = df["High"].to_numpy(float), df["Low"].to_numpy(float)
+    u = len(c) - 1
+    A = (pd.Series(hh / ll).rolling(20).mean().to_numpy()[u - 1] - 1) * 100
+    top, bot = hh[u - W:u].max(), ll[u - W:u].min()
+    out.append(f"  son mum {df.index[u]:%d.%m}: kapanış {c[u]:.4g} | 10 mum tepesi {top:.4g} | base yüksekliği "
+               f"{(top / bot - 1) * 100 / A:.1f} ADR (sınır {HMAX}) | 20 mumda tepeye yakın mum "
+               f"{int((hh[u - WT:u] >= top * (1 - TOL * A / 100)).sum())} (en az 2) | 20 mumda daha yüksek tepe "
+               f"{'VAR' if hh[u - WT:u].max() > top * (1 + TOL * A / 100) else 'yok'}")
     txt = "\n".join(out)
     print(txt)
     if "--telegram" in sys.argv:
