@@ -519,6 +519,10 @@ def main() -> None:
     try:   # sanal portföy: açık işlemleri güncelle, bugünün sinyallerini al, özeti gönder
         import portfoy
         telegram_send(portfoy.gunluk(frames, port_sig, ref))
+        try:   # 09.11.2026: gölge portföy, sadece ✅ onayladığın sinyaller
+            telegram_send(portfoy.gunluk_onayli(frames, port_sig, ref))
+        except Exception as ex:  # noqa: BLE001
+            print(f"[uyarı] onaylı portföy güncellenemedi: {ex}", file=sys.stderr)
     except Exception as ex:  # noqa: BLE001
         print(f"[uyarı] sanal portföy güncellenemedi: {ex}", file=sys.stderr)
     import kayit
