@@ -110,8 +110,30 @@ def fetch_yahoo(sym: str, rng: str = "2y", retries: int = 3) -> pd.DataFrame | N
 
 
 # ------------------------------------------------------------------ veri: TradingView (tvdatafeed)
+TEMETTU_DUZELT = True   # 09.11.2026: Pine grafiğinde ADJ (temettü ayarlaması) açık -> Python da temettü düzeltilmiş veri
+                        # kullanır (MCARD 06.11: ham veride T 5.3, düzeltilmişte 4.83 = Pine). tvdatafeed varsayılanı 'splits'.
+
+
+def _tv_temettu_yama() -> None:
+    """tvdatafeed'in resolve_symbol isteğindeki adjustment'ı 'splits' -> 'dividends' yapar (bölünme + temettü düzeltmesi)."""
+    from tvDatafeed import TvDatafeed
+    if not TEMETTU_DUZELT or getattr(TvDatafeed, "_temettu_yamali", False):
+        return
+    asil = TvDatafeed._TvDatafeed__send_message
+
+    def gonder(self, func, args):
+        if func == "resolve_symbol" and len(args) >= 3 and isinstance(args[2], str):
+            args = list(args)
+            args[2] = args[2].replace('"adjustment":"splits"', '"adjustment":"dividends"')
+        return asil(self, func, args)
+
+    TvDatafeed._TvDatafeed__send_message = gonder
+    TvDatafeed._temettu_yamali = True
+
+
 def _tv_df(tv, sym: str, n_bars: int) -> pd.DataFrame | None:
     from tvDatafeed import Interval
+    _tv_temettu_yama()
     df = tv.get_hist(symbol=sym, exchange="BIST", interval=Interval.in_daily, n_bars=n_bars)
     if df is None or len(df) == 0:
         return None
@@ -127,6 +149,7 @@ def fetch_tv_all(tickers: list[str], n_bars: int = 500, budget: int = 22 * 60, m
         from tvDatafeed import TvDatafeed
     except Exception as e:  # noqa: BLE001
         raise SystemExit(f"tvdatafeed kurulu değil ({e}). Workflow'da 'TradingView veri kütüphanesi' adımı olmalı.")
+    _tv_temettu_yama()
     t0 = time.time()
     tv = TvDatafeed()
     out: dict[str, pd.DataFrame] = {}
@@ -164,6 +187,9 @@ MIN_BARS_YENI = 30   # 05.11.2026: yeni arzlar Base v0 için 30 mumdan itibaren 
 
 def load_frames(tickers: list[str], args) -> dict[str, pd.DataFrame]:
     src = args.source
+    if src == "auto" and TEMETTU_DUZELT:
+        src = "tv"   # Yahoo ham (temettü düzeltmesiz) fiyat verir; Pine ile aynı olması için TradingView
+        print("Veri kaynağı: tv (temettü düzeltilmiş, Pine ADJ ile aynı)")
     if src == "auto":
         probe = [s for s in ("THYAO", "GARAN", "ASELS") if s in tickers] or tickers[:3]
         ok = any(fetch_yahoo(s, args.range, retries=1) is not None for s in probe)
