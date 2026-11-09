@@ -65,7 +65,7 @@ def main():
     for r in kayit.load():
         i = (r.get("isaret") or "").strip().lower()
         m = r.get("mod") or ""
-        grup = "Base" if m.startswith("Base") else "Daralma etiketi"
+        grup = "Base" if m.startswith("Base") else "Daralma (Telegram grafiği, kesin kör)"
         if i in ("a", "g", "h"):
             rows.append((r["hisse"], r["etiket_tarihi"], grup, {"a": "iyi", "h": "kotu", "g": "g"}[i]))
     for f in ("orneklem.csv", "orneklem2.csv", "orneklem3.csv"):
@@ -74,7 +74,7 @@ def main():
             for r in csv.DictReader(p.open(encoding="utf-8")):
                 i = (r.get("isaret") or "").strip().lower()
                 if i in ("d", "y"):
-                    rows.append((r["hisse"], r["etiket_tarihi"], "Daralma etiketi", "iyi" if i == "d" else "kotu"))
+                    rows.append((r["hisse"], r["etiket_tarihi"], "Daralma (eski örneklem 1-3, TradingView'de bakıldı)", "iyi" if i == "d" else "kotu"))
     rows = list({(s, d): (s, d, g, k) for s, d, g, k in rows}.values())
     frames = fetch_tv_all(sorted({r[0] for r in rows}), n_bars=1500, budget=14 * 60, min_bars=30)
     D, atla = [], 0
@@ -93,7 +93,7 @@ def main():
     rng = np.random.default_rng(56)
     out = [f"💰 İşaret-getiri testi: {len(T)} kör işaretli grafik ({atla} sayılmadı: veri yok ya da sonrası 20 mumdan kısa)",
            "Çıkış herkese aynı: alış işaret günü kapanışı, stop önceki 10 mumun dibi, en geç 20 mum sonra."]
-    for ad, S in [("TÜMÜ", T)] + [(g, T[T.grup == g]) for g in ("Base", "Daralma etiketi")]:
+    for ad, S in [("TÜMÜ", T)] + [(g, T[T.grup == g]) for g in sorted(T.grup.unique())]:
         iy, ko, gg = S[S.k == "iyi"], S[S.k == "kotu"], S[S.k == "g"]
         out.append(f"\n{ad}")
         out.append(f"  ✅ alırdım : {oz(iy.R)} · 20 mum {iy.g20.mean():+.2f} ADR" if len(iy) else "  ✅ alırdım : n=0")
