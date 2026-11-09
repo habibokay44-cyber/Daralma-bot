@@ -85,8 +85,14 @@ def tarih_bul(text: str, etiket: str):
         d = pd.Timestamp(year=y, month=a, day=g)
     except ValueError:
         return None, text.strip()
-    if not m.group(3) and d < et - pd.Timedelta(days=60):
-        d = pd.Timestamp(year=y + 1, month=a, day=g)
+    if not m.group(3):   # yıl yazılmadıysa: etiket gününe en yakın yıl (09.11.2026: 24.08 -> 2027 hatası düzeltildi)
+        aday = []
+        for yy in (y - 1, y, y + 1):
+            try:
+                aday.append(pd.Timestamp(year=yy, month=a, day=g))
+            except ValueError:
+                pass
+        d = min(aday, key=lambda x: abs((x - et).days))
     rest = (text[:m.start()] + text[m.end():]).strip()
     return d.strftime("%Y-%m-%d"), rest
 
@@ -195,10 +201,14 @@ def main() -> int:
                     print(f"[bilgi] {ex}")
                 continue
             # 07.11.2026: alış tarihi sadece cevap TARİHLE BAŞLIYORSA alınır (nottaki tarihler alış sayılmaz)
+            # 09.11.2026: ve tarih etiket gününe 30 günden yakınsa VE cevapta "al" geçiyorsa ya da tarihten başka bir şey yoksa
+            # ("24.08 tepesinden ... çizgi" gibi notlar alış sayılmaz)
+            d, rest = None, m["text"].strip()
             if re.match(r"^\s*\d{1,2}[./-]\d{1,2}", m["text"]):
-                d, rest = tarih_bul(m["text"], r["etiket_tarihi"])
-            else:
-                d, rest = None, m["text"].strip()
+                d0, rest0 = tarih_bul(m["text"], r["etiket_tarihi"])
+                if d0 and abs((pd.Timestamp(d0) - pd.Timestamp(r["etiket_tarihi"])).days) <= 30 and (
+                        not rest0 or re.search(r"\b(alır|alış|alis|alir|al)\w*", rest0.lower()) and "almaz" not in rest0.lower()):
+                    d, rest = d0, rest0
             if d:
                 r["alis_tarihi"] = d
                 if r["isaret"] in ("", "a"):
