@@ -137,7 +137,7 @@ def main():
         x = sim(df, t)
         D.append(dict(hisse=s, tarih=d, y=y, R=x[0] if x else np.nan, **f))
     T = pd.DataFrame(D)
-    X = T[FEATS].to_numpy(float)
+    X = T[FEATS].to_numpy(float).copy()
     X[~np.isfinite(X)] = np.nan
     y, grp = T.y.to_numpy(int), T.hisse.to_numpy()
     rng = np.random.default_rng(56)
