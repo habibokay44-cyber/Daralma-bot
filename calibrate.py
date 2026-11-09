@@ -349,8 +349,9 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("TM1 Giriş: en çok temas eden çizgi (150 mum) kırılmalı", dict(girisTemasN=150)),
-    ("TM2 Giriş: en çok temas eden çizgi (250 mum) kırılmalı", dict(girisTemasN=250)),
+    ("Y kapalı (Pine gibi: gövde kutusu şartı yok)", dict(yBodyMax=0.0)),
+    ("H kapalı (Pine gibi: yatayda EMA düşüş engeli yok)", dict(hDnBlock=False)),
+    ("Y ve H kapalı (Pine'ın şu anki hali)", dict(yBodyMax=0.0, hDnBlock=False)),
 ]
 
 
