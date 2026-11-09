@@ -1,4 +1,4 @@
-# Yol haritası (güncelleme 08.11.2026)
+# Yol haritası (güncelleme 09.11.2026)
 
 Amaç: senin "işlem alırdım" dediğin kurulumları doğru günde veren, sanal portföyde kendini kanıtlamış bir sistem.
 Kural: her değişiklik ÖNCEDEN YAZILMIŞ ölçütle test edilir; geçmeyen kural eklenmez. Hız, işaretlerin birikmesine bağlı.
@@ -54,6 +54,18 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 ## 6. Doğrulama · 2–3 ay · ⬜
 - Sanal portföy sabit kurallarla; başarı ölçütü önceden yazılır (örn. en az 50 işlem, PF > 1.5, en büyük düşüş sınırı)
 - Geçerse yarı otomatik (bot emir önerir, onay senden)
+
+## 09.11.2026 sonuçları (yöntem değişikliği: kararlar getiriyle ve büyük örnekle)
+- ✅ İşaret-getiri testi (235 kör işaret): DARALMADA 'alırdım' +1.1…+1.6R (PF 3-4.7), 'almazdım' -0.2…-0.3R (PF 0.65-0.70),
+  fark %90 aralıkla sıfırın üstünde. BASE'de fark yok (PF 1.83'e 1.84) -> Base'de 'direnç var mı' kurallarına emek harcanmayacak.
+- ✅ Onaylı gölge portföy (state/portfoy_onay.json): aynı kurallar, sadece ✅ denen sinyaller; canlıda aynı fark var mı.
+- ❌ Daralma modeli v1 (161 işaret, 26 ölçü, lojistik): AUC 0.65 (eşik 0.68), puan getiriyi sıralamıyor. İşaret biriktikçe tekrar.
+- ❌ RS60 / RS120 sıralaması: iki dönemde de rastgele seçimin medyanının altında. Sıralama kuralı değişmedi.
+- ✅ V3 (wickADR 2.5 -> 0.5) iki dönemli varyant testi (2.683 Giriş): iki dönemde de ort. R yüksek; attığı 366 sinyal ort +0.07R
+  -> Python'da ve Pine'da devrede (09.11.2026 akşamından sonra).
+- ❌ GY1: attığı 610 sinyal ort +1.48R (kalanlardan iyi) -> red. Not: 'düşen çizgi kırılımı' Giriş'leri ortalamada kârlı.
+- ✅ Veri: tarama temettü düzeltilmiş TradingView verisi (Pine ADJ ile aynı); Pine'da eksik Y / H şartları eklendi.
+- Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim
 - 09.11.2026 akşamı: sanal portföy başlar (ilk 💼 mesajı)

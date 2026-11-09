@@ -1,0 +1,1032 @@
+//@version=6
+indicator("Fiyat Daralması v54", shorttitle="FD v54", overlay=true, max_bars_back=500, max_labels_count=500, max_lines_count=500, max_boxes_count=100)
+
+// ---------- Girdiler ----------
+lookback   = input.int(120, "Direnç arama penceresi (mum)", minval=15)
+minSpan    = input.int(6, "Düşen çizgi: min. uzunluk (mum)", minval=3)
+minSpanH   = input.int(9, "Yatay: taban min. uzunluğu (mum)", minval=3)
+pvL        = input.int(2, "Pivot sol mum", minval=1)
+pvR        = input.int(1, "Pivot sağ mum", minval=1)
+nC         = input.int(5, "Sıkışma mum sayısı", minval=3, maxval=10)
+nS         = input.int(3, "Kısa sıkışma: mum sayısı", minval=2, maxval=5)
+useShort   = input.bool(false, "Kısa sıkışma penceresi de geçerli olsun")
+tightS     = input.float(1.0, "Kısa: mum aralığı/ADR (max)", step=0.05)
+shrinkS    = input.float(0.85, "Kısa: önceki mumlara oran (max)", step=0.05)
+boxS       = input.float(1.0, "Kısa: kapanış kutusu (ADR katı, max)", step=0.1)
+bodyADR    = input.float(0.1, "Gövdenin çizgiyi geçme toleransı (ADR katı)", step=0.05)
+bodyADRD   = input.float(0.05, "Düşen çizgi: gövdenin çizgiyi geçme toleransı (ADR katı, daha sıkı)", step=0.01)
+maxViol    = input.int(0, "İzin verilen gövde ihlali (düşen çizgi modu)", minval=0, maxval=3)
+violPct    = input.float(5.0, "Düşen: gövde ihlali (çizgi boyunca max %)", step=0.5)
+bodyPokeMax = input.float(0.4, "Düşen: hiçbir gövde çizginin bu kadar (ADR katı) üstüne çıkmasın", step=0.1)
+useBelow   = input.bool(true, "Düşen: çizgi son 5 mumun gövde tepelerinin altından geçmesin")
+touchADR   = input.float(0.4, "Temas toleransı (ADR katı)", step=0.05)
+rankADR    = input.float(0.2, "Çizgi sıralaması için dar temas bandı (ADR katı)", step=0.05)
+wickADR    = input.float(0.5, "İğnenin çizgiyi geçme payı (ADR katı)", step=0.25)   // 09.11.2026 V3: 2.5 -> 0.5
+maxOv      = input.float(0.8, "İğne taşması w (ADR katı, max)", step=0.1)
+minTouches = input.int(3, "Min. temas sayısı (yatayda bugünkü mum sayılmaz)", minval=2)
+minClusters = input.int(2, "Yatay: min. ayrı temas kümesi (yan yana mumlar tek sayılır)", minval=1)
+tbCl       = input.bool(false, "Yatay: dar banttaki temas sayısı ayrı KÜME olarak sayılsın (yan yana mumlar tek temas)")
+minTb      = input.int(3, "Yatay: dar bantta min. temas (yt) - tek iğneyle oluşan seviye elensin", minval=1)
+minTcD     = input.int(3, "Düşen çizgi: dar bantta min. temas (dt) - 2 uç nokta + en az 1 temas", minval=2)
+clMerge    = input.int(1, "Düşen çizgi: temaslar bu kadar mum yakınsa tek küme sayılır (1 = sadece yan yana)", minval=1, maxval=6)
+minClD     = input.int(2, "Düşen çizgi: en az bu kadar AYRI temas kümesi (0 = kapalı)", minval=0)
+mclMerge    = input.int(1, "Düşen çizgi: temaslar bu kadar mum yakınsa tek küme sayılır (1 = sadece yan yana)", minval=1, maxval=6)
+inClD     = input.int(2, "Düşen çizgi: en az bu kadar AYRI temas kümesi (0 = kapalı)", minval=0)
+tightADR   = input.float(1.0, "Son mumların ort. aralığı (ADR katı, max)", step=0.05)
+shrink     = input.float(0.9, "Son mumlar / önceki 15 mum aralık oranı (max)", step=0.05)
+closeBoxADR = input.float(0.85, "Kapanış kutusu (ADR katı, max)", step=0.1)
+useLows    = input.bool(true, "Dipler kontrolü (düşüş devamı ve yükseliş hamlesi elensin)")
+lowTolADR  = input.float(0.5, "Diplerin önceki diplerin altına inme payı (ADR katı)", step=0.1)
+lowUpADR   = input.float(2.8, "Diplerin önceki diplerin üstüne çıkma payı (ADR katı)", step=0.1)
+useLowsH   = input.bool(false, "Yatay modda dipler (d) çok yükselmesin (ayırt edici değil, kapalı)")
+lowUpH     = input.float(1.2, "Yatay: dipler d max (ADR katı)", step=0.1)
+useRise    = input.bool(true, "Dirence doğru yaklaşma şartı (u)")
+riseMin    = input.float(-1.0, "Yaklaşma u min. (ADR katı)", step=0.1)
+riseMax    = input.float(0.8, "Yaklaşma u max. - YATAY mod", step=0.1)
+riseMaxD   = input.float(1.5, "Yaklaşma u max. - DÜŞEN çizgi seçiliyse", step=0.1)
+useClose   = input.bool(false, "Son kapanış dirence yakın olsun (y) - şimdilik kapalı")
+closeNearY = input.float(1.0, "y: son kapanışın çizgiye max. uzaklığı (ADR katı)", step=0.05)
+useSlope   = input.bool(true, "Son kapanışlar dirençten uzaklaşmasın / koşmasın (s)")
+slopeMin   = input.float(-0.5, "s: son 3 kapanış eğimi min. - YATAY mod", step=0.05)
+slopeMax   = input.float(0.9, "s: son 3 kapanış eğimi max. - YATAY mod", step=0.05)
+slopeMinD  = input.float(-0.37, "s: eğim min. - DÜŞEN çizgi seçiliyse", step=0.05)
+slopeMaxD  = input.float(1.2, "s: eğim max. - DÜŞEN çizgi seçiliyse", step=0.05)
+useCandle  = input.bool(true, "Sinyal mumu kontrolü (dipte kapanan / çok geniş mum olmasın)")
+maxCandle  = input.float(1.3, "Sinyal mumu aralığı c (ADR katı, max)", step=0.1)
+minClosePos = input.float(0.0, "Sinyal mumu kapanış konumu p (0=dip, 1=tepe) min.", step=0.05)
+maxClosePos = input.float(0.85, "Sinyal mumu kapanış konumu p max. (kırılım mumu olmasın)", step=0.05)
+useJump    = input.bool(true, "Sinyal mumu: önceki kapanışa göre sıçrama (gap / sert hareket) olmasın")
+jumpMax    = input.float(0.6, "Sinyal mumu: önceki kapanışa göre değişim j (ADR katı, max)", step=0.1)
+useVolSig  = input.bool(true, "Sinyal mumu: hacim 20 mum ortalamasının çok üstünde olmasın")
+volMaxX    = input.float(1.8, "Sinyal mumu: hacim / 20 mum ort. hacim v (max)", step=0.1)
+useRedSig  = input.bool(true, "Sinyal mumu: kırmızı (düşen) mum olmasın")
+sigRedMax  = input.float(0.3, "Sinyal mumu: kırmızı gövde g (ADR katı, max)", step=0.05)
+useEmaTr   = input.bool(true, "Trend: EMA21 düşüyorsa ya da fiyat EMA21'in çok altındaysa daralma sayılmasın")
+emaSlopeMin = input.float(-0.5, "Trend: EMA21'in 10 mumluk eğimi min. (ADR katı)", step=0.1)
+emaBelowMax = input.float(0.5, "Trend: kapanış EMA21'in en fazla bu kadar altında olsun (ADR katı)", step=0.1)
+ddMax      = input.float(5.0, "Trend: 40 mumluk tepeden düşüş en fazla (ADR katı, 0 = kapalı)", step=0.5)
+useBox     = input.bool(true, "KUTU modu: çizgi yoksa ya da trend filtreleri engelliyorsa uzun yatay taban kutusu da daralma sayılsın")
+boxN       = input.int(15, "Kutu: son kaç mum", minval=8, maxval=40)
+boxBody    = input.float(1.3, "Kutu: gövde tepesi - gövde dibi aralığı (ADR katı, max)", step=0.1)
+boxHL      = input.float(2.5, "Kutu: fitilli en yüksek - en düşük aralığı (ADR katı, max)", step=0.1)
+rallyU     = input.float(0.9, "Rallide etiket yok: son 5 mum yükselişi u bundan büyükse (0 = kapalı)", step=0.1)
+rallyDd    = input.float(2.0, "Rallide etiket yok: ... VE 40 mumluk tepeden uzaklık bundan küçükse (ADR katı)", step=0.5)
+bodyFrac   = input.float(0.17, "Son 5 mumda gövde/aralık ortalaması en az (fitilli dojiler elenir, 0 = kapalı)", step=0.02)
+b7Max      = input.float(1.95, "Son 7 mumun gövde aralığı (ADR katı) bundan büyükse etiket yok (volatil mumlar, 0 = kapalı)", step=0.05)
+lcMax      = input.int(3, "Son 5 mumda bu kadardan fazla düşen kapanış varsa etiket yok (art arda düşüş, 0 = kapalı)", minval=0)
+dnSlope    = input.float(-0.4, "Düşüş trendi: EMA21 eğimi bundan düşük ve fiyat EMA altındaysa", step=0.1)
+dnMinTb    = input.int(5, "Düşüş trendinde düşen çizgide en az bu kadar temas (0 = kapalı)", minval=0)
+dnMinSp    = input.int(12, "Düşen çizgi: ilk temastan etiket mumuna en az bu kadar mum (0 = kapalı)", minval=0)
+shrinkMinD = input.float(0.50, "Düşen: sıkışma oranı (r) en az bu kadar olmalı (0 = kapalı)", step=0.05, minval=0.0)
+dnBelowSlope = input.float(0.0, "Düşen: kapanış EMA21 altında VE yakın eğim bundan küçükse etiket yok (-99 = kapalı)", step=0.1)
+hDnBlock   = input.bool(true, "Yatay modda da düşüş trendi engeli (EMA eğimi düşük ve fiyat EMA altında)")
+yBodyMax   = input.float(2.0, "Yatay: 10 mum gövde kutusu / ADR en çok (0 = kapalı)", step=0.1, minval=0)
+warmup     = input.int(30, "Isınma: en az bu kadar mum geçmiş olmadan sinyal verme (yeni halka arz)", minval=0)
+nearADR    = input.float(2.2, "Düşen çizgi: kapanışların çizgiye ort. uzaklığı (ADR katı, max)", step=0.1)
+lastNear   = input.float(1.8, "Düşen çizgi: son kapanışın çizgiye uzaklığı (ADR katı, max)", step=0.1)
+nearADRH   = input.float(1.2, "Yatay: kapanışların çizgiye ort. uzaklığı (ADR katı, max)", step=0.1)
+lastNearH  = input.float(1.0, "Yatay: son kapanışın çizgiye uzaklığı (ADR katı, max)", step=0.1)
+allowFlat  = input.bool(true, "Düşen modunda neredeyse düz çizgiler de olsun (yatay için ayrı mod var)")
+allowDesc  = input.bool(true, "Düşen trend altı")
+flatBand   = input.float(0.5, "Yatay sayılan düşüş (ADR katı)", step=0.1)
+flatUp     = input.float(0.1, "İzin verilen max. yükseliş (ADR katı)", step=0.05)
+maxDesc    = input.float(4.0, "Max. düşüş (ADR katı)", step=0.5)
+allowHoriz = input.bool(true, "Yatay direnç modu")
+modePref   = input.string("Otomatik", "Direnç türü (Düşen = düşen çizgi geçerliyse onu seç)", options=["Otomatik", "Düşen", "Yatay"])
+levelSrc   = input.string("Fitil", "Yatay direnç seviyesi: aday ve temaslar neye göre", options=["Fitil", "Gövde"])
+touchSpan  = input.int(4, "Yatay: ilk ve son temas arası min. mum", minval=2)
+lastTouchMax = input.int(5, "Yatay: son temas en fazla kaç mum önce", minval=2, maxval=20)
+maxLineBack = input.int(15, "Yatay çizgi en fazla kaç mum geriden başlasın", minval=5)
+holdBars   = input.int(8, "Çizgi kilidi: setup yokken kaç mum korunsun", minval=1)
+onlyLast   = input.bool(false, "Sadece son çizgiyi göster (eskileri sil)")
+useTrend   = input.bool(false, "Giriş sinyali için fiyat 50 EMA üstünde olsun (daralma EMA50 altında da olabilir)")
+cooldown   = input.int(8, "Sinyal tekrarı / kırılım sonrası bekleme (mum)", minval=1)
+cancelBlock = input.int(0, "İptal olan setup sonrası yeni setup için bekleme (mum)", minval=0, maxval=10)
+trigWin    = input.int(8, "Etiketten sonra Giriş için pencere (mum)", minval=1)
+trigVol    = input.float(0.0, "Tetik min. hacim (50g ort. katı, 0 = kapalı)", step=0.1)
+useStop    = input.bool(true, "Stop iptali: kapanış sıkışmanın dibinin altına inerse setup iptal")
+stopBuf    = input.float(0.5, "Stop tamponu (ADR katı)", step=0.1)
+useRedKill = input.bool(true, "Etiketten sonra sert kırmızı mum gelirse setup iptal")
+redKillADR = input.float(0.7, "Sert kırmızı mum: gövde (ADR katı, min)", step=0.1)
+useDrop    = input.bool(true, "Düşüş iptali: etiketten sonra fiyat aşağı giderse setup iptal (V dönüşü geçerli sayılmaz)")
+dropADR    = input.float(0.5, "Düşüş iptali: kapanış, etiket kapanışının kaç ADR altına inerse", step=0.1)
+useAboveLbl = input.bool(true, "Giriş: kapanış, daralma etiketinin kapanışından yüksek olsun (düşüp toparlanan hareket giriş sayılmaz)")
+hideCancelled = input.bool(true, "İptal olan etiket ve çizgiyi sil")
+showBox    = input.bool(true, "Daralma bölgesini kutu ile göster (son nC mum)")
+boxDrawN = input.int(4, "Kutu çizim mum sayısı (sadece görünüm)", minval=2, maxval=10)
+strongShrink = input.float(0.75, "Güçlü (turuncu) sinyal: önceki mumlara oran (max)", step=0.05)
+strongBox  = input.float(0.9, "Güçlü (turuncu) sinyal: kapanış kutusu (ADR katı, max)", step=0.1)
+onlyStrong = input.bool(false, "Sadece güçlü sinyalleri göster")
+showSLTP   = input.bool(true, "Giriş sinyalinde SL ve TP çizgilerini göster")
+tpMode     = input.string("SMC direnç", "TP türü", options=["SMC direnç", "Sabit R"])
+tpMult     = input.float(2.0, "Sabit R: TP stop yüzdesinin kaç katı (SMC direnç bulunamazsa da bu kullanılır)", step=0.5, minval=0.5)
+smcL       = input.int(5, "SMC: swing tepesi sol mum", minval=2, maxval=20)
+smcR       = input.int(5, "SMC: swing tepesi sağ mum", minval=2, maxval=20)
+smcLook    = input.int(250, "SMC: direnç en fazla kaç mum eski olsun", minval=20, maxval=1000)
+minRR      = input.float(1.0, "SMC: hedef en az kaç R uzakta olsun (daha yakın dirençler atlanır)", step=0.25, minval=0.25)
+tpMaxR     = input.float(6.0, "SMC: hedef üst sınırı (R, 0 = kapalı)", step=0.5, minval=0.0)
+smcBufADR  = input.float(0.1, "SMC: TP'yi direncin ne kadar altına koy (ADR katı)", step=0.05, minval=0.0)
+extLen     = input.int(15, "SL/TP çizgileri kaç mum ileri uzasın", minval=3, maxval=100)
+showStats  = input.bool(true, "İstatistik tablosu (geçmiş Giriş sinyallerinin testi)")
+statsPos   = input.string("Sağ üst", "İstatistik tablosu konumu", options=["Sağ üst", "Sağ alt", "Sol üst", "Sol alt"])
+maxHold    = input.int(30, "Test: işlem en fazla kaç mum açık kalsın (SÜRE)", minval=1, maxval=200)
+izOn       = input.bool(true, "Iz süren stop: Giriş sinyalinden sonra stop çizgisini ve çıkışı göster (trend takibi)")
+izTrail    = input.int(10, "Iz süren stop: stop son kaç mumun dibine çekilsin", minval=2, maxval=60)
+izArm      = input.float(1.0, "Iz süren stop: fiyat girişin kaç R üstünü görünce stop girişe çekilsin ve iz sürsün", step=0.25, minval=0.0)
+izEma      = input.bool(false, "EMA10 ve EMA21 ve EMA50 çizgilerini göster")
+izManual   = input.bool(false, "Iz süren stop: MANUEL giriş kullan (açıkken botun Giriş sinyalleri yerine aşağıdaki tarih ve fiyat kullanılır)")
+izManTime  = input.time(timestamp("29 Oct 2026 00:00 +0300"), "Iz süren stop: manuel giriş tarihi (aldığın mumun günü)")
+izManPx    = input.float(0.0, "Iz süren stop: manuel giriş fiyatı (0 = o günün kapanışı)", step=0.01)
+showDiag   = input.bool(true, "Teşhis tablosunu göster (sol orta)")
+showNums   = input.bool(true, "Etiketin üzerinde sayıları göster (kapalıysa kısa etiket)")
+dbg        = input.bool(false, "Hata ayıklama: sinyal olmayan mumların altına neden (harf + değer) yazsın")
+dbgBars    = input.int(80, "Hata ayıklama: kaç mum geriye", minval=10, maxval=300)
+
+// ---------- Temel hesaplar ----------
+adr    = (ta.sma(high / low, 20) - 1) * 100
+ema50  = ta.ema(close, 50)
+ema21  = ta.ema(close, 21)
+ema10  = ta.ema(close, 10)
+volAvg = ta.sma(volume, 50)
+
+rngPct    = (high - low) / close * 100
+recentRng = ta.sma(rngPct, nC)
+priorRng  = ta.sma(rngPct, 15)[nC]
+tightVal  = recentRng / adr
+shrinkVal = recentRng / priorRng
+
+closeBoxVal = (ta.highest(close, nC) / ta.lowest(close, nC) - 1) * 100 / adr
+bodyBox10 = (ta.highest(math.max(open, close), 10) / ta.lowest(math.min(open, close), 10) - 1) * 100 / adr
+lowNow      = ta.lowest(low, nC)
+lowPrev     = ta.lowest(low, 10)[nC]
+lowDiff     = (lowNow - lowPrev) / close * 100 / adr
+lowsOk      = not useLows or (lowDiff >= -lowTolADR and lowDiff <= lowUpADR)
+
+sma3    = ta.sma(close, 3)
+riseVal = (sma3 / sma3[nC] - 1) * 100 / adr
+riseOkN = not useRise or (riseVal >= riseMin and riseVal <= riseMax)
+riseOkW = not useRise or (riseVal >= riseMin and riseVal <= riseMaxD)
+
+// son 3 kapanışın eğimi: son 3 kapanış ort. - önceki 3 kapanış ort.
+slopeVal = (sma3 / sma3[3] - 1) * 100 / adr
+slopeOkN = not useSlope or (slopeVal >= slopeMin and slopeVal <= slopeMax)
+slopeOkW = not useSlope or (slopeVal >= slopeMinD and slopeVal <= slopeMaxD)
+
+// sinyal mumunun şekli: aralık (c) ve kapanış konumu (p)
+candRng  = (high - low) / close * 100 / adr
+closePos = high > low ? (close - low) / (high - low) : 0.5
+candOk   = not useCandle or (candRng <= maxCandle and closePos >= minClosePos and closePos <= maxClosePos)
+jumpVal  = math.abs(close - close[1]) / close[1] * 100 / adr
+jumpOk   = not useJump or na(jumpVal) or jumpVal <= jumpMax
+volSma20 = ta.sma(volume, 20)
+volRatio = volSma20 > 0 ? volume / volSma20 : na
+volOk    = not useVolSig or na(volRatio) or volRatio <= volMaxX
+redSig   = (open - close) / close * 100 / adr
+redOk    = not useRedSig or redSig <= sigRedMax
+emaSlope = (ema21 / ema21[10] - 1) * 100 / adr
+emaDist  = (close - ema21) / close * 100 / adr
+emaOk    = not useEmaTr or na(emaSlope) or (emaSlope >= emaSlopeMin and emaDist >= -emaBelowMax)
+dd40     = (ta.highest(close, 40) - close) / close * 100 / adr
+ddOk     = ddMax <= 0 or na(dd40) or dd40 <= ddMax
+rallyOk  = rallyU <= 0 or not (riseVal > rallyU and dd40 < rallyDd)
+bodyFr   = ta.sma(high > low ? math.abs(close - open) / (high - low) : 0.5, nC)
+warmOk   = bar_index >= warmup
+
+// kısa sıkışma penceresi (son nS mum)
+recentRngS   = ta.sma(rngPct, nS)
+priorRngS    = ta.sma(rngPct, 15)[nS]
+tightValS    = recentRngS / adr
+shrinkValS   = recentRngS / priorRngS
+closeBoxValS = (ta.highest(close, nS) / ta.lowest(close, nS) - 1) * 100 / adr
+
+tightLong  = tightVal <= tightADR and shrinkVal <= shrink and closeBoxVal <= closeBoxADR
+tightShort = useShort and tightValS <= tightS and shrinkValS <= shrinkS and closeBoxValS <= boxS
+
+tightCore = (tightLong or tightShort) and lowsOk and (na(bodyFr) or bodyFr >= bodyFrac)
+// geniş sınırlarla kapı: düşen çizgi aramasını tetikler (dar sınırlar bunun alt kümesi)
+tightOk   = tightCore and riseOkW and slopeOkW
+strong    = (tightLong and shrinkVal <= strongShrink and closeBoxVal <= strongBox) or tightShort
+// EMA50 şartı sadece Giriş (tetik) için geçerli, daralma etiketini etkilemez
+entryTrendOk = not useTrend or close > ema50
+stopLvl   = ta.lowest(low, nC)
+
+bodyTol  = bodyADR * adr / 100 * close
+bodyTolD = bodyADRD * adr / 100 * close
+touchTol = touchADR * adr / 100 * close
+rankTol  = rankADR * adr / 100 * close
+wickAbs  = wickADR * adr / 100 * close
+
+bodyTop = math.max(open, close)
+bodyBot = math.min(open, close)
+b7Val   = (ta.highest(bodyTop, 7) / ta.lowest(bodyBot, 7) - 1) * 100 / adr
+b7Ok    = b7Max <= 0 or b7Val <= b7Max
+lcCnt   = (close < close[1] ? 1 : 0) + (close[1] < close[2] ? 1 : 0) + (close[2] < close[3] ? 1 : 0) + (close[3] < close[4] ? 1 : 0) + (close[4] < close[5] ? 1 : 0)
+lcOk    = lcMax <= 0 or lcCnt <= lcMax
+// KUTU modu: son boxN mumun gövde kutusu ve fitilli kutusu (ADR katı); direnç = kutunun gövde tepesi
+boxTop     = ta.highest(bodyTop, boxN)
+boxBodyVal = (boxTop / ta.lowest(bodyBot, boxN) - 1) * 100 / adr
+boxHLVal   = (ta.highest(high, boxN) / ta.lowest(low, boxN) - 1) * 100 / adr
+hiBoxN     = ta.highest(high, boxN)
+loBoxN     = ta.lowest(low, boxN)
+hiNC       = ta.highest(high, nC)
+loNC       = ta.lowest(low, nC)
+hiDrawN    = ta.highest(high, boxDrawN)
+loDrawN    = ta.lowest(low, boxDrawN)
+boxOk      = useBox and boxBodyVal <= boxBody and boxHLVal <= boxHL and candOk and jumpOk and volOk and redOk
+// yatay seviye kaynağı: fitil tepesi ya da gövde tepesi
+srcT = levelSrc == "Gövde" ? bodyTop : high
+hb1 = ta.highest(srcT[1], nC)
+
+// ---------- Yatay direnç taraması (bugünkü mum hariç: i = 1'den başlar) ----------
+f_hor(float L) =>
+    int span = 0
+    int tc = 0
+    int tb = 0
+    int firstT = -1
+    int lastT = -1
+    int cl = 0
+    bool prevT = false
+    bool prevB = false
+    for i = 1 to lookback
+        if i >= bar_index
+            break
+        if bodyTop[i] > L + bodyTol or high[i] > L + wickAbs
+            break
+        span += 1
+        bool isT = math.abs(srcT[i] - L) <= touchTol
+        if isT
+            tc += 1
+            if not prevT
+                cl += 1
+            if lastT < 0
+                lastT := i
+            firstT := i
+        prevT := isT
+        bool isB = math.abs(srcT[i] - L) <= rankTol
+        if isB and (not tbCl or not prevB)
+            tb += 1
+        prevB := isB
+
+
+    float mxH = L
+    if firstT >= 0
+        for j = 0 to firstT
+            mxH := math.max(mxH, high[j])
+    float gs = 0.0
+    for i = 0 to nC - 1
+        gs += (L - close[i]) / close[i] * 100
+    float aG = gs / nC / adr
+    float lG = (L - close) / close * 100 / adr
+    float ov = (mxH - L) / close * 100 / adr
+    [span, tc, tb, firstT, lastT, aG, lG, ov, cl]
+
+f_ok(int sp, int tc, int ft, int lt, float aG, float lG, float ov, int cl, int tb) =>
+    allowHoriz and sp >= minSpanH and tc >= minTouches and lt >= 0 and lt <= lastTouchMax and (ft - lt) >= touchSpan and aG <= nearADRH and lG <= lastNearH and lG >= 0 and ov <= maxOv and cl >= minClusters and tb >= minTb
+
+// tablo için: önceki nC mumun en yüksek seviyesi
+[sp1, tc1, tb1, ft1, lt1, ag1, lg1, ov1, cl1] = f_hor(hb1)
+
+// aday seviyeler: önceki mumların tepeleri (bugünkü mum aday olamaz), en çok temas edeni seç
+float hL   = na
+int hSpan  = 0
+int hTc    = 0
+int hTb    = -1
+int hFirst = 0
+int hLt    = -1
+int hRng   = 0
+float hAG  = na
+float hLG  = na
+float hOv  = na
+int hCl    = 0
+
+for k = 1 to math.max(nC, lastTouchMax) + 9
+    if k < bar_index
+        float cand = srcT[k]
+        [c_sp, c_tc, c_tb, c_ft, c_lt, c_ag, c_lg, c_ov, c_cl] = f_hor(cand)
+        if f_ok(c_sp, c_tc, c_ft, c_lt, c_ag, c_lg, c_ov, c_cl, c_tb) and (c_tb > hTb or (c_tb == hTb and cand > nz(hL, 0.0)))
+            hL := cand
+            hSpan := c_sp
+            hTc := c_tc
+            hTb := c_tb
+            hFirst := c_ft
+            hLt := c_lt
+            hRng := c_ft - c_lt
+            hAG := c_ag
+            hLG := c_lg
+            hOv := c_ov
+            hCl := c_cl
+
+// ---------- Pivot tepeleri sakla ----------
+var array<float> pP = array.new<float>()
+var array<int>   pX = array.new<int>()
+ph = ta.pivothigh(high, pvL, pvR)
+if not na(ph)
+    pP.push(ph)
+    pX.push(bar_index - pvR)
+    if pP.size() > 20
+        pP.shift()
+        pX.shift()
+
+// geçici kopya: bu mumun yükseği de aday uç nokta olabilir (düşen çizgi için)
+array<float> pPt = pP.copy()
+array<int>   pXt = pX.copy()
+if high >= high[1]
+    pPt.push(high)
+    pXt.push(bar_index)
+
+// ---------- Düşen / eğimli direnç çizgisi ----------
+int bestTc    = 0
+int bestTcT   = -1
+int bestXA    = 0
+float bestPA  = na
+float bestSl  = 0.0
+float bestLn  = na
+float bestAG  = na
+float bestLG  = na
+float bestSN  = na
+float bestOv  = na
+
+int dScore    = -1
+int dTc       = 0
+float dAG     = na
+float dLG     = na
+float dSN     = na
+
+int rejBody  = 0
+int rejWick  = 0
+int nPass    = 0
+int tried    = 0
+int n        = math.min(pPt.size(), pXt.size())
+
+if (tightOk or barstate.islast) and n >= 2
+    for ia = 0 to n - 2
+        for ib = ia + 1 to n - 1
+            int xA = pXt.get(ia)
+            int xB = pXt.get(ib)
+            if xB - xA >= minSpan and bar_index - xA <= lookback
+                float pa = pPt.get(ia)
+                float pb = pPt.get(ib)
+                float sl = (pb - pa) / (xB - xA)
+                tried += 1
+                bool wickBad = false
+                int viol = 0
+                int tc = 0
+                int tcT = 0
+                int clD = 0
+                int lastTbI = -99
+                float mxOv = 0.0
+                float mxBody = 0.0
+                for i = 0 to bar_index - xA
+                    float lv = pb + sl * (bar_index - i - xB)
+                    if high[i] > lv + wickAbs
+                        wickBad := true
+                        break
+                    mxOv := math.max(mxOv, (high[i] - lv) / close * 100 / adr)
+                    mxBody := math.max(mxBody, (math.max(open[i], close[i]) - lv) / close * 100 / adr)
+                    if math.max(open[i], close[i]) > lv + bodyTolD
+                        viol += 1
+                    if high[i] >= lv - touchTol
+                        tc += 1
+                    bool isTb = math.abs(high[i] - lv) <= rankTol
+                    if isTb
+                        tcT += 1
+                    if i >= 1 and isTb
+                        if i - lastTbI > clMerge
+                            clD += 1
+                        lastTbI := i
+                float lineLen = bar_index - xA + 1
+                bool violBad = viol > maxViol or (viol / lineLen * 100 > violPct) or mxBody > bodyPokeMax
+                bool belowBad = false
+                if useBelow
+                    for i = 0 to 4
+                        float lvB = pb + sl * (bar_index - i - xB)
+                        if lvB < bodyTop[i] - bodyTolD
+                            belowBad := true
+                            break
+                if wickBad
+                    rejWick += 1
+                else if violBad or belowBad
+                    rejBody += 1
+                else
+                    float lnN = pb + sl * (bar_index - xB)
+                    float gs = 0.0
+                    for i = 0 to nC - 1
+                        gs += (pb + sl * (bar_index - i - xB) - close[i]) / close[i] * 100
+                    float aG = gs / nC / adr
+                    float lG = (lnN - close) / close * 100 / adr
+                    float sN = sl * (xB - xA) / pa * 100 / adr
+                    bool cTouch = tc >= minTouches
+                    bool cType  = (allowFlat and sN >= -flatBand and sN <= flatUp) or (allowDesc and sN < -flatBand and sN >= -maxDesc)
+                    bool cAvg   = aG <= nearADR
+                    bool cLast  = lG <= lastNear and lG >= 0
+                    int score = (cTouch ? 1 : 0) + (cType ? 1 : 0) + (cAvg ? 1 : 0) + (cLast ? 1 : 0)
+                    if score >= dScore
+                        dScore := score
+                        dTc := tc
+                        dAG := aG
+                        dLG := lG
+                        dSN := sN
+                    if score == 4 and mxOv <= maxOv and tcT >= minTcD and clD >= minClD
+                        nPass += 1
+                        if na(bestPA) or tcT > bestTcT or (tcT == bestTcT and pa > bestPA)
+                            bestTcT := tcT
+                            bestTc := tc
+                            bestXA := xA
+                            bestPA := pa
+                            bestSl := sl
+                            bestLn := lnN
+                            bestAG := aG
+                            bestLG := lG
+                            bestSN := sN
+                            bestOv := mxOv
+
+// ---------- KUTU modu: çizgi yok ya da trend filtreleri engelliyor ama uzun yatay kutu var ----------
+normalOk = (hSpan > 0 or (tightOk and bestTc > 0)) and tightCore and emaOk and ddOk and rallyOk
+boxMode  = boxOk and not normalOk
+if boxMode
+    bestTc  := 0
+    bestTcT := -1
+    bestXA  := 0
+    bestPA  := na
+    bestSl  := 0.0
+    bestLn  := na
+    bestAG  := na
+    bestLG  := na
+    bestSN  := na
+    bestOv  := na
+    hL      := boxTop
+    hSpan   := boxN
+    hTc     := 0
+    hTb     := 0
+    hFirst  := boxN
+
+// ---------- Mod seçimi, kilitler ve kırılım sonrası engel ----------
+foundD   = bestTc > 0
+foundH   = hSpan > 0
+found    = foundD or foundH
+flatD    = foundD and math.abs(nz(bestSN)) <= flatBand
+
+var float hLock  = na
+var int   hLockX = na
+var int   lastSetupBar = na
+var int   lastBreakBar = na
+var int   lastCancelBar = na
+var bool  lblLive = false
+var bool  lnIsH  = false
+var float dLockPA = na
+var float dLockSl = na
+var int   dLockXA = na
+
+brokeOut = not na(hLock) and close > hLock + bodyTol
+if brokeOut
+    lastBreakBar := bar_index
+stale = not na(hLock) and not na(lastSetupBar) and bar_index - lastSetupBar > holdBars
+if brokeOut or stale
+    hLock := na
+    hLockX := na
+
+float dLn = na
+if not na(dLockPA)
+    dLn := dLockPA + dLockSl * (bar_index - dLockXA)
+dBroke = not na(dLn) and close > dLn + bodyTol
+if dBroke
+    lastBreakBar := bar_index
+dStale = not na(dLn) and not na(lastSetupBar) and bar_index - lastSetupBar > holdBars
+if dBroke or dStale
+    dLockPA := na
+    dLockSl := na
+    dLockXA := na
+    dLn := na
+
+bool useH = false
+if not na(hLock)
+    useH := true
+else if not na(dLockPA)
+    useH := false
+else if modePref == "Düşen"
+    useH := foundH and not foundD
+else if modePref == "Yatay"
+    useH := foundH
+else
+    useH := foundH and (not foundD or flatD or hTb > bestTcT)
+
+// geniş u/s sınırları sadece DÜŞEN çizgi seçildiyse; yatay modda dar sınırlar
+riseOkSel  = useH ? riseOkN : riseOkW
+slopeOkSel = useH ? slopeOkN : slopeOkW
+modeOk     = riseOkSel and slopeOkSel
+
+// seçili çizgiye göre son kapanışın uzaklığı (y)
+float lnForY = useH ? nz(hLock, hL) : nz(dLn, bestLn)
+yVal = (lnForY - close) / close * 100 / adr
+yOk  = not useClose or na(yVal) or yVal <= closeNearY
+
+// yatay modda dipler çok yükselmişse sinyal yok (varsayılan kapalı)
+dOkH = not useH or not useLowsH or lowDiff <= lowUpH
+
+dnOk = dnMinTb <= 0 or boxMode or useH or not (emaSlope <= dnSlope and emaDist < 0) or bestTcT >= dnMinTb
+spOk = dnMinSp <= 0 or boxMode or useH or (bar_index - bestXA + 1) >= dnMinSp
+shrOk = shrinkMinD <= 0 or boxMode or useH or na(shrinkVal) or shrinkVal >= shrinkMinD
+ebOk  = boxMode or useH or not (emaDist < 0 and slopeVal < dnBelowSlope)
+hdOk = not hDnBlock or boxMode or not useH or not (emaSlope <= dnSlope and emaDist < 0)
+ybOk = yBodyMax <= 0 or boxMode or not useH or bodyBox10 <= yBodyMax
+setupRaw = found and (tightCore or boxMode) and modeOk and yOk and dOkH and candOk and jumpOk and volOk and redOk and (emaOk or boxMode) and (ddOk or boxMode) and (rallyOk or boxMode) and b7Ok and lcOk and dnOk and spOk and hdOk and ybOk and shrOk and ebOk and warmOk
+
+blocked = (not na(lastBreakBar) and bar_index - lastBreakBar <= cooldown) or (not na(lastCancelBar) and bar_index - lastCancelBar <= cancelBlock) or (not na(lastSetupBar) and bar_index - lastSetupBar <= cooldown and not lblLive)
+setup   = setupRaw and not brokeOut and not blocked and (not onlyStrong or strong)
+
+newLock = setup and useH and na(hLock)
+if newLock
+    hLock := hL
+    hLockX := bar_index - math.min(hFirst, maxLineBack)
+
+newDLock = setup and not useH and na(dLockPA)
+if newDLock
+    dLockPA := bestPA
+    dLockSl := bestSl
+    dLockXA := bestXA
+    dLn := bestLn
+
+selLn = useH ? nz(hLock, hL) : nz(dLn, bestLn)
+selSl = useH ? 0.0 : nz(dLockSl, bestSl)
+selXA = useH ? nz(hLockX, bar_index - math.min(hFirst, maxLineBack)) : nz(dLockXA, bestXA)
+selPA = useH ? selLn : nz(dLockPA, bestPA)
+
+// ---------- Etiket durumu, stop iptali, sert kırmızı mum iptali ve tetik ----------
+var int   lblBar   = na
+var float lblStop  = na
+var float lblClose = na
+var bool  armed    = false
+var label lastLbl  = na
+var line  setLine  = na
+var box   setBox   = na
+var float lnY      = na
+var float lnSl     = na
+var int   lnBar    = na
+
+float stopInv = na(lblStop) ? na : lblStop - stopBuf * adr / 100 * close
+float redBody = (open - close) / close * 100 / adr
+bool stopHit = useStop and not na(stopInv) and close < stopInv
+bool redHit  = useRedKill and not na(lblBar) and bar_index > lblBar and redBody >= redKillADR
+bool dropHit = useDrop and not na(lblClose) and bar_index > lblBar and (lblClose - close) / close * 100 / adr >= dropADR
+bool invalid = armed and (stopHit or redHit or dropHit)
+
+if invalid
+    armed := false
+    if not na(lastLbl)
+        if hideCancelled
+            label.delete(lastLbl)
+            lastLbl := na
+        else
+            label.set_color(lastLbl, color.new(color.gray, 85))
+            label.set_text(lastLbl, "iptal")
+    if hideCancelled and not na(setLine)
+        line.delete(setLine)
+        setLine := na
+    if hideCancelled and not na(setBox)
+        box.delete(setBox)
+        setBox := na
+    hLock := na
+    hLockX := na
+    dLockPA := na
+    dLockSl := na
+    dLockXA := na
+    lastCancelBar := bar_index
+    lblLive := false
+    lastSetupBar := na
+
+projNow = lnY + lnSl * (bar_index - lnBar)
+inWin   = armed and not na(lblBar) and bar_index > lblBar and bar_index - lblBar <= trigWin
+trigger = inWin and not invalid and close > projNow and (not useAboveLbl or close > nz(lblClose, 0.0)) and entryTrendOk and (trigVol == 0 or volume > volAvg * trigVol)
+if trigger
+    armed := false
+    lastBreakBar := bar_index
+if armed and not na(lblBar) and bar_index - lblBar >= trigWin
+    armed := false
+
+// ---------- Setup kaydı ve tek çizgi ----------
+newSetup = setup and not invalid and (na(lastSetupBar) or bar_index - lastSetupBar > cooldown)
+
+if setup and not invalid
+    lastSetupBar := bar_index
+    lnY := selLn
+    lnSl := selSl
+    lnBar := bar_index
+    lnIsH := useH
+    if newSetup
+        lblBar := bar_index
+        lblStop := stopLvl
+        lblClose := close
+        lblLive := true
+        armed := true
+    lineCol = useH ? color.blue : color.orange
+    if newSetup or newLock or newDLock or na(setLine)
+        if onlyLast and not na(setLine)
+            line.delete(setLine)
+        setLine := line.new(selXA, selPA, bar_index, selLn, color=lineCol, width=2)
+    else
+        line.set_xy1(setLine, selXA, selPA)
+        line.set_xy2(setLine, bar_index, selLn)
+        line.set_color(setLine, lineCol)
+
+setupRecent = ta.barssince(setup) <= 3
+stopPct     = (close - stopLvl) / close * 100
+
+// ---------- Hata ayıklama: neden sinyal yok (harf + değer) ----------
+string why = ""
+if not (tightLong or tightShort)
+    if tightVal > tightADR
+        why := why + "m "
+    if shrinkVal > shrink
+        why := why + "r "
+    if closeBoxVal > closeBoxADR
+        why := why + "k "
+if not lowsOk
+    why := why + "d" + str.tostring(lowDiff, "#.##") + " "
+if not riseOkSel
+    why := why + "u" + str.tostring(riseVal, "#.##") + " "
+if not slopeOkSel
+    why := why + "s" + str.tostring(slopeVal, "#.##") + " "
+if not yOk
+    why := why + "y" + str.tostring(yVal, "#.##") + " "
+if not dOkH
+    why := why + "D" + str.tostring(lowDiff, "#.##") + " "
+if not candOk
+    why := why + "c" + str.tostring(candRng, "#.##") + "/p" + str.tostring(closePos, "#.##") + " "
+if not jumpOk
+    why := why + "j" + str.tostring(jumpVal, "#.##") + " "
+if not volOk
+    why := why + "v" + str.tostring(volRatio, "#.##") + " "
+if not redOk
+    why := why + "g" + str.tostring(redSig, "#.##") + " "
+if not emaOk
+    why := why + "e" + str.tostring(emaSlope, "#.##") + "/" + str.tostring(emaDist, "#.##") + " "
+if not ddOk
+    why := why + "T" + str.tostring(dd40, "#.#") + " "
+if not rallyOk
+    why := why + "R "
+if not hdOk
+    why := why + "H "
+if not ybOk
+    why := why + "Y" + str.tostring(bodyBox10, "#.##") + " "
+if not b7Ok
+    why := why + "b7_" + str.tostring(b7Val, "#.##") + " "
+if not lcOk
+    why := why + "lc" + str.tostring(lcCnt) + " "
+if not dnOk
+    why := why + "dn" + str.tostring(bestTcT) + " "
+if not spOk
+    why := why + "sp" + str.tostring(bar_index - bestXA + 1) + " "
+if not shrOk
+    why := why + "rl" + str.tostring(shrinkVal, "#.00") + " "
+if not ebOk
+    why := why + "eb "
+if not (na(bodyFr) or bodyFr >= bodyFrac)
+    why := why + "bf" + str.tostring(bodyFr, "#.##") + " "
+if setup
+    why := why + "SETUP "
+if newSetup
+    why := why + "NEW "
+if not warmOk
+    why := why + "W "
+if tightOk and not found
+    why := why + "L "
+if setupRaw and (blocked or brokeOut)
+    why := why + "B "
+if dbg and why != "" and bar_index >= last_bar_index - dbgBars
+    label.new(bar_index, low, why, style=label.style_label_up, color=color.new(color.red, 55), textcolor=color.white, size=size.tiny)
+
+// engel kaynağı: hangi olay "kırılım sonrası engel"i başlattı (sadece hata ayıklama)
+brkTxt = (brokeOut ? "kırılımH " : "") + (dBroke ? "kırılımD " : "") + (invalid ? "iptal " : "") + (trigger ? "GİRİŞ " : "")
+if dbg and brkTxt != "" and bar_index >= last_bar_index - dbgBars
+    label.new(bar_index, high, brkTxt, style=label.style_label_down, color=color.new(color.blue, 30), textcolor=color.white, size=size.tiny)
+
+// ---------- Grafik ----------
+if newSetup
+    int tcShow = useH ? hTc : bestTc
+    float ovShow = useH ? nz(hOv) : nz(bestOv)
+    string lbl = "Fiyat Daralması" + (tightShort and not tightLong ? " (kısa)" : "")
+    if showNums
+        lbl := lbl + "\n" + (boxMode ? "K" : (useH ? "Y" : "D")) + " r" + str.tostring(shrinkVal, "#.##") + " k" + str.tostring(closeBoxVal, "#.##") + "\nm" + str.tostring(tightVal, "#.##") + " d" + str.tostring(lowDiff, "#.##") + " t" + str.tostring(tcShow) + " w" + str.tostring(ovShow, "#.#") + " u" + str.tostring(riseVal, "#.##") + "\nrs" + str.tostring(shrinkValS, "#.##") + " ks" + str.tostring(closeBoxValS, "#.##") + " s" + str.tostring(slopeVal, "#.##") + " y" + str.tostring(yVal, "#.##") + "\nc" + str.tostring(candRng, "#.##") + " p" + str.tostring(closePos, "#.##") + " yt" + str.tostring(hTb) + " yk" + str.tostring(hCl) + " dt" + str.tostring(bestTcT) + " j" + str.tostring(jumpVal, "#.##") + " v" + str.tostring(volRatio, "#.#") + " g" + str.tostring(redSig, "#.##") + " e" + str.tostring(emaSlope, "#.##")
+    float lblY = math.max(high, nz(selLn, high))
+    if showBox
+        setBox := box.new(bar_index - (boxMode ? boxN : boxDrawN) + 1, boxMode ? hiBoxN : hiDrawN, bar_index, boxMode ? loBoxN : loDrawN, border_color=strong ? color.orange : color.gray, border_style=line.style_dashed, bgcolor=color.new(strong ? color.orange : color.gray, 88))
+    lastLbl := label.new(bar_index, lblY, lbl, style=label.style_label_down, color=strong ? color.orange : color.gray, textcolor=color.white, size=size.tiny)
+
+plotshape(trigger, "Tetik", shape.labelup, location.belowbar,
+     color=color.green, textcolor=color.white, text="Giriş", size=size.tiny)
+
+// ---------- SMC direnç: üzerine hiç çıkılmamış swing tepeleri ----------
+var array<float> sP = array.new<float>()
+var array<int>   sX = array.new<int>()
+smcPh = ta.pivothigh(high, smcL, smcR)
+// iğneyle bile alınmış (bu mumun yükseği dahil) ya da çok eski seviyeleri sil
+if sP.size() > 0
+    for i = sP.size() - 1 to 0
+        if high > sP.get(i) or bar_index - sX.get(i) > smcLook
+            sP.remove(i)
+            sX.remove(i)
+if not na(smcPh)
+    sP.push(smcPh)
+    sX.push(bar_index - smcR)
+    if sP.size() > 60
+        sP.shift()
+        sX.shift()
+
+// ---------- Giriş: SL ve TP1 (giriş = sinyal mumunun kapanışı, SL = o mumun dibi) ----------
+float entrySL      = low
+float entryRisk    = close - low
+float entryTP      = close + tpMult * entryRisk
+bool  tpIsSmc      = false
+float smcBuf       = smcBufADR * adr / 100 * close
+
+if trigger and entryRisk > 0 and tpMode == "SMC direnç" and sP.size() > 0
+    float bestTP = na
+    for i = 0 to sP.size() - 1
+        float lvlTP = sP.get(i) - smcBuf
+        if lvlTP - close >= minRR * entryRisk and (na(bestTP) or lvlTP < bestTP)
+            bestTP := lvlTP
+    if not na(bestTP)
+        entryTP := tpMaxR > 0 ? math.min(bestTP, close + tpMaxR * entryRisk) : bestTP
+        tpIsSmc := true
+
+float entryRiskPct = entryRisk / close * 100
+float entryTpPct   = (entryTP / close - 1) * 100
+float entryTpR     = entryRisk > 0 ? (entryTP - close) / entryRisk : na
+
+if trigger and showSLTP and entryRisk > 0
+    line.new(bar_index, close, bar_index + extLen, close, color=color.new(color.gray, 20), style=line.style_dotted, width=1)
+    line.new(bar_index, entrySL, bar_index + extLen, entrySL, color=color.red, width=1)
+    line.new(bar_index, entryTP, bar_index + extLen, entryTP, color=color.green, width=1)
+    label.new(bar_index + extLen, entrySL, "SL " + str.tostring(entrySL, format.mintick) + " (-" + str.tostring(entryRiskPct, "#.##") + "%)", style=label.style_label_left, color=color.red, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + extLen, entryTP, "TP1 " + str.tostring(entryTP, format.mintick) + " (+" + str.tostring(entryTpPct, "#.##") + "%) " + str.tostring(entryTpR, "#.#") + "R" + (tpIsSmc ? " SMC" : ""), style=label.style_label_left, color=color.green, textcolor=color.white, size=size.tiny)
+
+// ---------- Geriye dönük test: Giriş sinyali -> SL = giriş mumu dibi, TP = SMC direnç (ya da sabit R) ----------
+var bool  tInTrade = false
+var float tEntry   = na
+var float tSL      = na
+var float tTP      = na
+var int   tBar     = na
+var float tPlanR   = na
+var int   nTrades  = 0
+var int   nTP      = 0
+var int   nSL      = 0
+var int   nTime    = 0
+var int   nWin     = 0
+var float sumR     = 0.0
+var float sumRet   = 0.0
+var float sumPlan  = 0.0
+var float gWin     = 0.0
+var float gLoss    = 0.0
+
+if tInTrade and bar_index > tBar
+    float exitPx = na
+    int exitWhy = 0
+    if open <= tSL
+        exitPx := open
+        exitWhy := 2
+    else if open >= tTP
+        exitPx := open
+        exitWhy := 1
+    else if low <= tSL
+        exitPx := tSL
+        exitWhy := 2
+    else if high >= tTP
+        exitPx := tTP
+        exitWhy := 1
+    else if bar_index - tBar >= maxHold
+        exitPx := close
+        exitWhy := 3
+    if not na(exitPx)
+        float rr = (exitPx - tEntry) / (tEntry - tSL)
+        nTrades += 1
+        sumR += rr
+        sumRet += (exitPx / tEntry - 1) * 100
+        sumPlan += nz(tPlanR)
+        if rr > 0
+            nWin += 1
+            gWin += rr
+        else
+            gLoss += -rr
+        if exitWhy == 1
+            nTP += 1
+        else if exitWhy == 2
+            nSL += 1
+        else
+            nTime += 1
+        tInTrade := false
+
+if trigger and entryRisk > 0 and not tInTrade
+    tInTrade := true
+    tEntry := close
+    tSL := low
+    tTP := entryTP
+    tPlanR := entryTpR
+    tBar := bar_index
+
+var bool  izIn    = false
+var float izEntry = na
+var float izStop  = na
+var float izR     = na
+var bool  izArmed = false
+var int   izBar   = na
+var int   izN     = 0
+var int   izWin   = 0
+var float izSumR  = 0.0
+var float izGW    = 0.0
+var float izGL    = 0.0
+var float izSumP  = 0.0
+var float izGWp   = 0.0
+var float izGLp   = 0.0
+bool izExit   = false
+bool izRaise  = false
+
+if izOn and izIn and bar_index > izBar
+    float xPx = na
+    if close < izStop   // 06.11.2026: gün KAPANIŞI stopun altındaysa çık (gün içi değme çıkış değil)
+        xPx := close
+    if not na(xPx)
+        float rr = (xPx - izEntry) / izR
+        izN += 1
+        izSumR += rr
+        float pr = (xPx / izEntry - 1) * 100
+        izSumP += pr
+        if pr > 0
+            izGWp += pr
+        else
+            izGLp += -pr
+        if rr > 0
+            izWin += 1
+            izGW += rr
+        else
+            izGL += -rr
+        izExit := true
+        label.new(bar_index, low, "Iz çıkış " + (rr >= 0 ? "+" : "") + str.tostring(rr, "#.##") + "R", style=label.style_label_up, color=rr >= 0 ? color.new(color.green, 10) : color.new(color.red, 10), textcolor=color.white, size=size.tiny)
+        izIn := false
+    else
+        float prevStop = izStop
+        if not izArmed and high >= izEntry + izArm * izR
+            izArmed := true
+            izStop := math.max(izStop, izEntry)
+        if izArmed
+            int izSpan = math.min(izTrail, bar_index - izBar)
+            float m = low
+            if izSpan > 1
+                for j = 1 to izSpan - 1
+                    m := math.min(m, low[j])
+            izStop := math.max(izStop, m)
+        izRaise := izStop > prevStop
+
+bool manStart = izManual and time >= izManTime and nz(time[1]) < izManTime
+bool botStart = not izManual and trigger and entryRisk > 0 and not izIn
+float izEntryPx = manStart and izManPx > 0 ? izManPx : close
+if izOn and (botStart or manStart) and izEntryPx > low
+    izIn := true
+    izEntry := izEntryPx
+    izStop := low
+    izR := izEntryPx - low
+    izArmed := false
+    izBar := bar_index
+
+winRate = nTrades > 0 ? nWin / nTrades * 100 : na
+avgR    = nTrades > 0 ? sumR / nTrades : na
+avgRet  = nTrades > 0 ? sumRet / nTrades : na
+avgPlan = nTrades > 0 ? sumPlan / nTrades : na
+beRate  = nTrades > 0 ? 100 / (1 + avgPlan) : na
+profitF = gLoss > 0 ? gWin / gLoss : na
+
+stPos = statsPos == "Sağ üst" ? position.top_right : statsPos == "Sağ alt" ? position.bottom_right : statsPos == "Sol üst" ? position.top_left : position.bottom_left
+var table st = table.new(stPos, 2, 14, bgcolor=color.new(color.black, 15), border_width=1, border_color=color.new(color.gray, 60))
+f_st(int r, string a, string b, color c) =>
+    table.cell(st, 0, r, a, text_color=color.new(color.white, 25), text_size=size.small, text_halign=text.align_left)
+    table.cell(st, 1, r, b, text_color=c, text_size=size.small, text_halign=text.align_left)
+if barstate.islast and showStats
+    color cGood = color.new(color.lime, 0)
+    color cBad  = color.new(color.red, 0)
+    color cNeu  = color.white
+    f_st(0, "Geriye dönük test", "SL: mum dibi | TP: " + (tpMode == "SMC direnç" ? "SMC direnç" : str.tostring(tpMult, "#.#") + "R"), color.new(color.yellow, 0))
+    f_st(1, "İşlem", str.tostring(nTrades), cNeu)
+    f_st(2, "Kazanma oranı", nTrades > 0 ? "%" + str.tostring(winRate, "#") : "-", nTrades == 0 ? cNeu : winRate >= beRate ? cGood : cBad)
+    f_st(3, "TP / STOP / SÜRE", str.tostring(nTP) + " / " + str.tostring(nSL) + " / " + str.tostring(nTime), cNeu)
+    f_st(4, "Ort. getiri", nTrades > 0 ? str.tostring(avgRet, "#.##") + "%" : "-", nTrades == 0 ? cNeu : avgRet >= 0 ? cGood : cBad)
+    f_st(5, "Ort. R", nTrades > 0 ? str.tostring(avgR, "#.##") + " R" : "-", nTrades == 0 ? cNeu : avgR >= 0 ? cGood : cBad)
+    f_st(6, "Profit factor", nTrades == 0 ? "-" : gLoss > 0 ? str.tostring(profitF, "#.##") : "∞", nTrades == 0 ? cNeu : (gLoss > 0 ? profitF >= 1 : true) ? cGood : cBad)
+    f_st(7, "Ort. hedef (R)", nTrades > 0 ? str.tostring(avgPlan, "#.##") + " R" : "-", cNeu)
+    f_st(8, "Başa baş oranı", nTrades > 0 ? "%" + str.tostring(beRate, "#") : "-", cNeu)
+    f_st(9, "Pozisyon", tInTrade ? "Long" : "Flat", tInTrade ? cGood : cNeu)
+    if izOn
+        float izPF = izGL > 0 ? izGW / izGL : na
+        f_st(10, "Iz" + str.tostring(izTrail) + " işlem", str.tostring(izN) + (izN > 0 ? " | kazanma %" + str.tostring(izWin / izN * 100, "#") : ""), color.new(color.orange, 0))
+        f_st(11, "Iz" + str.tostring(izTrail) + " ort. getiri / PF", izN > 0 ? str.tostring(izSumP / izN, "#.##") + "% / " + (izGLp > 0 ? str.tostring(izGWp / izGLp, "#.##") : "∞") : "-", izN == 0 ? cNeu : izSumP >= 0 ? cGood : cBad)
+        f_st(12, "Iz" + str.tostring(izTrail) + " açık işlem", izIn ? "stop " + str.tostring(izStop, format.mintick) + (izArmed ? " (iz sürüyor)" : " (+1R yok)") : "yok", izIn ? cGood : cNeu)
+        f_st(13, "Iz" + str.tostring(izTrail) + " başa baş oranı", izN > izWin and izWin > 0 ? "%" + str.tostring(izGLp / (izN - izWin) / (izGWp / izWin + izGLp / (izN - izWin)) * 100, "#") : "-", cNeu)
+
+// ---------- Teşhis tablosu (grafiğin SON mumuna ait) ----------
+shTc = foundD ? bestTc : dTc
+shSN = foundD ? bestSN : dSN
+shAG = foundD ? bestAG : dAG
+shLG = foundD ? bestLG : dLG
+
+shHSp = foundH ? hSpan : sp1
+shHTc = foundH ? hTc : tc1
+shHRg = foundH ? hRng : ft1 - lt1
+shHAG = foundH ? hAG : ag1
+shHLG = foundH ? hLG : lg1
+shHOv = foundH ? nz(hOv) : ov1
+shHLt = foundH ? hLt : lt1
+shHCl = foundH ? hCl : cl1
+shHTb = foundH ? hTb : tb1
+
+shOv = useH ? nz(hOv) : nz(bestOv)
+
+var table t = table.new(position.middle_left, 3, 41, bgcolor=color.new(color.black, 75))
+f_row(int r, string name, float val, float lim, bool ok) =>
+    table.cell(t, 0, r, name, text_color=color.white, text_size=size.small)
+    table.cell(t, 1, r, str.tostring(val, "#.##") + " / " + str.tostring(lim, "#.##"), text_color=color.white, text_size=size.small)
+    table.cell(t, 2, r, ok ? "✔" : "✘", text_color=ok ? color.lime : color.red, text_size=size.small)
+if barstate.islast and showDiag
+    f_row(0, "Mum aralığı/ADR", tightVal, tightADR, tightVal <= tightADR)
+    f_row(1, "Önceki mumlara oran", shrinkVal, shrink, shrinkVal <= shrink)
+    f_row(2, "Kapanış kutusu/ADR", closeBoxVal, closeBoxADR, closeBoxVal <= closeBoxADR)
+    f_row(3, "Dipler (fark/ADR)", lowDiff, lowUpADR, lowsOk)
+    f_row(4, "Elenen: gövde / iğne", rejBody, rejWick, true)
+    f_row(5, "Düşen: geçen aday", nPass, 1, nPass > 0)
+    f_row(6, "Düşen: temas", shTc, minTouches, shTc >= minTouches)
+    f_row(7, "Düşen: eğim (ADR)", shSN, flatBand, (allowFlat and nz(shSN) >= -flatBand and nz(shSN) <= flatUp) or (allowDesc and nz(shSN) < -flatBand and nz(shSN) >= -maxDesc))
+    f_row(8, "Düşen: ort. uzaklık", shAG, nearADR, not na(shAG) and shAG <= nearADR)
+    f_row(9, "Düşen: son uzaklık", shLG, lastNear, not na(shLG) and shLG <= lastNear and shLG >= 0)
+    f_row(10, "Giriş için fiyat EMA50 üstü", close > ema50 ? 1 : 0, 1, entryTrendOk)
+    f_row(11, "Yatay: taban (mum)", shHSp, minSpanH, shHSp >= minSpanH)
+    f_row(12, "Yatay: temas (önceki mumlar)", shHTc, minTouches, shHTc >= minTouches)
+    f_row(13, "Yatay: ilk-son temas", shHRg, touchSpan, shHRg >= touchSpan)
+    f_row(14, "Yatay: ort. uzaklık", shHAG, nearADRH, not na(shHAG) and shHAG <= nearADRH)
+    f_row(15, "Yatay: son uzaklık", shHLG, lastNearH, not na(shHLG) and shHLG <= lastNearH and shHLG >= 0)
+    f_row(16, "Yatay mod geçti", foundH ? 1 : 0, 1, foundH)
+    f_row(17, "Kırılım sonrası engel", blocked ? 1 : 0, 0, not blocked)
+    f_row(18, "Güçlü (oran/kutu)", shrinkVal, strongShrink, strong)
+    f_row(19, "İğne taşması w (seçili)", shOv, maxOv, shOv <= maxOv)
+    f_row(20, "Yaklaşma u (seçili türe göre sınır)", riseVal, useH ? riseMax : riseMaxD, riseOkSel)
+    f_row(21, "Yatay: iğne taşması w", shHOv, maxOv, shHOv <= maxOv)
+    f_row(22, "Yatay: son temas (mum önce)", shHLt, lastTouchMax, shHLt >= 0 and shHLt <= lastTouchMax)
+    f_row(23, "Kısa sıkışma (oran)", shrinkValS, shrinkS, tightShort)
+    f_row(24, "Eğim s (seçili türe göre sınır)", slopeVal, useH ? slopeMax : slopeMaxD, slopeOkSel)
+    f_row(25, "Kapanış uzaklığı y", nz(yVal), closeNearY, yOk)
+    f_row(26, "Yatay: dipler d", lowDiff, lowUpH, dOkH)
+    f_row(27, "Sinyal mumu aralığı c", candRng, maxCandle, candOk)
+    f_row(28, "Silahlı etiket (Giriş bekliyor)", armed ? 1 : 0, 1, armed)
+    f_row(29, "SETUP v54", setup ? 1 : 0, 1, setup)
+    f_row(30, "Yatay: ayrı temas kümesi", shHCl, minClusters, shHCl >= minClusters)
+    f_row(31, "SMC: açık direnç sayısı", sP.size(), 1, sP.size() > 0)
+    f_row(32, "Sinyal mumu sıçrama j", nz(jumpVal), jumpMax, jumpOk)
+    f_row(33, "Sinyal mumu hacim v", nz(volRatio), volMaxX, volOk)
+    f_row(34, "Sinyal mumu kırmızı gövde g", redSig, sigRedMax, redOk)
+    f_row(35, "Trend: EMA21 eğimi e", nz(emaSlope), emaSlopeMin, emaOk)
+    f_row(36, "Trend: 40 mum tepesinden düşüş T", nz(dd40), ddMax, ddOk)
+    f_row(37, "Isınma (mum sayısı)", bar_index, warmup, warmOk)
+    f_row(38, "Kutu: gövde aralığı (kutu modu " + (boxMode ? "AÇIK" : "kapalı") + ")", boxBodyVal, boxBody, boxOk)
+    f_row(39, "Yatay: 10 mum gövde kutusu Y", nz(bodyBox10), yBodyMax, ybOk)
+    f_row(40, "Yatay: düşüş trendinde engel H (EMA21 eğimi)", nz(emaSlope), dnSlope, hdOk)
+
+// ---------- Pine Screener / Data Window ----------
+plot(setup ? 1 : 0, "Setup", display=display.data_window)
+plot(armed ? 1 : 0, "Aktif Setup (silahlı)", display=display.data_window)
+plot(setupRecent ? 1 : 0, "Setup Son 3 Mum", display=display.data_window)
+plot(trigger ? 1 : 0, "Trigger", display=display.data_window)
+plot(close > ema50 ? 1 : 0, "EMA50 Üstü", display=display.data_window)
+plot(setup and useH ? 1 : 0, "Yatay Mod", display=display.data_window)
+plot(setup and strong ? 1 : 0, "Güçlü Setup", display=display.data_window)
+plot(stopPct, "Stop %", display=display.data_window)
+plot(nTrades, "Test: İşlem", display=display.data_window)
+plot(winRate, "Test: Kazanma %", display=display.data_window)
+plot(avgR, "Test: Ort. R", display=display.data_window)
+plot(profitF, "Test: Profit Factor", display=display.data_window)
+plot(trigger ? entrySL : na, "Giriş SL", display=display.data_window)
+plot(trigger ? entryTP : na, "Giriş TP1", display=display.data_window)
+plot(trigger ? entryRiskPct : na, "Giriş Risk %", display=display.data_window)
+plot(trigger ? entryTpR : na, "Giriş Hedef R", display=display.data_window)
+plot(tightVal, "Mum Aralığı/ADR", display=display.data_window)
+plot(closeBoxVal, "Kapanış Kutusu/ADR", display=display.data_window)
+plot(riseVal, "Yaklaşma u", display=display.data_window)
+plot(slopeVal, "Eğim s", display=display.data_window)
+plot(jumpVal, "Sinyal Mumu Sıçrama j", display=display.data_window)
+plot(volRatio, "Sinyal Mumu Hacim v", display=display.data_window)
+plot(redSig, "Sinyal Mumu Kırmızı Gövde g", display=display.data_window)
+plot(emaSlope, "EMA21 Eğimi e", display=display.data_window)
+plot(emaDist, "Kapanış-EMA21 Uzaklığı", display=display.data_window)
+plot(yVal, "Kapanış Uzaklığı y", display=display.data_window)
+plot(lowDiff, "Dipler d", display=display.data_window)
+plot(candRng, "Sinyal Mumu Aralığı c", display=display.data_window)
+plot(closePos, "Kapanış Konumu p", display=display.data_window)
+plot(useH ? hTc : bestTc, "Temas Sayısı", display=display.data_window)
+plot(useH ? hAG : bestAG, "Ort. Çizgi Uzaklığı", display=display.data_window)
+plot(izOn and izIn ? izStop : na, "Iz stop (yarının stopu)", color=color.red, style=plot.style_steplinebr, linewidth=1)
+plot(izEma ? ema10 : na, "EMA10", color=color.new(color.aqua, 0), linewidth=1)
+plot(izEma ? ema21 : na, "EMA21", color=color.new(color.fuchsia, 0), linewidth=1)
+plot(izEma ? ema50 : na, "EMA50", color=color.navy, linewidth=1)
+plot(izIn ? izStop : na, "Iz stop değeri", display=display.data_window)
+plot(izRaise ? 1 : 0, "Iz stop yükseldi", display=display.data_window)
+plot(izExit ? 1 : 0, "Iz stop çıkış", display=display.data_window)
+
+alertcondition(newSetup, "Setup", "{{ticker}} direnç altında daralma oluştu")
+alertcondition(trigger, "Tetik", "{{ticker}} direnç kırılımı: giriş sinyali")
+alertcondition(izRaise, "Iz stop yükseldi", "{{ticker}} iz süren stop yükseldi: stopu güncelle")
+alertcondition(izExit, "Iz stop çıkış", "{{ticker}} iz süren stop kırıldı: çıkış")

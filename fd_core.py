@@ -47,7 +47,7 @@ class Params:
     useBelow: bool = True
     touchADR: float = 0.4
     rankADR: float = 0.2
-    wickADR: float = 2.5
+    wickADR: float = 0.5            # 09.11.2026 V3: 2.5 -> 0.5 (iki dönemli varyant testi kabul; attığı 366 Giriş ort +0.07R)
     maxOv: float = 0.8
     minTouches: int = 3
     minClusters: int = 2
