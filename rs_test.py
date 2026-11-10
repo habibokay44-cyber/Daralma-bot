@@ -51,6 +51,20 @@ def tek_R(df, i, dip):
     return (c[-1] - g) / R
 
 
+def tek_Reff(df, i, dip):
+    """PORTFÖY-EŞDEĞERİ R (10.11.2026 düzeltmesi). tek_R'de stop çok yakınsa (ör. %0.5) küçük bir yükseliş +20R gibi görünür;
+    oysa portföyde işlem büyüklüğü özsermayenin 1/5'i ile sınırlı olduğundan o kazanç gerçekleşmez (ortalamayı birkaç sahte
+    dev işlem belirliyordu: +10R'de kırpınca ortalama +1.12R'den +0.03R'ye düşüyor). Burada büyüklük sanal portföy gibi:
+    min(%1 risk / stop mesafesi, özsermayenin %20'si). Sonuç yine %1 risk biriminde: R_eff = getiri x min(1/stop%, 20).
+    Stop mesafesi >= %5 ise tek_R ile aynıdır."""
+    r = tek_R(df, i, dip)
+    if r is None:
+        return None
+    g = float(df["Open"].iloc[i + 1]) * 1.005
+    sp = (g - dip) / g
+    return r * sp * min(1.0 / sp, 20.0)
+
+
 def main():
     frames = fetch_tv_all(get_tickers(), n_bars=1200, budget=25 * 60, min_bars=30)
     xu = fetch_tv_all(["XU100"], n_bars=1200, budget=120, min_bars=30).get("XU100")

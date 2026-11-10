@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 from fd_core import Params, run
-from rs_test import tek_R
+from rs_test import tek_Reff
 from scan import fetch_tv_all, get_tickers, telegram_send
 
 PARTI = {
@@ -53,7 +53,7 @@ def main():
                 for e in run(df, P).events:
                     i = int(e["t"]) if e["type"] == "giris" else -1
                     if i >= 0 and e["date"] >= D1S and hac[i] >= 1e7:
-                        r = tek_R(df, i, e["sl"])
+                        r = tek_Reff(df, i, e["sl"])   # 10.11.2026: portföy-eşdeğeri R
                         if r is not None:
                             S[ad][(s, e["date"])] = r
             except Exception as ex:  # noqa: BLE001
