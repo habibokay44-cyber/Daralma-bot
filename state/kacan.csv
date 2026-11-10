@@ -38,3 +38,4 @@ bildirim_tarihi,hisse,tarih,not
 2026-11-08,ASELS,2025-12-08,base direnç 189 (base 17.11-05.12.2025)
 2026-11-08,TERA,2025-05-09,base s2 direnç ~27 (base 30.04-08.05.2025)
 2026-11-09,MCARD,2026-11-09,küçük base s2 (yükseliş 100->126 sonrası mola ~03-06.11, tepe ~126; Pine'da Y kuralı eksikti, Python Y=5.1 ile eliyor)
+2026-11-10,KONTR,2023-05-26,base s1 direnç 18.54 (gösterge ve Base v0 hiç sinyal vermedi)

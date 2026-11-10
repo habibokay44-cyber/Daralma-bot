@@ -6,3 +6,4 @@ bildirim_tarihi,hisse,etiket_tarihi,gosterge_mod,gosterge_cizgi,dogru_cizgi,not
 2026-11-10,KLYPV,2026-11-10,Düşen,51.17,yatay 50.40,gösterge düşen çizgi seçti; doğrusu 50.40 yatay
 2026-11-10,OZATD,2026-03-06,Düşen,208,çizgi yok,kullanıcı: bu daralma için direnç çizgisi söz konusu değil (kasım 2025 tepesinden düşen çizgi uydurma); etiket/Giriş olmamalıydı
 2026-11-10,OZATD,2026-03-31,Düşen,225.8,yatay 227 (13.03 mum tepesinden),kasım 2025 tepesinden neredeyse düz uzun çizgi; doğrusu 13.03 tepesinden 227 yatay
+2026-11-10,KONTR,2022-07-29,Düşen,4.641,yatay 4.73,gösterge düşen çizgiyle 01.08'de erken Giriş verdi; kullanıcının kırılımı 04.08 yatay 4.73
