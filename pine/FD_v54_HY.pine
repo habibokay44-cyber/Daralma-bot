@@ -320,7 +320,8 @@ float hOv  = na
 int hCl    = 0
 
 // 10.11.2026 hız: aday seviye araması sadece etiket mümkünse (sonuç aynı) ve son calcBars mumda
-calcOk = ((tightCore and candOk and jumpOk and volOk and redOk and b7Ok and lcOk and warmOk and bar_index >= last_bar_index - calcBars) or barstate.islast)
+// emaOk / ddOk / rallyOk: biri tutmazsa normal mod etiketi olamaz, kutu modunda da arama sonucu kullanılmaz -> arama gereksiz
+calcOk = ((tightCore and candOk and jumpOk and volOk and redOk and b7Ok and lcOk and warmOk and emaOk and ddOk and rallyOk and bar_index >= last_bar_index - calcBars) or barstate.islast)
 for k = 1 to math.max(nC, lastTouchMax) + 9
     if k < bar_index and calcOk
         float cand = srcT[k]
