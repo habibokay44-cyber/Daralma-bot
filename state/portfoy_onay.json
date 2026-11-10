@@ -1,0 +1,20 @@
+{
+ "nakit": 89426.22679,
+ "acik": [
+  {
+   "sym": "HUBVC",
+   "kaynak": "Base",
+   "tarih": "2026-11-09",
+   "giris": 2.43,
+   "stop0": 2.2,
+   "stop": 2.2,
+   "lot": 4347,
+   "maliyet": 10573.77,
+   "son": 2.32,
+   "armed": false
+  }
+ ],
+ "kapali": [],
+ "atlanan": [],
+ "baslangic": "2026-11-10"
+}

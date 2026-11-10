@@ -1,6 +1,20 @@
 {
- "nakit": 69541.36179000001,
+ "nakit": 88517.36679000001,
  "acik": [
+  {
+   "sym": "HUBVC",
+   "kaynak": "Base",
+   "tarih": "2026-11-09",
+   "giris": 2.43,
+   "stop0": 2.2,
+   "stop": 2.2,
+   "lot": 4347,
+   "maliyet": 10573.77,
+   "son": 2.32,
+   "armed": false
+  }
+ ],
+ "kapali": [
   {
    "sym": "BRSAN",
    "kaynak": "Base",
@@ -11,22 +25,13 @@
    "lot": 29,
    "maliyet": 19884.86,
    "son": 685.0,
-   "armed": false
-  },
-  {
-   "sym": "HUBVC",
-   "kaynak": "Base",
-   "tarih": "2026-11-09",
-   "giris": 2.43,
-   "stop0": 2.2,
-   "stop": 2.2,
-   "lot": 4347,
-   "maliyet": 10573.77,
-   "son": 2.43,
-   "armed": false
+   "armed": false,
+   "cikis_tarihi": "2026-11-10",
+   "cikis": 655.0,
+   "kz": -908.85,
+   "R": -1.5
   }
  ],
- "kapali": [],
  "atlanan": [],
  "baslangic": "2026-11-09"
 }
