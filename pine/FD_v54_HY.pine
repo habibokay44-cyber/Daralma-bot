@@ -284,8 +284,27 @@ f_hor(float L) =>
 f_ok(int sp, int tc, int ft, int lt, float aG, float lG, float ov, int cl, int tb) =>
     allowHoriz and sp >= minSpanH and tc >= minTouches and lt >= 0 and lt <= lastTouchMax and (ft - lt) >= touchSpan and aG <= nearADRH and lG <= lastNearH and lG >= 0 and ov <= maxOv and cl >= minClusters and tb >= minTb
 
-// tablo için: önceki nC mumun en yüksek seviyesi
-[sp1, tc1, tb1, ft1, lt1, ag1, lg1, ov1, cl1] = f_hor(hb1)
+// tablo için: önceki nC mumun en yüksek seviyesi (10.11.2026 hız: sadece son mumda hesaplanır, tablo zaten son mum)
+int sp1 = 0
+int tc1 = 0
+int tb1 = 0
+int ft1 = -1
+int lt1 = -1
+float ag1 = na
+float lg1 = na
+float ov1 = na
+int cl1 = 0
+if barstate.islast
+    [a_sp, a_tc, a_tb, a_ft, a_lt, a_ag, a_lg, a_ov, a_cl] = f_hor(hb1)
+    sp1 := a_sp
+    tc1 := a_tc
+    tb1 := a_tb
+    ft1 := a_ft
+    lt1 := a_lt
+    ag1 := a_ag
+    lg1 := a_lg
+    ov1 := a_ov
+    cl1 := a_cl
 
 // aday seviyeler: önceki mumların tepeleri (bugünkü mum aday olamaz), en çok temas edeni seç
 float hL   = na
@@ -728,9 +747,13 @@ var array<float> sP = array.new<float>()
 var array<int>   sX = array.new<int>()
 smcPh = ta.pivothigh(high, smcL, smcR)
 // iğneyle bile alınmış (bu mumun yükseği dahil) ya da çok eski seviyeleri sil
-if sP.size() > 0
+// 10.11.2026 hız: eskiler baştadır (sırayla eklenir) -> baştan sil; fiyatla silme sadece bu mum en düşük seviyeyi geçtiyse
+while sP.size() > 0 and bar_index - sX.get(0) > smcLook
+    sP.shift()
+    sX.shift()
+if sP.size() > 0 and high > sP.min()
     for i = sP.size() - 1 to 0
-        if high > sP.get(i) or bar_index - sX.get(i) > smcLook
+        if high > sP.get(i)
             sP.remove(i)
             sX.remove(i)
 if not na(smcPh)
