@@ -358,7 +358,7 @@ int nPass    = 0
 int tried    = 0
 int n        = math.min(pPt.size(), pXt.size())
 
-if (tightOk or barstate.islast) and n >= 2
+if ((tightOk and candOk and jumpOk and volOk and redOk and b7Ok and lcOk and warmOk) or barstate.islast) and n >= 2   // 10.11.2026 hız: sonuç aynı
     for ia = 0 to n - 2
         for ib = ia + 1 to n - 1
             int xA = pXt.get(ia)
