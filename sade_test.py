@@ -78,6 +78,14 @@ def main():
         sinif = "✅ İŞE YARIYOR" if lo > 0 else ("❗ ZARARLI" if hi < 0 and iki else "➖ etkisiz")
         out.append(f"• {ad}: {len(eng)} · {eng.mean():+.2f}R | {a.mean() - eng.mean():+.2f}R ({lo:+.2f} … {hi:+.2f}) | "
                    f"{don(V, 1):+.2f} · {don(V, 2):+.2f} -> {sinif}")
+        # SAĞLAMLIK (10.11.2026, ilk turdan sonra eklendi): tek tük dev işlemler ortalamayı bozuyor (ör. +16.8R ortalama).
+        # Aynı sınıflama, R üstten +10R ile kırpılarak; ayrıca medyan ve kazanma oranı.
+        ak, ek = np.minimum(a, 10.0), np.minimum(eng, 10.0)
+        dk = [rng.choice(ak, len(ak)).mean() - rng.choice(ek, len(ek)).mean() for _ in range(4000)]
+        l2, h2 = np.percentile(dk, 5), np.percentile(dk, 95)
+        s2 = "✅ işe yarıyor" if l2 > 0 else ("❗ zararlı" if h2 < 0 else "➖ etkisiz")
+        out.append(f"    kırpılmış (+10R): engellenen {ek.mean():+.2f}R, kalan {ak.mean():+.2f}R, fark ({l2:+.2f} … {h2:+.2f}) -> {s2} · "
+                   f"engellenen kazanma %{100 * (eng > 0).mean():.0f} (kalan %{100 * (a > 0).mean():.0f}) · medyan {np.median(eng):+.2f}R")
     txt = "\n".join(out)
     print(txt)
     if "--telegram" in sys.argv:
