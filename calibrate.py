@@ -349,8 +349,7 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("dipler kontrolü KAPALI (sadeleştirme testi: iki ölçüde de zararlı)", dict(useLows=False)),
-    ("40 mum tepesinden düşüş KAPALI (bilgi)", dict(ddMax=0.0)),
+    ("C2 düşen çizgide daralma öncesi en az 2 ara temas", dict(dOnceTemas=2)),
 ]
 
 

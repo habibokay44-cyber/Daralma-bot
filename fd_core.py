@@ -61,6 +61,8 @@ class Params:
     flatPrefer: float = 0.0         # yatay seviye de varsa ve düşen çizgi eğimi (|sn|) bundan küçükse yatayı seç (0 = kapalı)
     fbMinDt: int = 0                # fallbackD sadece düşen çizgi en az bu kadar dar-bant temaslıysa (dt) devreye girer
     fallbackD: bool = False         # yatay seçilirse ama yatay (dar) u/s şartı tutmuyorsa ve düşen çizgi varsa düşene dön
+    dOnceTemas: int = 0             # 10.11.2026 deneme (kullanıcı kuralı): düşen çizgide, başlangıç tepesi HARİÇ, daralmadan (son nC mum)
+                                    # ÖNCE en az bu kadar AYRI dar-bant temas kümesi (0 = kapalı). Daralma mumları sayılabilir ama yetmez.
     minClD: int = 2                 # düşen çizgi: bugünkü mum HARİÇ, ayrı temas kümesi (yan yana mumlar tek sayılır) min. (0 = kapalı)
     tightADR: float = 1.0
     shrink: float = 0.9
@@ -570,6 +572,12 @@ def run(df: pd.DataFrame, P: Params | None = None) -> SimpleNamespace:
                     if clD < P.minClD:
                         flz.append(f"cl{clD}")
                     dInfo = ",".join(flz) or "-"
+                if P.dOnceTemas > 0:
+                    # ii: 0 = bugün ... t-xA = başlangıç tepesi. Ara bölge: daralmadan önce (ii >= nC), başlangıç kümesi hariç
+                    ara = np.flatnonzero(isTb & (ii >= nC) & (ii < t - xA - P.clMerge))
+                    once = (1 + int(np.count_nonzero(np.diff(ara) > P.clMerge))) if len(ara) else 0
+                    if once < P.dOnceTemas:
+                        continue
                 if score == 4 and mxOv <= P.maxOv and tcT >= P.minTcD and clD >= P.minClD:
                     if na(best["pa"]) or tcT > best["tcT"] or (tcT == best["tcT"] and pa > best["pa"]):
                         best.update(tc=tc, tcT=tcT, xA=xA, pa=pa, sl=sl, ln=lnN, ag=aG, lg=lG, sn=sN, ov=mxOv, cl=clD,
