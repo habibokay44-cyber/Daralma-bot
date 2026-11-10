@@ -65,6 +65,13 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
   -> Python'da ve Pine'da devrede (09.11.2026 akşamından sonra).
 - ❌ GY1: attığı 610 sinyal ort +1.48R (kalanlardan iyi) -> red. Not: 'düşen çizgi kırılımı' Giriş'leri ortalamada kârlı.
 - ✅ Veri: tarama temettü düzeltilmiş TradingView verisi (Pine ADJ ile aynı); Pine'da eksik Y / H şartları eklendi.
+- ⚠️ 10.11.2026 ÖLÇÜ DÜZELTMESİ: tek tek işlem testlerinde R, çok yakın stoplu işlemlerde şişiyordu (portföyde işlem en fazla
+  özsermayenin 1/5'i). Yeni ölçü: portföy-eşdeğeri R. Sistem ort. D1 +0.54R, D2 +0.80R (eski ölçüyle +0.96 / +1.08 görünüyordu).
+  V3 yeni ölçüyle kıl payı RED (aralık -0.03 … +0.77) -> wickADR 2.5'e GERİ ALINDI (Python + Pine). GY1 yine red.
+  Çıkış / piyasa filtresi / sadeleştirme testleri yeni ölçüyle yeniden çalıştırılıyor; 10.11 sabahki 'işe yarıyor' listesi geçersiz.
+- ❌ Örneklem 5 (model alt çeyreği, 39 kör işaret): iyi kurulum %55'e %58 -> red. Bu örneklemde alırdım -0.03R, almazdım +0.07R
+  (n=39, tek başına 09.11 bulgusunu çürütmez; onaylı gölge portföy belirleyecek).
+- ✅ Canlı dinleme (dinle.yml): buton basışları Telegram'da beklerken kayboluyordu; işaretlemeden önce dinleme açılır.
 - Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim

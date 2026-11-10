@@ -47,7 +47,8 @@ class Params:
     useBelow: bool = True
     touchADR: float = 0.4
     rankADR: float = 0.2
-    wickADR: float = 0.5            # 09.11.2026 V3: 2.5 -> 0.5 (iki dönemli varyant testi kabul; attığı 366 Giriş ort +0.07R)
+    wickADR: float = 2.5            # 10.11.2026: V3 (0.5) GERİ ALINDI. 09.11 kabulü kusurlu ölçüyle idi; portföy-eşdeğeri R ile
+                                    # iki dönemde ort. yine yüksek ama kalan-atılan farkı %90 aralığı (-0.03 … +0.77) sıfırı içeriyor -> red
     maxOv: float = 0.8
     minTouches: int = 3
     minClusters: int = 2

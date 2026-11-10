@@ -32,6 +32,11 @@ CIKIS = [("E0 şimdiki (iz 10, +1R)", dict(trail=10, arm=1.0, ema=False)), ("E1 
 PIYASA = [("M1 XU100 > EMA50", "m1"), ("M2 XU100 > EMA20", "m2"), ("M3 EMA20 > EMA50", "m3")]
 
 
+def EFF(sp):
+    """10.11.2026: portföy-eşdeğeri R çarpanı (işlem en fazla özsermayenin 1/5'i): stop mesafesi %5'ten küçükse R küçülür."""
+    return sp * min(1.0 / sp, 20.0)
+
+
 def islem(o, h, l, c, e21, i, dip, trail, arm, ema):
     if i + 2 >= len(c):
         return None
@@ -42,12 +47,12 @@ def islem(o, h, l, c, e21, i, dip, trail, arm, ema):
     s, armed = dip, False
     for k in range(i + 1, len(c) - 1):
         if c[k] < s or (ema and armed and c[k] < e21[k]):
-            return (o[k + 1] * 0.995 - g) / R, k - i
+            return (o[k + 1] * 0.995 - g) / R * EFF(R / g), k - i
         if not armed and h[k] >= g + arm * R:
             armed, s = True, max(s, g)
         if armed and not ema and k > i + 1:
             s = max(s, float(l[max(i + 2, k - trail + 1):k + 1].min()))
-    return (c[-1] - g) / R, len(c) - 1 - i
+    return (c[-1] - g) / R * EFF(R / g), len(c) - 1 - i
 
 
 def ci(d, rng):
