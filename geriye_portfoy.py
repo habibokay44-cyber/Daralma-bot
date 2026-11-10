@@ -29,6 +29,7 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
             'acilis'  = ertesi işlem günü açılışından al / stop kapanışından sonraki gün açılıştan sat.
     kayma: alışta fiyat x(1+kayma), satışta x(1-kayma). minhacim: 20 günlük ort. TL hacmi bunun altındaysa alınmaz.
     sira: 'kural' (önce Giriş, sonra kısa stop) ya da tamsayı tohum (yer yoksa rastgele seçim).
+    kismi: dict {True: (..), False: (..)} ise sinyalin 'piyasa' alanına göre (XU100 iyi / kötü) seçilir.
     kismi: (kR, oran, tur) FREE ROLL / kısmi satış (10.11.2026): fiyat girişin kR katı R üstünü görünce lotun 'oran'ı o fiyattan
            satılır (gap ile üstte açarsa açılıştan). tur='iz': kalan şimdiki Iz10 ile (stop +1R'de girişe), tur='sabit': kalan
            için stop girişe ÇEKİLMEZ (free roll: kalan stop olursa toplam ~0), 10 mumluk dipten izlemeye yine +1R'de başlar."""
@@ -66,7 +67,8 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
         maliyet = lot * px * (1 + KOM)
         nakit -= maliyet
         hacim = arr[s["sym"]][4][s["i"]]
-        acik.append(dict(sym=s["sym"], kaynak=s["kaynak"], tarih=d, i0=i, giris=px, R=R, stop=s["dip"], lot=lot,
+        kz_ = kismi.get(bool(s.get("piyasa", True))) if isinstance(kismi, dict) else kismi
+        acik.append(dict(sym=s["sym"], kaynak=s["kaynak"], tarih=d, i0=i, giris=px, R=R, stop=s["dip"], lot=lot, kismi=kz_,
                          maliyet=maliyet, son=px, armed=False, cik=False, risk_tl=ozs * risk,
                          hacim_pay=(maliyet / hacim) if hacim and hacim > 0 else np.nan))
 
@@ -101,9 +103,10 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
                 continue
             o, h, l, c, _ = arr[a["sym"]]
             a["son"] = c[i]
-            if kismi and not a.get("k_done") and h[i] >= a["giris"] + kismi[0] * a["R"]:
-                kpx = max(o[i], a["giris"] + kismi[0] * a["R"]) * (1 - kayma)
-                q = math.floor(a["lot"] * kismi[1])
+            km = a.get("kismi")
+            if km and not a.get("k_done") and h[i] >= a["giris"] + km[0] * a["R"]:
+                kpx = max(o[i], a["giris"] + km[0] * a["R"]) * (1 - kayma)
+                q = math.floor(a["lot"] * km[1])
                 if q > 0:
                     knet = q * kpx * (1 - KOM)
                     nakit += knet
@@ -119,7 +122,7 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
                 a["cik"] = True
             if not a["armed"] and h[i] >= a["giris"] + ARM * a["R"]:
                 a["armed"] = True
-                if not (kismi and kismi[2] == "sabit"):
+                if not (a.get("kismi") and a["kismi"][2] == "sabit"):
                     a["stop"] = max(a["stop"], a["giris"])
             if a["armed"] and i > a["i0"]:
                 a["stop"] = max(a["stop"], float(l[max(a["i0"] + 1, i - TRAIL + 1):i + 1].min()))
