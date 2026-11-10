@@ -349,9 +349,8 @@ def _evaluate(sym: str, df: pd.DataFrame, a: str, b: str, expect: bool, note: st
 # sıkılaştırma varyantları (hepsi CAND üstüne)
 VARIANTS = [
     ("ADAY (şimdiki ayar)", {}),
-    ("Y kapalı (Pine gibi: gövde kutusu şartı yok)", dict(yBodyMax=0.0)),
-    ("H kapalı (Pine gibi: yatayda EMA düşüş engeli yok)", dict(hDnBlock=False)),
-    ("Y ve H kapalı (Pine'ın şu anki hali)", dict(yBodyMax=0.0, hDnBlock=False)),
+    ("dipler kontrolü KAPALI (sadeleştirme testi: iki ölçüde de zararlı)", dict(useLows=False)),
+    ("40 mum tepesinden düşüş KAPALI (bilgi)", dict(ddMax=0.0)),
 ]
 
 
