@@ -1,5 +1,5 @@
 //@version=6
-indicator("Fiyat Daralması v54", shorttitle="FD v54", overlay=true, max_bars_back=500, max_labels_count=500, max_lines_count=500, max_boxes_count=100)
+indicator("Fiyat Daralması v54", shorttitle="FD v54", overlay=true, max_bars_back=500, max_labels_count=500, max_lines_count=500, max_boxes_count=100, calc_bars_count=1500)   // 10.11.2026: sadece son 1500 mum hesaplanır (zaman aşımı)
 
 // ---------- Girdiler ----------
 lookback   = input.int(120, "Direnç arama penceresi (mum)", minval=15)
