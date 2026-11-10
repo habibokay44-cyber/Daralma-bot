@@ -141,6 +141,7 @@ showDiag   = input.bool(true, "Teşhis tablosunu göster (sol orta)")
 showNums   = input.bool(true, "Etiketin üzerinde sayıları göster (kapalıysa kısa etiket)")
 dbg        = input.bool(false, "Hata ayıklama: sinyal olmayan mumların altına neden (harf + değer) yazsın")
 dbgBars    = input.int(80, "Hata ayıklama: kaç mum geriye", minval=10, maxval=300)
+calcBars   = input.int(1500, "Hız: çizgi aramasını sadece son kaç mumda yap (zaman aşımı hatası için)", minval=200)
 
 // ---------- Temel hesaplar ----------
 adr    = (ta.sma(high / low, 20) - 1) * 100
@@ -299,8 +300,10 @@ float hLG  = na
 float hOv  = na
 int hCl    = 0
 
+// 10.11.2026 hız: aday seviye araması sadece etiket mümkünse (sonuç aynı) ve son calcBars mumda
+calcOk = ((tightCore and candOk and jumpOk and volOk and redOk and b7Ok and lcOk and warmOk and bar_index >= last_bar_index - calcBars) or barstate.islast)
 for k = 1 to math.max(nC, lastTouchMax) + 9
-    if k < bar_index
+    if k < bar_index and calcOk
         float cand = srcT[k]
         [c_sp, c_tc, c_tb, c_ft, c_lt, c_ag, c_lg, c_ov, c_cl] = f_hor(cand)
         if f_ok(c_sp, c_tc, c_ft, c_lt, c_ag, c_lg, c_ov, c_cl, c_tb) and (c_tb > hTb or (c_tb == hTb and cand > nz(hL, 0.0)))
@@ -358,7 +361,7 @@ int nPass    = 0
 int tried    = 0
 int n        = math.min(pPt.size(), pXt.size())
 
-if ((tightOk and candOk and jumpOk and volOk and redOk and b7Ok and lcOk and warmOk) or barstate.islast) and n >= 2   // 10.11.2026 hız: sonuç aynı
+if ((tightOk and calcOk) or barstate.islast) and n >= 2   // 10.11.2026 hız: sonuç aynı
     for ia = 0 to n - 2
         for ib = ia + 1 to n - 1
             int xA = pXt.get(ia)
