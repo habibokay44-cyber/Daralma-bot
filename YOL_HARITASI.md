@@ -78,6 +78,8 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
   ✅ useLows KAPATILDI (kullanıcı onayı, 10.11): engellediği 217 Giriş %36 kazanma / +2.71R (kalan %29 / +0.66R), iki dönemde de
   ort. yükseliyor, kalibrasyon 51/14 aynı, PF 1.82 -> 1.89. Diğerleri: 6'sı ana ölçüde işe yarıyor (kırmızı mum, EMA21 kapısı,
   art arda düşüş, H, iptal kırmızı mum, iptal düşüş), 14'ü getiri açısından etkisiz (göz uyumu için kalıyor), 3'ü ölçülemez.
+- 10.11 Pine zaman aşımı (RE10110, 0.5 sn, ücretsiz plan): arama koşullu yapıldı (sonuç aynı), tablo ölçümü son mumda,
+  SMC silme kısaltıldı, calc_bars_count=1000 (günlükte ~4 yıl; tarama 500 mum kullandığı için etkilemez).
 - Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim
