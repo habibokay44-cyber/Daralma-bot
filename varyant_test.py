@@ -25,7 +25,9 @@ from fd_core import Params, run
 from rs_test import tek_Reff
 from scan import fetch_tv_all, get_tickers, telegram_send
 
-VARS = [("GY1 (Giriş yatay gövde tepesi)", dict(girisYatayN=10)), ("V3 (fitil payı 0.5)", dict(wickADR=0.5))]
+# 10.11.2026: V3 artık varsayılan olduğu için karşılaştırma tabanı ESKİ ayar (wickADR 2.5); ölçü portföy-eşdeğeri R.
+ESKI = dict(wickADR=2.5)
+VARS = [("V3 (fitil payı 0.5)", dict(wickADR=0.5)), ("GY1 (eski ayar + Giriş yatay gövde tepesi)", dict(wickADR=2.5, girisYatayN=10))]
 D1S, D2S = pd.Timestamp("2023-01-02"), pd.Timestamp("2025-01-01")
 
 
@@ -36,7 +38,7 @@ def oz(x):
 
 def main():
     frames = fetch_tv_all(get_tickers(), n_bars=1200, budget=25 * 60, min_bars=120)
-    PS = [("ADAY", Params())] + [(ad, replace(Params(), **kw)) for ad, kw in VARS]
+    PS = [("ADAY", replace(Params(), **ESKI))] + [(ad, replace(Params(), **kw)) for ad, kw in VARS]
     S = {ad: {} for ad, _ in PS}     # ad -> {(sym, tarih): R}
     for s, df in frames.items():
         hac = (df["Close"] * df["Volume"]).rolling(20).mean().to_numpy()
@@ -54,7 +56,7 @@ def main():
     A = S["ADAY"]
     don = lambda d, k: [r for (s, t), r in d.items() if (t < D2S) == (k == 1)]  # noqa: E731
     out = [f"⚖️ Varyant testi (iki dönem) · {len(frames)} hisse · sadece Giriş sinyalleri, tek tek işlem",
-           f"Şimdiki ayar: D1 {oz(don(A, 1))} | D2 {oz(don(A, 2))}"]
+           f"Eski ayar (fitil payı 2.5): D1 {oz(don(A, 1))} | D2 {oz(don(A, 2))}"]
     for ad, _ in PS[1:]:
         V = S[ad]
         atilan = [r for k, r in A.items() if k not in V]
