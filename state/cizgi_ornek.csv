@@ -4,3 +4,5 @@ bildirim_tarihi,hisse,etiket_tarihi,gosterge_mod,gosterge_cizgi,dogru_cizgi,not
 2026-11-09,BRSAN,2026-11-09,Base v0 yatay,683,düşen (24.08 tepesinden 06.11'e),Base v0 yatay seviyeden kırılım verdi; kullanıcı 24.08 tepesinden düşen çizgi görüyor
 2026-11-10,SANKO,2026-11-10,Yatay,21.98,yatay 22.38,gösterge son 14 mumun tepelerinden 21.98'i seçti (7 temas); doğru seviye ekim başından gelen 22.38 tepeleri
 2026-11-10,KLYPV,2026-11-10,Düşen,51.17,yatay 50.40,gösterge düşen çizgi seçti; doğrusu 50.40 yatay
+2026-11-10,OZATD,2026-03-06,Düşen,208,yatay 227,kasım 2025 tepesinden ~90 mum geriden çekilmiş düşen çizgi; arada temas yok; daralma temiz ama çizgi yanlış
+2026-11-10,OZATD,2026-03-31,Düşen,225.8,yatay 227,kasım 2025 tepesinden neredeyse düz uzun çizgi; doğrusu mart-nisan tepelerinden 227 yatay
