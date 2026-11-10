@@ -488,6 +488,11 @@ def main() -> None:
     ref = last_dates.mode().iloc[0] if len(last_dates) else today
     head = (f"📊 BIST taraması · veri tarihi {ref:%d.%m.%Y} · {len(results)} hisse · "
             f"{len(m_setup)} daralma · {len(m_giris)} giriş · {len(m_iptal)} iptal")
+    try:   # 10.11.2026: piyasa genişliği satırı (bilgi; hiçbir sinyali etkilemez)
+        import piyasa
+        head += "\n" + piyasa.satir(piyasa.genislik(frames))
+    except Exception as ex:  # noqa: BLE001
+        print(f"[uyarı] piyasa satırı: {ex}", file=sys.stderr)
     body = m_giris + m_setup + m_iptal
     if m_base:
         head += f" · {len(m_base)} base"
