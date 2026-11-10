@@ -97,11 +97,13 @@ def tarih_bul(text: str, etiket: str):
     return d.strftime("%Y-%m-%d"), rest
 
 
-def main() -> int:
+def main(poll: int = 0, sessiz: bool = False) -> int:
+    """poll: Telegram'da bekleme süresi (sn; dinleme modunda uzun bekleme). sessiz: toplu özet mesajı gönderme.
+    Döner: işlenen güncelleme sayısı."""
     chat = str(os.environ.get("TELEGRAM_CHAT_ID", ""))
     off = jload(OFFSET, {}).get("offset")
     esle = jload(ESLE, {})
-    kw = {"timeout": 0, "allowed_updates": ["callback_query", "message"]}
+    kw = {"timeout": poll, "allowed_updates": ["callback_query", "message"]}
     if off:
         kw["offset"] = off
     ups = []
@@ -224,7 +226,7 @@ def main() -> int:
                 print(f"[bilgi] {ex}")
     if degisti:
         kayit.save(rows)
-    if islenen:
+    if islenen and not sessiz:
         try:
             api("sendMessage", chat_id=chat, text=f"✔ {len(islenen)} kayıt işlendi: " + ", ".join(islenen)[:3500])
         except Exception as ex:  # noqa: BLE001
@@ -232,9 +234,45 @@ def main() -> int:
     if off:
         OFFSET.parent.mkdir(parents=True, exist_ok=True)
         OFFSET.write_text(json.dumps({"offset": off}))
-    print(f"{len(ups)} güncelleme, işlenen: {', '.join(islenen) or '-'}")
-    return 0
+    if ups or not sessiz:
+        print(f"{len(ups)} güncelleme, işlenen: {', '.join(islenen) or '-'}")
+    return len(ups)
+
+
+def dinle(dakika: float, bos: float) -> None:
+    """CANLI DİNLEME (10.11.2026): buton basışları Telegram'da uzun süre beklemiyor (3 saatte bir okuyunca çoğu kayboluyordu;
+    yazılı cevaplar kaybolmuyor). Bu mod basışı ANINDA alır, butonda 'Kaydedildi' bildirimi çıkar ve grafik açıklaması güncellenir.
+    En fazla `dakika` sürer; `bos` dakika hiç basış gelmezse kendiliğinden biter."""
+    import time
+    chat = str(os.environ.get("TELEGRAM_CHAT_ID", ""))
+    t0 = son = time.time()
+    toplam = 0
+    try:
+        api("sendMessage", chat_id=chat, text=f"👂 Dinliyorum: butonlara şimdi basabilirsin, her basışta 'Kaydedildi' çıkar. "
+                                             f"({bos:.0f} dk basış gelmezse ya da {dakika:.0f} dk sonra kapanır.)")
+    except Exception as ex:  # noqa: BLE001
+        print(f"[bilgi] {ex}")
+    while time.time() - t0 < dakika * 60 and time.time() - son < bos * 60:
+        try:
+            n = main(poll=20, sessiz=True)
+        except Exception as ex:  # noqa: BLE001
+            print(f"[bilgi] {ex}")
+            time.sleep(3)
+            continue
+        if n:
+            son = time.time()
+            toplam += n
+    try:
+        api("sendMessage", chat_id=chat, text=f"✔ Dinleme bitti: {toplam} basış / cevap kaydedildi.")
+    except Exception as ex:  # noqa: BLE001
+        print(f"[bilgi] {ex}")
+    print(f"dinleme bitti, {toplam} güncelleme")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    if "--dinle" in sys.argv:
+        i = sys.argv.index("--dinle")
+        dinle(float(sys.argv[i + 1]) if len(sys.argv) > i + 1 else 30, float(sys.argv[i + 2]) if len(sys.argv) > i + 2 else 10)
+        sys.exit(0)
+    main()
+    sys.exit(0)
