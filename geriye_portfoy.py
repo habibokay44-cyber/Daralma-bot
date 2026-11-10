@@ -23,11 +23,15 @@ from scan import fetch_tv_all, get_tickers, telegram_send
 RISK, MAXPOZ, KOM, ARM, TRAIL = 0.01, 5, 0.001, 1.0, 10
 
 
-def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minhacim=0.0, sira="kural", maxpoz=MAXPOZ, risk=RISK):
+def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minhacim=0.0, sira="kural", maxpoz=MAXPOZ, risk=RISK,
+           kismi=None):
     """mod: 'kapanis' = sinyal günü kapanışından al / stop günü kapanışından sat;
             'acilis'  = ertesi işlem günü açılışından al / stop kapanışından sonraki gün açılıştan sat.
     kayma: alışta fiyat x(1+kayma), satışta x(1-kayma). minhacim: 20 günlük ort. TL hacmi bunun altındaysa alınmaz.
-    sira: 'kural' (önce Giriş, sonra kısa stop) ya da tamsayı tohum (yer yoksa rastgele seçim)."""
+    sira: 'kural' (önce Giriş, sonra kısa stop) ya da tamsayı tohum (yer yoksa rastgele seçim).
+    kismi: (kR, oran, tur) FREE ROLL / kısmi satış (10.11.2026): fiyat girişin kR katı R üstünü görünce lotun 'oran'ı o fiyattan
+           satılır (gap ile üstte açarsa açılıştan). tur='iz': kalan şimdiki Iz10 ile (stop +1R'de girişe), tur='sabit': kalan
+           için stop girişe ÇEKİLMEZ (free roll: kalan stop olursa toplam ~0), 10 mumluk dipten izlemeye yine +1R'de başlar."""
     alan = sira[5:] if isinstance(sira, str) and sira.startswith("alan:") else None   # 'alan:rs60' = o alana göre büyükten küçüğe
     rnd = None if (sira == "kural" or alan) else random.Random(sira)
     sig = [s for s in sig if s["kaynak"] in kaynaklar and s["tarih"] >= bas]
@@ -46,7 +50,8 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
         px = px * (1 - kayma)
         net = a["lot"] * px * (1 - KOM)
         nakit += net
-        kapali.append(dict(a, cikis=px, cikis_tarihi=d, kz=net - a["maliyet"], R=(net - a["maliyet"]) / a["risk_tl"]))
+        kz = net - a["maliyet"] + a.get("kz_k", 0.0)
+        kapali.append(dict(a, cikis=px, cikis_tarihi=d, kz=kz, R=kz / a["risk_tl"]))
 
     def ac(s, px, i, d, ozs):
         nonlocal nakit, atlanan
@@ -96,6 +101,17 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
                 continue
             o, h, l, c, _ = arr[a["sym"]]
             a["son"] = c[i]
+            if kismi and not a.get("k_done") and h[i] >= a["giris"] + kismi[0] * a["R"]:
+                kpx = max(o[i], a["giris"] + kismi[0] * a["R"]) * (1 - kayma)
+                q = math.floor(a["lot"] * kismi[1])
+                if q > 0:
+                    knet = q * kpx * (1 - KOM)
+                    nakit += knet
+                    mal = a["maliyet"] * q / a["lot"]
+                    a["kz_k"] = a.get("kz_k", 0.0) + knet - mal
+                    a["maliyet"] -= mal
+                    a["lot"] -= q
+                a["k_done"] = True
             if c[i] < a["stop"]:
                 if mod == "kapanis":
                     kapat(a, c[i], d)
@@ -103,7 +119,8 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
                 a["cik"] = True
             if not a["armed"] and h[i] >= a["giris"] + ARM * a["R"]:
                 a["armed"] = True
-                a["stop"] = max(a["stop"], a["giris"])
+                if not (kismi and kismi[2] == "sabit"):
+                    a["stop"] = max(a["stop"], a["giris"])
             if a["armed"] and i > a["i0"]:
                 a["stop"] = max(a["stop"], float(l[max(a["i0"] + 1, i - TRAIL + 1):i + 1].min()))
             kalan.append(a)
