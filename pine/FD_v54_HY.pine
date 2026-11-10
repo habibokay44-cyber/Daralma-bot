@@ -239,52 +239,12 @@ srcT = levelSrc == "Gövde" ? bodyTop : high
 hb1 = ta.highest(srcT[1], nC)
 
 // ---------- Yatay direnç taraması (bugünkü mum hariç: i = 1'den başlar) ----------
-f_hor(float L) =>
-    int span = 0
-    int tc = 0
-    int tb = 0
-    int firstT = -1
-    int lastT = -1
-    int cl = 0
-    bool prevT = false
-    bool prevB = false
-    for i = 1 to lookback
-        if i >= bar_index
-            break
-        if bodyTop[i] > L + bodyTol or high[i] > L + wickAbs
-            break
-        span += 1
-        bool isT = math.abs(srcT[i] - L) <= touchTol
-        if isT
-            tc += 1
-            if not prevT
-                cl += 1
-            if lastT < 0
-                lastT := i
-            firstT := i
-        prevT := isT
-        bool isB = math.abs(srcT[i] - L) <= rankTol
-        if isB and (not tbCl or not prevB)
-            tb += 1
-        prevB := isB
-
-
-    float mxH = L
-    if firstT >= 0
-        for j = 0 to firstT
-            mxH := math.max(mxH, high[j])
-    float gs = 0.0
-    for i = 0 to nC - 1
-        gs += (L - close[i]) / close[i] * 100
-    float aG = gs / nC / adr
-    float lG = (L - close) / close * 100 / adr
-    float ov = (mxH - L) / close * 100 / adr
-    [span, tc, tb, firstT, lastT, aG, lG, ov, cl]
-
+// 10.11.2026: tarama GLOBAL kapsamda. Fonksiyon içinde geçmiş değer ([i]) koşullu çağrılınca bozuluyordu (Pine, fonksiyon
+// içindeki geçmişi sadece çağrıldığı mumlardan tutar) -> temas 0, taban 120 görünüyordu. Sonuç Python ile aynı.
 f_ok(int sp, int tc, int ft, int lt, float aG, float lG, float ov, int cl, int tb) =>
     allowHoriz and sp >= minSpanH and tc >= minTouches and lt >= 0 and lt <= lastTouchMax and (ft - lt) >= touchSpan and aG <= nearADRH and lG <= lastNearH and lG >= 0 and ov <= maxOv and cl >= minClusters and tb >= minTb
 
-// tablo için: önceki nC mumun en yüksek seviyesi (10.11.2026 hız: sadece son mumda hesaplanır, tablo zaten son mum)
+// tablo için (sp1..): önceki nC mumun en yüksek seviyesi, sadece son mumda
 int sp1 = 0
 int tc1 = 0
 int tb1 = 0
@@ -294,17 +254,6 @@ float ag1 = na
 float lg1 = na
 float ov1 = na
 int cl1 = 0
-if barstate.islast
-    [a_sp, a_tc, a_tb, a_ft, a_lt, a_ag, a_lg, a_ov, a_cl] = f_hor(hb1)
-    sp1 := a_sp
-    tc1 := a_tc
-    tb1 := a_tb
-    ft1 := a_ft
-    lt1 := a_lt
-    ag1 := a_ag
-    lg1 := a_lg
-    ov1 := a_ov
-    cl1 := a_cl
 
 // aday seviyeler: önceki mumların tepeleri (bugünkü mum aday olamaz), en çok temas edeni seç
 float hL   = na
@@ -319,25 +268,73 @@ float hLG  = na
 float hOv  = na
 int hCl    = 0
 
-// 10.11.2026 hız: aday seviye araması sadece etiket mümkünse (sonuç aynı) ve son calcBars mumda
-// emaOk / ddOk / rallyOk: biri tutmazsa normal mod etiketi olamaz, kutu modunda da arama sonucu kullanılmaz -> arama gereksiz
+// hız: aday araması sadece etiket mümkünse (sonuç aynı) ve son calcBars mumda; emaOk / ddOk / rallyOk tutmazsa normal etiket
+// olamaz, kutu modunda da arama sonucu kullanılmaz
 calcOk = ((tightCore and candOk and jumpOk and volOk and redOk and b7Ok and lcOk and warmOk and emaOk and ddOk and rallyOk and bar_index >= last_bar_index - calcBars) or barstate.islast)
-for k = 1 to math.max(nC, lastTouchMax) + 9
-    if k < bar_index and calcOk
-        float cand = srcT[k]
-        [c_sp, c_tc, c_tb, c_ft, c_lt, c_ag, c_lg, c_ov, c_cl] = f_hor(cand)
-        if f_ok(c_sp, c_tc, c_ft, c_lt, c_ag, c_lg, c_ov, c_cl, c_tb) and (c_tb > hTb or (c_tb == hTb and cand > nz(hL, 0.0)))
-            hL := cand
-            hSpan := c_sp
-            hTc := c_tc
-            hTb := c_tb
-            hFirst := c_ft
-            hLt := c_lt
-            hRng := c_ft - c_lt
-            hAG := c_ag
-            hLG := c_lg
-            hOv := c_ov
-            hCl := c_cl
+for k = 0 to math.max(nC, lastTouchMax) + 9
+    // k = 0: tablo seviyesi (hb1, sadece son mum) · k >= 1: aday seviye srcT[k]
+    bool calis = k == 0 ? barstate.islast : (k < bar_index and calcOk)
+    if calis
+        float Lv = k == 0 ? hb1 : srcT[k]
+        int span = 0
+        int tc = 0
+        int tb = 0
+        int firstT = -1
+        int lastT = -1
+        int cl = 0
+        bool prevT = false
+        bool prevB = false
+        for i = 1 to lookback
+            if i >= bar_index
+                break
+            if bodyTop[i] > Lv + bodyTol or high[i] > Lv + wickAbs
+                break
+            span += 1
+            bool isT = math.abs(srcT[i] - Lv) <= touchTol
+            if isT
+                tc += 1
+                if not prevT
+                    cl += 1
+                if lastT < 0
+                    lastT := i
+                firstT := i
+            prevT := isT
+            bool isB = math.abs(srcT[i] - Lv) <= rankTol
+            if isB and (not tbCl or not prevB)
+                tb += 1
+            prevB := isB
+        float mxH = Lv
+        if firstT >= 0
+            for j = 0 to firstT
+                mxH := math.max(mxH, high[j])
+        float gs = 0.0
+        for i = 0 to nC - 1
+            gs += (Lv - close[i]) / close[i] * 100
+        float aG = gs / nC / adr
+        float lG = (Lv - close) / close * 100 / adr
+        float ov = (mxH - Lv) / close * 100 / adr
+        if k == 0
+            sp1 := span
+            tc1 := tc
+            tb1 := tb
+            ft1 := firstT
+            lt1 := lastT
+            ag1 := aG
+            lg1 := lG
+            ov1 := ov
+            cl1 := cl
+        else if f_ok(span, tc, firstT, lastT, aG, lG, ov, cl, tb) and (tb > hTb or (tb == hTb and Lv > nz(hL, 0.0)))
+            hL := Lv
+            hSpan := span
+            hTc := tc
+            hTb := tb
+            hFirst := firstT
+            hLt := lastT
+            hRng := firstT - lastT
+            hAG := aG
+            hLG := lG
+            hOv := ov
+            hCl := cl
 
 // ---------- Pivot tepeleri sakla ----------
 var array<float> pP = array.new<float>()
