@@ -72,6 +72,12 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 - ❌ Örneklem 5 (model alt çeyreği, 39 kör işaret): iyi kurulum %55'e %58 -> red. Bu örneklemde alırdım -0.03R, almazdım +0.07R
   (n=39, tek başına 09.11 bulgusunu çürütmez; onaylı gölge portföy belirleyecek).
 - ✅ Canlı dinleme (dinle.yml): buton basışları Telegram'da beklerken kayboluyordu; işaretlemeden önce dinleme açılır.
+- 10.11 çıkış / piyasa (düzeltilmiş ölçü): piyasa filtreleri, EMA21 çıkışı, +2R stopu red. Iz20 tek tek işlemde 3 ölçütü geçti
+  ama portföy benzetiminde doğrulanmadı (4 karşılaştırmanın 2'si) -> Iz10 kalır. Kural: canlıya almadan önce İKİ ölçü.
+- 10.11 sadeleştirme (24 filtre tek tek kapatıldı): iki ölçüde de aynı çıkan tek filtre 'dipler kontrolü' (zararlı yönde).
+  ✅ useLows KAPATILDI (kullanıcı onayı, 10.11): engellediği 217 Giriş %36 kazanma / +2.71R (kalan %29 / +0.66R), iki dönemde de
+  ort. yükseliyor, kalibrasyon 51/14 aynı, PF 1.82 -> 1.89. Diğerleri: 6'sı ana ölçüde işe yarıyor (kırmızı mum, EMA21 kapısı,
+  art arda düşüş, H, iptal kırmızı mum, iptal düşüş), 14'ü getiri açısından etkisiz (göz uyumu için kalıyor), 3'ü ölçülemez.
 - Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim

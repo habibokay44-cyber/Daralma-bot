@@ -65,7 +65,8 @@ class Params:
     tightADR: float = 1.0
     shrink: float = 0.9
     closeBoxADR: float = 0.85
-    useLows: bool = True
+    useLows: bool = False           # 10.11.2026: dipler kontrolü KAPATILDI (sadeleştirme testi: engellediği 217 Giriş kalanlardan iyi,
+                                    # iki ölçüde + iki dönemde; kalibrasyonda doğru/yanlış aynı 51/14). Eski değer True.
     lowTolADR: float = 0.5
     lowUpADR: float = 2.8
     useLowsH: bool = False

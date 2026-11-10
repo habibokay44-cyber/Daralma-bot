@@ -35,7 +35,7 @@ inClD     = input.int(2, "Düşen çizgi: en az bu kadar AYRI temas kümesi (0 =
 tightADR   = input.float(1.0, "Son mumların ort. aralığı (ADR katı, max)", step=0.05)
 shrink     = input.float(0.9, "Son mumlar / önceki 15 mum aralık oranı (max)", step=0.05)
 closeBoxADR = input.float(0.85, "Kapanış kutusu (ADR katı, max)", step=0.1)
-useLows    = input.bool(true, "Dipler kontrolü (düşüş devamı ve yükseliş hamlesi elensin)")
+useLows    = input.bool(false, "Dipler kontrolü (düşüş devamı ve yükseliş hamlesi elensin)")
 lowTolADR  = input.float(0.5, "Diplerin önceki diplerin altına inme payı (ADR katı)", step=0.1)
 lowUpADR   = input.float(2.8, "Diplerin önceki diplerin üstüne çıkma payı (ADR katı)", step=0.1)
 useLowsH   = input.bool(false, "Yatay modda dipler (d) çok yükselmesin (ayırt edici değil, kapalı)")
