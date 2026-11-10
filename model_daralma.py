@@ -104,7 +104,8 @@ def cv(X, y, grp, rng, tekrar):
     return oof / tekrar
 
 
-def main():
+def topla():
+    """İşaretli daralma grafikleri -> (özellik tablosu, XU100)."""
     rows = []
     for r in kayit.load():
         i = (r.get("isaret") or "").strip().lower()
@@ -136,7 +137,11 @@ def main():
         f = ozellik(df, t, prepare(df, Params()), xu, dr_)
         x = sim(df, t)
         D.append(dict(hisse=s, tarih=d, y=y, R=x[0] if x else np.nan, **f))
-    T = pd.DataFrame(D)
+    return pd.DataFrame(D), xu
+
+
+def main():
+    T, xu = topla()
     X = T[FEATS].to_numpy(float).copy()
     X[~np.isfinite(X)] = np.nan
     y, grp = T.y.to_numpy(int), T.hisse.to_numpy()

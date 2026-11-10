@@ -81,7 +81,8 @@ def ileri(path: Path) -> str:
     bv0b = [r for r in rows if r.get("mod") == "BaseV0b"]
     bt2 = [r for r in rows if r.get("mod") == "BaseT2"]
     o4 = [r for r in rows if str(r.get("mod", "")).startswith("Örneklem4")]
-    rows = [r for r in rows if not str(r.get("mod", "")).startswith("Örneklem4")]
+    o5 = [r for r in rows if str(r.get("mod", "")).startswith("Örneklem5")]
+    rows = [r for r in rows if not str(r.get("mod", "")).startswith("Örneklem")]
     rows = [r for r in rows if r.get("mod") not in ("BaseV0", "BaseV0b", "BaseV1", "BaseV2", "BaseV3", "Base", "BaseT2")]
     isr = [(r.get("isaret") or "").strip().lower() for r in rows]
     c = {k: isr.count(k) for k in ("a", "g", "h", "d", "y", "b")}
@@ -145,6 +146,29 @@ def ileri(path: Path) -> str:
         bek = [f"{r['hisse']} {r['etiket_tarihi'][2:]}" for r, i in zip(o4, oi) if i not in ("a", "g", "h")]
         if bek:
             out.append("   işaret bekleyen: " + ", ".join(bek))
+    if o5:  # Örneklem 5 (10.11.2026): daralma modelinin en düşük puan çeyreği gerçekten kötü mü (kör, önceden yazılı ölçüt)
+        isd5 = lambda r: (r.get("isaret") or "").strip().lower()  # noqa: E731
+        M5 = [r for r in o5 if isd5(r) in ("a", "g", "h")]
+        out.append(f"\n🧠 Örneklem 5 (model alt çeyrek testi): {len(o5)} grafik | ✅ {sum(isd5(r) == 'a' for r in o5)} "
+                   f"⏳ {sum(isd5(r) == 'g' for r in o5)} ❌ {sum(isd5(r) == 'h' for r in o5)} | bakılmamış {len(o5) - len(M5)}")
+        D5 = [r for r in M5 if str(r.get("m1", "")).startswith("d")]
+        U5 = [r for r in M5 if str(r.get("m1", "")).startswith("u")]
+
+        def _o(G):
+            iy = sum(isd5(r) in ("a", "g") for r in G)
+            rr = [float(r["r20"]) for r in G if r.get("r20") not in ("", None)]
+            return iy / len(G) if G else 0, (sum(rr) / len(rr) if rr else float("nan")), iy
+
+        (pd_, rd, nd), (pu, ru, nu) = _o(D5), _o(U5)
+        if len(M5) >= 30 and D5 and U5:
+            ok5 = pd_ <= pu - 0.2 and rd < ru
+            out.append(f"   düşük puan çeyreği: iyi kurulum {pct(nd, len(D5))} · ort {rd:+.2f}R | diğerleri: iyi kurulum {pct(nu, len(U5))} · ort {ru:+.2f}R"
+                       f" -> {'✅ KABUL (model alt çeyreği elenebilir)' if ok5 else '❌ red'} (ölçüt: 20 puan düşük VE R düşük)")
+        else:
+            out.append("   sonuç için en az 30 işaret gerekli (gruplar gizli)")
+        bek5 = [f"{r['hisse']} {r['etiket_tarihi'][2:]}" for r in o5 if isd5(r) not in ("a", "g", "h")]
+        if bek5:
+            out.append("   işaret bekleyen: " + ", ".join(bek5))
     if bv0b:  # Base v0b kör testi (06.11.2026): v0b'nin fazladan sinyalleri, kabul >= %50
         out += _base_kor(bv0b, "Base v0b kör test (fazladan sinyaller)", 0.5)
     if bt2:
