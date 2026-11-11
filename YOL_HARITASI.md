@@ -89,6 +89,10 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 - ✅ Piyasa genişliği satırı (piyasa.py: tavan sayısı, EMA50 üstü oranı, toplam hacim) tarama mesajında; sinyali etkilemez.
 - ✅ Pine: yatay tarama global kapsamda (koşullu fonksiyon çağrısı geçmişi bozuyordu), hız düzeltmeleri, calc_bars_count=1000.
 - İlk canlı fark (10.11): BRSAN ana portföyde -1.5R stop; onaylı portföy almamıştı (kullanıcı ❌).
+- 11.11: RS çizgisi (hisse/XU100; güçlü = 60 gün zirvesine %2 içinde VEYA EMA50 üstü ve yükselen). Tek tek işlemde kıl payı RED
+  (fark +0.28R, aralık -0.02 … +0.57; 2023-24'te güçlüler geride). Yan bilgi: 'sadece RS güçlü' portföy iki dönemde önde
+  (1.30 -> 2.59 milyon, 3.22 -> 4.00 milyon). -> Telegram grafiklerine RS satırı + kayda rs sütunu; 3. gölge portföy
+  (state/portfoy_rs.json, sadece RS güçlü). Karar canlıda: ana / onaylı / RS.
 - Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim

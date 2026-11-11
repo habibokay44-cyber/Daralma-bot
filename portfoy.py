@@ -184,3 +184,33 @@ def gunluk_onayli(frames: dict, sinyaller: list[dict], bugun: pd.Timestamp) -> s
     if kalan:
         txt += "\n  işaretini bekleyen: " + ", ".join(f"{b['sym']} {b['tarih'][8:10]}.{b['tarih'][5:7]}" for b in kalan)
     return txt
+
+
+# ------------------------------------------------------------------ RS gölge portföy (11.11.2026)
+F3 = F.with_name("portfoy_rs.json")
+
+
+def gunluk_rs(frames: dict, sinyaller: list[dict], bugun: pd.Timestamp, xu_close) -> str:
+    """Gölge portföy: aynı kurallar, sadece RS çizgisi GÜÇLÜ olan sinyaller (rs.py tanımı).
+    Neden: RS güçlü testi (11.11.2026) tek tek işlemde kıl payı red, ama 'sadece RS güçlü' portföy iki dönemde de önde (yan bilgi).
+    Karar canlıda: ana / onaylı / RS portföyleri yan yana. İlk çalıştırmada ana portföyün 09.11'den beri aldığı sinyaller de
+    (RS güçlüyse) aynı fiyattan eklenir, böylece üçü aynı günden başlar."""
+    import rs
+    ilk = not F3.exists()
+    adaylar = list(sinyaller)
+    if ilk:
+        ana = yukle()
+        for a in ana.get("acik", []) + ana.get("kapali", []):
+            adaylar.append(dict(sym=a["sym"], kaynak=a["kaynak"], tarih=a["tarih"], kapanis=a["giris"], dip=a["stop0"]))
+    al, zayif = [], []
+    for s in adaylar:
+        df = frames.get(s["sym"])
+        o = rs.olc(df, xu_close, s["tarih"]) if (df is not None and xu_close is not None) else None
+        if o is not None and o["guclu"]:
+            al.append(s)
+        else:
+            zayif.append(s["sym"])
+    txt = gunluk(frames, al, bugun, dosya=F3, baslik="RS portföyü (sadece RS güçlü)", gecmis_ok=ilk)
+    if zayif:
+        txt += "\n  RS zayıf olduğu için alınmayan: " + ", ".join(zayif)
+    return txt
