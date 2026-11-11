@@ -506,6 +506,14 @@ def main() -> None:
         return
     if body or args.heartbeat:
         telegram_send(head + ("\n\n" + "\n\n".join(body) if body else "\n\nYeni sinyal yok."))
+    xu_c = None
+    try:   # 11.11.2026: RS çizgisi için XU100
+        xu_ = fetch_tv_all(["XU100"], n_bars=600, budget=60, min_bars=30).get("XU100")
+        xu_c = xu_["Close"].astype(float) if xu_ is not None else None
+        import grafik
+        grafik.XU = xu_c
+    except Exception as ex:  # noqa: BLE001
+        print(f"[uyarı] XU100 alınamadı (RS satırı yok): {ex}", file=sys.stderr)
     if grafikler or base_graf:
         try:
             from grafik import gonder_butonlu
@@ -535,6 +543,12 @@ def main() -> None:
         rows = kayit.load()
         var = {kayit.key(r["hisse"], r["etiket_tarihi"]) for r in rows}
         for r_ in yeni_kayit:
+            if xu_c is not None and r_["hisse"] in frames and not r_.get("rs"):
+                try:
+                    import rs
+                    r_["rs"] = rs.kod(frames[r_["hisse"]], xu_c, r_["etiket_tarihi"])
+                except Exception:  # noqa: BLE001
+                    pass
             if kayit.key(r_["hisse"], r_["etiket_tarihi"]) not in var:
                 rows.append({**{c: "" for c in kayit.COLS}, **r_})
         idx = {kayit.key(r["hisse"], r["etiket_tarihi"]): r for r in rows}

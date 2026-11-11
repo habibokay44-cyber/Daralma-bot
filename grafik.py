@@ -96,6 +96,8 @@ def klavye(sym: str, date) -> str:
                                            [{"text": "📐 Çizgi yanlış", "callback_data": f"i|{k}|c"}]]}, ensure_ascii=False)
 
 
+XU = None   # 11.11.2026: tarama XU100 kapanış serisini koyar (RS satırı için)
+
 STAGE_BUTON = [("Stage 1", "s1"), ("Stage 2", "s2"), ("Tepe (3)", "s3"), ("Düşüş (4)", "s4")]
 
 
@@ -110,6 +112,14 @@ def gonder_butonlu(items: list[tuple[str, pd.DataFrame, dict]]) -> dict[str, str
             continue
         cap = (f"{sym} · {e['date']:%d.%m.%Y} · {e['mode']}\n"
                f"İşlem alır mıydın? Büyük resim hangi stage? 'Başka gün' dersen bu mesaja alış tarihini cevap olarak yaz (örn. 12.11).")
+        if XU is not None:   # 11.11.2026: RS bilgisi (sinyale etkisi yok)
+            try:
+                import rs
+                st = rs.satir(df, XU, e["date"])
+                if st:
+                    cap = cap.replace("\nİşlem alır", f"\n{st}\nİşlem alır", 1)
+            except Exception:  # noqa: BLE001
+                pass
         res = _post("sendPhoto", {"caption": cap, "reply_markup": klavye(sym, e["date"])},
                     {"photo": ("0.png", png, "image/png")})
         mid = (res.get("result") or {}).get("message_id")

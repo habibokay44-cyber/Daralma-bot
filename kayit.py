@@ -19,6 +19,7 @@ Sütunlar:
   t2       : Base T2 kör testinde ayrı temas sayısı (gizli; >= 2 = T2 geçer), 08.11.2026
   m1, r20  : Örneklem 5 (10.11.2026) gizli alanlar: m1 = model grubu (d = en düşük puan çeyreği, u = diğer) ve puan;
              r20 = işaret gününden sonraki R (isaret_getiri ile aynı çıkış)
+  rs       : 11.11.2026 RS çizgisi (hisse/XU100) etiket günü: G/Z (güçlü/zayıf) : 60 gün zirvesine uzaklık %
   stage    : senin büyük resim işaretin (butonla): 1 = Stage 1, 2 = Stage 2, 3 = tepe, 4 = düşüş
 """
 from __future__ import annotations
@@ -32,7 +33,7 @@ import pandas as pd
 F = Path(__file__).resolve().parent / "state" / "etiket_kayit.csv"
 COLS = ["bildirim_tarihi", "hisse", "etiket_tarihi", "mod", "kapanis", "direnc", "iptal", "isaret", "cizgi", "not",
         "e1", "y1", "v56", "giris_tarihi", "alis_tarihi", "e50", "g1", "w1", "stage",
-        "direnc_sen", "temas_sen", "b_v2", "b_v3", "t2", "m1", "r20"]
+        "direnc_sen", "temas_sen", "b_v2", "b_v3", "t2", "m1", "r20", "rs"]
 
 
 def key(sym: str, date: str) -> str:
