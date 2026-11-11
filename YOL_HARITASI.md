@@ -80,6 +80,15 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
   art arda düşüş, H, iptal kırmızı mum, iptal düşüş), 14'ü getiri açısından etkisiz (göz uyumu için kalıyor), 3'ü ölçülemez.
 - 10.11 Pine zaman aşımı (RE10110, 0.5 sn, ücretsiz plan): arama koşullu yapıldı (sonuç aynı), tablo ölçümü son mumda,
   SMC silme kısaltıldı, calc_bars_count=1000 (günlükte ~4 yıl; tarama 500 mum kullandığı için etkilemez).
+- 10.11 akşam: ❌ C2 (düşen çizgide daralma öncesi en az 2 ara temas): yanlış çizgilerin 4/5'ini düzeltiyor ama getiri düşüyor
+  (D1 +0.58 -> +0.50, D2 +0.98 -> +0.83), kalibrasyonda doğru 51 -> 40; attığı 783 Giriş ort +1.08R. Karar (kullanıcı): gösterge
+  sıkışma + kırılımı bulsun, çizgiye kullanıcı bakar; sinyal kuralına dokunulmaz. Çizgi örnekleri state/cizgi_ornek.csv'de birikiyor.
+- 10.11 akşam: ❌ Free roll / kısmi satış (6 varyant, piyasaya göre olanlar dahil): kazanma oranı %21 -> %35-40, düşüş birkaç puan
+  az, ama getiri %15-45 düşük. Iz10 kalır. Kullanıcı elle uygularsa en ucuzu +3R'de 1/4, tercihi +2R'de 1/3 (getirinin ~%28'i).
+  Psikolojik yük: 10-19 art arda (çoğu küçük) zarar, 2023-24'te 445 gün sualtı, ayların ~%40'ı eksi: yöntemden değil sistemden.
+- ✅ Piyasa genişliği satırı (piyasa.py: tavan sayısı, EMA50 üstü oranı, toplam hacim) tarama mesajında; sinyali etkilemez.
+- ✅ Pine: yatay tarama global kapsamda (koşullu fonksiyon çağrısı geçmişi bozuyordu), hız düzeltmeleri, calc_bars_count=1000.
+- İlk canlı fark (10.11): BRSAN ana portföyde -1.5R stop; onaylı portföy almamıştı (kullanıcı ❌).
 - Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim
