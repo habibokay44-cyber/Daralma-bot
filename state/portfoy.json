@@ -1,5 +1,5 @@
 {
- "nakit": 88517.36679000001,
+ "nakit": 68832.06115000002,
  "acik": [
   {
    "sym": "HUBVC",
@@ -10,7 +10,19 @@
    "stop": 2.2,
    "lot": 4347,
    "maliyet": 10573.77,
-   "son": 2.22,
+   "son": 2.26,
+   "armed": false
+  },
+  {
+   "sym": "SUWEN",
+   "kaynak": "Base",
+   "tarih": "2026-11-12",
+   "giris": 5.14,
+   "stop0": 4.92,
+   "stop": 4.92,
+   "lot": 3826,
+   "maliyet": 19685.31,
+   "son": 5.14,
    "armed": false
   }
  ],
