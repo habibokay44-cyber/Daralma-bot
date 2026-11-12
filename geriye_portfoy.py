@@ -115,6 +115,9 @@ def simule(frames, sig, bas, sermaye, kaynaklar, mod="kapanis", kayma=0.0, minha
                     a["maliyet"] -= mal
                     a["lot"] -= q
                 a["k_done"] = True
+                if a["lot"] <= 0:          # 12.11: oran=1.0 -> hedefte tamamı satıldı, yer boşalır
+                    kapali.append(dict(a, cikis=kpx, cikis_tarihi=d, kz=a["kz_k"], R=a["kz_k"] / a["risk_tl"]))
+                    continue
             if c[i] < a["stop"]:
                 if mod == "kapanis":
                     kapat(a, c[i], d)
