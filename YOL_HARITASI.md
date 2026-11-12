@@ -93,6 +93,9 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
   (fark +0.28R, aralık -0.02 … +0.57; 2023-24'te güçlüler geride). Yan bilgi: 'sadece RS güçlü' portföy iki dönemde önde
   (1.30 -> 2.59 milyon, 3.22 -> 4.00 milyon). -> Telegram grafiklerine RS satırı + kayda rs sütunu; 3. gölge portföy
   (state/portfoy_rs.json, sadece RS güçlü). Karar canlıda: ana / onaylı / RS.
+- 12.11 tutarlılık kontrolü (10 grafik, 9 gün arayla, kör): 7/10 aynı (%70). Farklı 3'ün 2'si eski notta 'zamanlama' itirazı
+  olanlar (SURGY, MAGEN), 1'i gerçek fikir değişikliği (ASGYO). n=10, belirsizlik geniş. Göstergenin %62 uyumu bu tavana
+  (%70-80) göre değerlendirilmeli. state/tutarlilik.csv
 - Bekleyen: Pine = Python otomatik karşılaştırma (TradingView CSV dışa aktarımı gerekir).
 
 ## Takvim
