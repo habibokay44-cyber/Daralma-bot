@@ -111,3 +111,7 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 1–4. adımlar ~1–1,5 ay, doğrulama ~2–3 ay → güvenilir sisteme ~3–4 ay (veri akışına ve test sonuçlarına bağlı).
 - 12.11 kullanıcı: zayıf piyasada RS'i zayıf (momentumsuz) daralmaları kısa vadeli 'vur-kaç' işlem olarak alıyor (ör. TGSAS ✅, RS Z:-49.6).
   Yani RS zayıf ≠ almaz; işlem tipi değişir. Aday test: RS zayıf + zayıf piyasa sinyallerinde kısa çıkış (hedef/zaman stopu) vs mevcut iz.
+- 12.11 VUR-KAÇ TESTİ (vurkac_test.py) ❌ RED: S = RS zayıf + piyasa zayıf (697 işlem, %9). S içinde Iz10 +0.29R/+0.30R;
+  K1 tamamı +1R -0.03/-0.33, K2 tamamı +2R +0.05/-0.34 (portföy iki dönem hafif üstte ama işlem başı fark -0.39R, güven aralığı
+  negatif), K3 yarısı +1R -0.22R eşli fark. Kısa çıkış kazancı kesiyor; az sayıdaki büyük kaçışlar ortalamayı taşıyor.
+  Yan: S dışı Iz10 +0.68/+0.84R -> RS zayıf + piyasa zayıf sinyaller yaklaşık yarı verimli ama yine pozitif.
