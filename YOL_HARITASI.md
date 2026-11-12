@@ -109,3 +109,5 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 
 ## Tahmini süre
 1–4. adımlar ~1–1,5 ay, doğrulama ~2–3 ay → güvenilir sisteme ~3–4 ay (veri akışına ve test sonuçlarına bağlı).
+- 12.11 kullanıcı: zayıf piyasada RS'i zayıf (momentumsuz) daralmaları kısa vadeli 'vur-kaç' işlem olarak alıyor (ör. TGSAS ✅, RS Z:-49.6).
+  Yani RS zayıf ≠ almaz; işlem tipi değişir. Aday test: RS zayıf + zayıf piyasa sinyallerinde kısa çıkış (hedef/zaman stopu) vs mevcut iz.
