@@ -115,3 +115,5 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
   K1 tamamı +1R -0.03/-0.33, K2 tamamı +2R +0.05/-0.34 (portföy iki dönem hafif üstte ama işlem başı fark -0.39R, güven aralığı
   negatif), K3 yarısı +1R -0.22R eşli fark. Kısa çıkış kazancı kesiyor; az sayıdaki büyük kaçışlar ortalamayı taşıyor.
   Yan: S dışı Iz10 +0.68/+0.84R -> RS zayıf + piyasa zayıf sinyaller yaklaşık yarı verimli ama yine pozitif.
+- 13.11 Örneklem 6 gönderildi (veri toplama, test değil): 40 kör daralma, model v1 alt yarısından 24 + üst yarısından 16
+  (havuz 2701, tohum 97). Not: ❌ + 'var' = daralma var ama almam; ❌ + 'yok' = daralma yok. Hedef model v2: 400-500 daralma işareti.
