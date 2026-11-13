@@ -1,5 +1,5 @@
 {
- "nakit": 68832.06115000002,
+ "nakit": 29582.050350000027,
  "acik": [
   {
    "sym": "HUBVC",
@@ -10,7 +10,7 @@
    "stop": 2.2,
    "lot": 4347,
    "maliyet": 10573.77,
-   "son": 2.26,
+   "son": 2.28,
    "armed": false
   },
   {
@@ -23,6 +23,30 @@
    "lot": 3826,
    "maliyet": 19685.31,
    "son": 5.14,
+   "armed": false
+  },
+  {
+   "sym": "ENERY",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "giris": 14.6,
+   "stop0": 14.46,
+   "stop": 14.46,
+   "lot": 1348,
+   "maliyet": 19700.48,
+   "son": 14.6,
+   "armed": false
+  },
+  {
+   "sym": "INVES",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "giris": 697.5,
+   "stop0": 674.0,
+   "stop": 674.0,
+   "lot": 28,
+   "maliyet": 19549.53,
+   "son": 697.5,
    "armed": false
   }
  ],
@@ -44,6 +68,13 @@
    "R": -1.5
   }
  ],
- "atlanan": [],
+ "atlanan": [
+  {
+   "sym": "ENERY",
+   "kaynak": "Base",
+   "tarih": "2026-11-13",
+   "neden": "zaten elde"
+  }
+ ],
  "baslangic": "2026-11-09"
 }

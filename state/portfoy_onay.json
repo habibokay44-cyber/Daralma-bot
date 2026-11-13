@@ -1,5 +1,5 @@
 {
- "nakit": 89426.22679,
+ "nakit": 69876.69679,
  "acik": [
   {
    "sym": "HUBVC",
@@ -10,7 +10,19 @@
    "stop": 2.2,
    "lot": 4347,
    "maliyet": 10573.77,
-   "son": 2.26,
+   "son": 2.28,
+   "armed": false
+  },
+  {
+   "sym": "INVES",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "giris": 697.5,
+   "stop0": 674.0,
+   "stop": 674.0,
+   "lot": 28,
+   "maliyet": 19549.53,
+   "son": 697.5,
    "armed": false
   }
  ],
