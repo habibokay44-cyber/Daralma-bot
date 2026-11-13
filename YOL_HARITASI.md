@@ -117,3 +117,6 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
   Yan: S dışı Iz10 +0.68/+0.84R -> RS zayıf + piyasa zayıf sinyaller yaklaşık yarı verimli ama yine pozitif.
 - 13.11 Örneklem 6 gönderildi (veri toplama, test değil): 40 kör daralma, model v1 alt yarısından 24 + üst yarısından 16
   (havuz 2701, tohum 97). Not: ❌ + 'var' = daralma var ama almam; ❌ + 'yok' = daralma yok. Hedef model v2: 400-500 daralma işareti.
+- 13.11 Örneklem 6 işaretlendi: 40'ın 14 ✅ 1 ⏳ 25 ❌, 8 📐. Gizli R: alırdım ort +1.69R (medyan +1.83), almazdım +0.25R
+  (medyan -1.0) -> işaret-getiri bulgusu yine tutuyor. Model v1 alt yarı %67 ❌, üst yarı %56 ❌ (zayıf ayrım).
+  Toplam daralma işareti ~173 (❌ ~84). Model v2 hedefi 400 / 150 ❌.
