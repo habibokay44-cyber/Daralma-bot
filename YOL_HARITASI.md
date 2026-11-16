@@ -120,3 +120,5 @@ Durum: ⬜ başlamadı · 🔄 sürüyor · ✅ bitti · ❌ red
 - 13.11 Örneklem 6 işaretlendi: 40'ın 14 ✅ 1 ⏳ 25 ❌, 8 📐. Gizli R: alırdım ort +1.69R (medyan +1.83), almazdım +0.25R
   (medyan -1.0) -> işaret-getiri bulgusu yine tutuyor. Model v1 alt yarı %67 ❌, üst yarı %56 ❌ (zayıf ayrım).
   Toplam daralma işareti ~173 (❌ ~84). Model v2 hedefi 400 / 150 ❌.
+- 16.11 Örneklem 7 işaretlendi: 19 ✅ 21 ❌, 12 📐. Model v1 alt yarı 16/24 ❌ (%67), üst yarı 5/16 ❌ (%31) -> bu sefer belirgin
+  ayrım. Gizli R: alırdım +0.33R, almazdım -0.08R (ikisinin medyanı -1; Örneklem 6'dan zayıf fark). Toplam daralma işareti 190 (❌ 103).
