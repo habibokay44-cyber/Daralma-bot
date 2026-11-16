@@ -1,9 +1,30 @@
 [
  {
-  "sym": "ENERY",
+  "sym": "KLYPV",
+  "kaynak": "Giriş",
+  "tarih": "2026-11-16",
+  "kapanis": 50.55,
+  "dip": 49.6
+ },
+ {
+  "sym": "OTKAR",
   "kaynak": "Base",
-  "tarih": "2026-11-13",
-  "kapanis": 14.6,
-  "dip": 14.46
+  "tarih": "2026-11-16",
+  "kapanis": 332.0,
+  "dip": 314.5
+ },
+ {
+  "sym": "SANEL",
+  "kaynak": "Base",
+  "tarih": "2026-11-16",
+  "kapanis": 35.3,
+  "dip": 31.58
+ },
+ {
+  "sym": "VERUS",
+  "kaynak": "Base",
+  "tarih": "2026-11-16",
+  "kapanis": 553.0,
+  "dip": 510.0
  }
 ]

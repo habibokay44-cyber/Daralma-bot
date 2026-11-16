@@ -1,5 +1,5 @@
 {
- "nakit": 29582.050350000027,
+ "nakit": 16759.24035000003,
  "acik": [
   {
    "sym": "HUBVC",
@@ -10,7 +10,7 @@
    "stop": 2.2,
    "lot": 4347,
    "maliyet": 10573.77,
-   "son": 2.28,
+   "son": 2.25,
    "armed": false
   },
   {
@@ -19,11 +19,11 @@
    "tarih": "2026-11-12",
    "giris": 5.14,
    "stop0": 4.92,
-   "stop": 4.92,
+   "stop": 5.14,
    "lot": 3826,
    "maliyet": 19685.31,
-   "son": 5.14,
-   "armed": false
+   "son": 5.62,
+   "armed": true
   },
   {
    "sym": "ENERY",
@@ -31,11 +31,11 @@
    "tarih": "2026-11-13",
    "giris": 14.6,
    "stop0": 14.46,
-   "stop": 14.46,
+   "stop": 14.6,
    "lot": 1348,
    "maliyet": 19700.48,
-   "son": 14.6,
-   "armed": false
+   "son": 14.74,
+   "armed": true
   },
   {
    "sym": "INVES",
@@ -43,10 +43,22 @@
    "tarih": "2026-11-13",
    "giris": 697.5,
    "stop0": 674.0,
-   "stop": 674.0,
+   "stop": 697.5,
    "lot": 28,
    "maliyet": 19549.53,
-   "son": 697.5,
+   "son": 725.0,
+   "armed": true
+  },
+  {
+   "sym": "ALCAR",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "giris": 610.0,
+   "stop0": 563.0,
+   "stop": 563.0,
+   "lot": 21,
+   "maliyet": 12822.81,
+   "son": 610.0,
    "armed": false
   }
  ],
@@ -74,6 +86,66 @@
    "kaynak": "Base",
    "tarih": "2026-11-13",
    "neden": "zaten elde"
+  },
+  {
+   "sym": "ASELS",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "BLUME",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "EGEGY",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "FONET",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "KLYPV",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "PKART",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "TGSAS",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "neden": "geç görüldü"
+  },
+  {
+   "sym": "OTKAR",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "SANEL",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "VERUS",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
   }
  ],
  "baslangic": "2026-11-09"
