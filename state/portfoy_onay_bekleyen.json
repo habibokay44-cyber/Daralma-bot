@@ -7,24 +7,24 @@
   "dip": 49.6
  },
  {
-  "sym": "OTKAR",
+  "sym": "KIMMR",
   "kaynak": "Base",
-  "tarih": "2026-11-16",
-  "kapanis": 332.0,
-  "dip": 314.5
+  "tarih": "2026-11-17",
+  "kapanis": 11.4,
+  "dip": 10.95
  },
  {
-  "sym": "SANEL",
+  "sym": "KRGYO",
   "kaynak": "Base",
-  "tarih": "2026-11-16",
-  "kapanis": 35.3,
-  "dip": 31.58
+  "tarih": "2026-11-17",
+  "kapanis": 3.93,
+  "dip": 3.68
  },
  {
-  "sym": "VERUS",
+  "sym": "MHRGY",
   "kaynak": "Base",
-  "tarih": "2026-11-16",
-  "kapanis": 553.0,
-  "dip": 510.0
+  "tarih": "2026-11-17",
+  "kapanis": 1.96,
+  "dip": 1.79
  }
 ]

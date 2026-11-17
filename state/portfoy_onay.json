@@ -1,5 +1,5 @@
 {
- "nakit": 59102.653510000004,
+ "nakit": 30583.863210000007,
  "acik": [
   {
    "sym": "HUBVC",
@@ -10,7 +10,7 @@
    "stop": 2.2,
    "lot": 4347,
    "maliyet": 10573.77,
-   "son": 2.25,
+   "son": 2.23,
    "armed": false
   },
   {
@@ -22,7 +22,7 @@
    "stop": 697.5,
    "lot": 28,
    "maliyet": 19549.53,
-   "son": 725.0,
+   "son": 726.0,
    "armed": true
   },
   {
@@ -31,14 +31,57 @@
    "tarih": "2026-11-16",
    "giris": 18.12,
    "stop0": 16.44,
-   "stop": 16.44,
+   "stop": 18.51,
    "lot": 594,
    "maliyet": 10774.04,
-   "son": 18.12,
+   "son": 19.75,
+   "armed": true
+  },
+  {
+   "sym": "OTKAR",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "giris": 332.0,
+   "stop0": 314.5,
+   "stop": 314.5,
+   "lot": 57,
+   "maliyet": 18942.92,
+   "son": 322.5,
+   "armed": false
+  },
+  {
+   "sym": "SANEL",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "giris": 35.3,
+   "stop0": 31.58,
+   "stop": 31.58,
+   "lot": 271,
+   "maliyet": 9575.87,
+   "son": 33.72,
    "armed": false
   }
  ],
  "kapali": [],
- "atlanan": [],
+ "atlanan": [
+  {
+   "sym": "VERUS",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "KBORU",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "TARKM",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  }
+ ],
  "baslangic": "2026-11-10"
 }

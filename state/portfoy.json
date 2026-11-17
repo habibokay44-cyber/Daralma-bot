@@ -10,7 +10,7 @@
    "stop": 2.2,
    "lot": 4347,
    "maliyet": 10573.77,
-   "son": 2.25,
+   "son": 2.23,
    "armed": false
   },
   {
@@ -22,7 +22,7 @@
    "stop": 5.14,
    "lot": 3826,
    "maliyet": 19685.31,
-   "son": 5.62,
+   "son": 5.54,
    "armed": true
   },
   {
@@ -34,7 +34,7 @@
    "stop": 14.6,
    "lot": 1348,
    "maliyet": 19700.48,
-   "son": 14.74,
+   "son": 14.86,
    "armed": true
   },
   {
@@ -46,7 +46,7 @@
    "stop": 697.5,
    "lot": 28,
    "maliyet": 19549.53,
-   "son": 725.0,
+   "son": 726.0,
    "armed": true
   },
   {
@@ -58,7 +58,7 @@
    "stop": 563.0,
    "lot": 21,
    "maliyet": 12822.81,
-   "son": 610.0,
+   "son": 595.0,
    "armed": false
   }
  ],
@@ -145,6 +145,42 @@
    "sym": "VERUS",
    "kaynak": "Base",
    "tarih": "2026-11-16",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "CELHA",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "KBORU",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "TARKM",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "KIMMR",
+   "kaynak": "Base",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "KRGYO",
+   "kaynak": "Base",
+   "tarih": "2026-11-17",
+   "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "MHRGY",
+   "kaynak": "Base",
+   "tarih": "2026-11-17",
    "neden": "5 işlem dolu"
   }
  ],
