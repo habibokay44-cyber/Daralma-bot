@@ -1,18 +1,6 @@
 {
- "nakit": 16759.24035000003,
+ "nakit": 25878.811650000032,
  "acik": [
-  {
-   "sym": "HUBVC",
-   "kaynak": "Base",
-   "tarih": "2026-11-09",
-   "giris": 2.43,
-   "stop0": 2.2,
-   "stop": 2.2,
-   "lot": 4347,
-   "maliyet": 10573.77,
-   "son": 2.23,
-   "armed": false
-  },
   {
    "sym": "SUWEN",
    "kaynak": "Base",
@@ -22,7 +10,7 @@
    "stop": 5.14,
    "lot": 3826,
    "maliyet": 19685.31,
-   "son": 5.54,
+   "son": 5.15,
    "armed": true
   },
   {
@@ -34,7 +22,7 @@
    "stop": 14.6,
    "lot": 1348,
    "maliyet": 19700.48,
-   "son": 14.86,
+   "son": 14.65,
    "armed": true
   },
   {
@@ -46,7 +34,7 @@
    "stop": 697.5,
    "lot": 28,
    "maliyet": 19549.53,
-   "son": 726.0,
+   "son": 727.0,
    "armed": true
   },
   {
@@ -58,7 +46,7 @@
    "stop": 563.0,
    "lot": 21,
    "maliyet": 12822.81,
-   "son": 595.0,
+   "son": 573.0,
    "armed": false
   }
  ],
@@ -78,6 +66,22 @@
    "cikis": 655.0,
    "kz": -908.85,
    "R": -1.5
+  },
+  {
+   "sym": "HUBVC",
+   "kaynak": "Base",
+   "tarih": "2026-11-09",
+   "giris": 2.43,
+   "stop0": 2.2,
+   "stop": 2.2,
+   "lot": 4347,
+   "maliyet": 10573.77,
+   "son": 2.23,
+   "armed": false,
+   "cikis_tarihi": "2026-11-18",
+   "cikis": 2.1,
+   "kz": -1454.2,
+   "R": -1.43
   }
  ],
  "atlanan": [
