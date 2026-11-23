@@ -26,5 +26,19 @@
   "tarih": "2026-11-17",
   "kapanis": 1.96,
   "dip": 1.79
+ },
+ {
+  "sym": "SILVR",
+  "kaynak": "Base",
+  "tarih": "2026-11-23",
+  "kapanis": 1.61,
+  "dip": 1.48
+ },
+ {
+  "sym": "ZRGYO",
+  "kaynak": "Base",
+  "tarih": "2026-11-23",
+  "kapanis": 18.97,
+  "dip": 18.1
  }
 ]

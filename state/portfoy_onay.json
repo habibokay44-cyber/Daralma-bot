@@ -1,43 +1,6 @@
 {
- "nakit": 48144.76473000001,
- "acik": [
-  {
-   "sym": "INVES",
-   "kaynak": "Giriş",
-   "tarih": "2026-11-13",
-   "giris": 697.5,
-   "stop0": 674.0,
-   "stop": 697.5,
-   "lot": 28,
-   "maliyet": 19549.53,
-   "son": 727.0,
-   "armed": true
-  },
-  {
-   "sym": "EGEGY",
-   "kaynak": "Giriş",
-   "tarih": "2026-11-16",
-   "giris": 18.12,
-   "stop0": 16.44,
-   "stop": 18.51,
-   "lot": 594,
-   "maliyet": 10774.04,
-   "son": 19.42,
-   "armed": true
-  },
-  {
-   "sym": "OTKAR",
-   "kaynak": "Base",
-   "tarih": "2026-11-16",
-   "giris": 332.0,
-   "stop0": 314.5,
-   "stop": 314.5,
-   "lot": 57,
-   "maliyet": 18942.92,
-   "son": 320.25,
-   "armed": false
-  }
- ],
+ "nakit": 96045.92562,
+ "acik": [],
  "kapali": [
   {
    "sym": "HUBVC",
@@ -70,6 +33,54 @@
    "cikis": 31.18,
    "kz": -1134.54,
    "R": -1.11
+  },
+  {
+   "sym": "INVES",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "giris": 697.5,
+   "stop0": 674.0,
+   "stop": 697.5,
+   "lot": 28,
+   "maliyet": 19549.53,
+   "son": 727.0,
+   "armed": true,
+   "cikis_tarihi": "2026-11-20",
+   "cikis": 695.0,
+   "kz": -108.99,
+   "R": -0.11
+  },
+  {
+   "sym": "EGEGY",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "giris": 18.12,
+   "stop0": 16.44,
+   "stop": 18.51,
+   "lot": 594,
+   "maliyet": 10774.04,
+   "son": 19.42,
+   "armed": true,
+   "cikis_tarihi": "2026-11-20",
+   "cikis": 18.19,
+   "kz": 20.02,
+   "R": 0.04
+  },
+  {
+   "sym": "OTKAR",
+   "kaynak": "Base",
+   "tarih": "2026-11-16",
+   "giris": 332.0,
+   "stop0": 314.5,
+   "stop": 314.5,
+   "lot": 57,
+   "maliyet": 18942.92,
+   "son": 320.25,
+   "armed": false,
+   "cikis_tarihi": "2026-11-23",
+   "cikis": 310.25,
+   "kz": -1276.35,
+   "R": -1.24
   }
  ],
  "atlanan": [

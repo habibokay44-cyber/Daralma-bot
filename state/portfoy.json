@@ -1,42 +1,6 @@
 {
- "nakit": 25878.811650000032,
+ "nakit": 52748.416120000045,
  "acik": [
-  {
-   "sym": "SUWEN",
-   "kaynak": "Base",
-   "tarih": "2026-11-12",
-   "giris": 5.14,
-   "stop0": 4.92,
-   "stop": 5.14,
-   "lot": 3826,
-   "maliyet": 19685.31,
-   "son": 5.15,
-   "armed": true
-  },
-  {
-   "sym": "ENERY",
-   "kaynak": "Giriş",
-   "tarih": "2026-11-13",
-   "giris": 14.6,
-   "stop0": 14.46,
-   "stop": 14.6,
-   "lot": 1348,
-   "maliyet": 19700.48,
-   "son": 14.65,
-   "armed": true
-  },
-  {
-   "sym": "INVES",
-   "kaynak": "Giriş",
-   "tarih": "2026-11-13",
-   "giris": 697.5,
-   "stop0": 674.0,
-   "stop": 697.5,
-   "lot": 28,
-   "maliyet": 19549.53,
-   "son": 727.0,
-   "armed": true
-  },
   {
    "sym": "ALCAR",
    "kaynak": "Giriş",
@@ -46,7 +10,31 @@
    "stop": 563.0,
    "lot": 21,
    "maliyet": 12822.81,
-   "son": 573.0,
+   "son": 574.5,
+   "armed": false
+  },
+  {
+   "sym": "SILVR",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-23",
+   "giris": 1.61,
+   "stop0": 1.48,
+   "stop": 1.48,
+   "lot": 7375,
+   "maliyet": 11885.62,
+   "son": 1.61,
+   "armed": false
+  },
+  {
+   "sym": "ZRGYO",
+   "kaynak": "Base",
+   "tarih": "2026-11-23",
+   "giris": 18.97,
+   "stop0": 18.1,
+   "stop": 18.1,
+   "lot": 1010,
+   "maliyet": 19178.86,
+   "son": 18.97,
    "armed": false
   }
  ],
@@ -82,6 +70,54 @@
    "cikis": 2.1,
    "kz": -1454.2,
    "R": -1.43
+  },
+  {
+   "sym": "SUWEN",
+   "kaynak": "Base",
+   "tarih": "2026-11-12",
+   "giris": 5.14,
+   "stop0": 4.92,
+   "stop": 5.14,
+   "lot": 3826,
+   "maliyet": 19685.31,
+   "son": 5.15,
+   "armed": true,
+   "cikis_tarihi": "2026-11-19",
+   "cikis": 4.98,
+   "kz": -650.88,
+   "R": -0.73
+  },
+  {
+   "sym": "ENERY",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "giris": 14.6,
+   "stop0": 14.46,
+   "stop": 14.6,
+   "lot": 1348,
+   "maliyet": 19700.48,
+   "son": 14.65,
+   "armed": true,
+   "cikis_tarihi": "2026-11-20",
+   "cikis": 14.45,
+   "kz": -241.36,
+   "R": -1.07
+  },
+  {
+   "sym": "INVES",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-13",
+   "giris": 697.5,
+   "stop0": 674.0,
+   "stop": 697.5,
+   "lot": 28,
+   "maliyet": 19549.53,
+   "son": 727.0,
+   "armed": true,
+   "cikis_tarihi": "2026-11-20",
+   "cikis": 695.0,
+   "kz": -108.99,
+   "R": -0.11
   }
  ],
  "atlanan": [
@@ -186,6 +222,30 @@
    "kaynak": "Base",
    "tarih": "2026-11-17",
    "neden": "5 işlem dolu"
+  },
+  {
+   "sym": "CATES",
+   "kaynak": "Base",
+   "tarih": "2026-11-20",
+   "neden": "geç görüldü"
+  },
+  {
+   "sym": "MOBTL",
+   "kaynak": "Base",
+   "tarih": "2026-11-20",
+   "neden": "geç görüldü"
+  },
+  {
+   "sym": "SAMAT",
+   "kaynak": "Base",
+   "tarih": "2026-11-20",
+   "neden": "geç görüldü"
+  },
+  {
+   "sym": "SILVR",
+   "kaynak": "Base",
+   "tarih": "2026-11-23",
+   "neden": "zaten elde"
   }
  ],
  "baslangic": "2026-11-09"
