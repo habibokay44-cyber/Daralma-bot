@@ -3,7 +3,7 @@ name: Isaretleri isle
 on:
   schedule:
     # 3 saatte bir: Telegram butonlarına bastıklarını ve tarih cevaplarını kayda yazar
-    - cron: "23 */3 * * *"
+    - cron: "23 5,19 * * *"
   workflow_dispatch:
 
 permissions:
