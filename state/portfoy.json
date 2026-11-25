@@ -1,5 +1,5 @@
 {
- "nakit": 52748.416120000045,
+ "nakit": 33800.48712000005,
  "acik": [
   {
    "sym": "ALCAR",
@@ -10,7 +10,7 @@
    "stop": 563.0,
    "lot": 21,
    "maliyet": 12822.81,
-   "son": 574.5,
+   "son": 568.0,
    "armed": false
   },
   {
@@ -22,7 +22,7 @@
    "stop": 1.48,
    "lot": 7375,
    "maliyet": 11885.62,
-   "son": 1.61,
+   "son": 1.49,
    "armed": false
   },
   {
@@ -34,7 +34,19 @@
    "stop": 18.1,
    "lot": 1010,
    "maliyet": 19178.86,
-   "son": 18.97,
+   "son": 18.8,
+   "armed": false
+  },
+  {
+   "sym": "FRIGO",
+   "kaynak": "Base",
+   "tarih": "2026-11-24",
+   "giris": 2.3,
+   "stop0": 2.25,
+   "stop": 2.25,
+   "lot": 8230,
+   "maliyet": 18947.93,
+   "son": 2.3,
    "armed": false
   }
  ],

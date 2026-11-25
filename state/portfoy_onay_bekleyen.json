@@ -1,12 +1,5 @@
 [
  {
-  "sym": "KLYPV",
-  "kaynak": "Giriş",
-  "tarih": "2026-11-16",
-  "kapanis": 50.55,
-  "dip": 49.6
- },
- {
   "sym": "KIMMR",
   "kaynak": "Base",
   "tarih": "2026-11-17",
@@ -28,17 +21,10 @@
   "dip": 1.79
  },
  {
-  "sym": "SILVR",
+  "sym": "FRIGO",
   "kaynak": "Base",
-  "tarih": "2026-11-23",
-  "kapanis": 1.61,
-  "dip": 1.48
- },
- {
-  "sym": "ZRGYO",
-  "kaynak": "Base",
-  "tarih": "2026-11-23",
-  "kapanis": 18.97,
-  "dip": 18.1
+  "tarih": "2026-11-24",
+  "kapanis": 2.3,
+  "dip": 2.25
  }
 ]

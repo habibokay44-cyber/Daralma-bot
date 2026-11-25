@@ -1,5 +1,5 @@
 {
- "nakit": 76543.49781000003,
+ "nakit": 57427.50091000003,
  "acik": [
   {
    "sym": "ZRGYO",
@@ -10,7 +10,19 @@
    "stop": 18.1,
    "lot": 1008,
    "maliyet": 19140.88,
-   "son": 18.97,
+   "son": 18.8,
+   "armed": false
+  },
+  {
+   "sym": "FRIGO",
+   "kaynak": "Base",
+   "tarih": "2026-11-24",
+   "giris": 2.3,
+   "stop0": 2.25,
+   "stop": 2.25,
+   "lot": 8303,
+   "maliyet": 19116.0,
+   "son": 2.3,
    "armed": false
   }
  ],
