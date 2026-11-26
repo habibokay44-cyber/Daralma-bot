@@ -1,26 +1,5 @@
 [
  {
-  "sym": "KIMMR",
-  "kaynak": "Base",
-  "tarih": "2026-11-17",
-  "kapanis": 11.4,
-  "dip": 10.95
- },
- {
-  "sym": "KRGYO",
-  "kaynak": "Base",
-  "tarih": "2026-11-17",
-  "kapanis": 3.93,
-  "dip": 3.68
- },
- {
-  "sym": "MHRGY",
-  "kaynak": "Base",
-  "tarih": "2026-11-17",
-  "kapanis": 1.96,
-  "dip": 1.79
- },
- {
   "sym": "FRIGO",
   "kaynak": "Base",
   "tarih": "2026-11-24",

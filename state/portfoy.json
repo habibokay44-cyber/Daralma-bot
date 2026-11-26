@@ -1,30 +1,6 @@
 {
- "nakit": 33800.48712000005,
+ "nakit": 55759.006620000044,
  "acik": [
-  {
-   "sym": "ALCAR",
-   "kaynak": "Giriş",
-   "tarih": "2026-11-16",
-   "giris": 610.0,
-   "stop0": 563.0,
-   "stop": 563.0,
-   "lot": 21,
-   "maliyet": 12822.81,
-   "son": 568.0,
-   "armed": false
-  },
-  {
-   "sym": "SILVR",
-   "kaynak": "Giriş",
-   "tarih": "2026-11-23",
-   "giris": 1.61,
-   "stop0": 1.48,
-   "stop": 1.48,
-   "lot": 7375,
-   "maliyet": 11885.62,
-   "son": 1.49,
-   "armed": false
-  },
   {
    "sym": "ZRGYO",
    "kaynak": "Base",
@@ -34,7 +10,7 @@
    "stop": 18.1,
    "lot": 1010,
    "maliyet": 19178.86,
-   "son": 18.8,
+   "son": 18.73,
    "armed": false
   },
   {
@@ -43,11 +19,11 @@
    "tarih": "2026-11-24",
    "giris": 2.3,
    "stop0": 2.25,
-   "stop": 2.25,
+   "stop": 2.3,
    "lot": 8230,
    "maliyet": 18947.93,
-   "son": 2.3,
-   "armed": false
+   "son": 2.32,
+   "armed": true
   }
  ],
  "kapali": [
@@ -130,6 +106,38 @@
    "cikis": 695.0,
    "kz": -108.99,
    "R": -0.11
+  },
+  {
+   "sym": "ALCAR",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-16",
+   "giris": 610.0,
+   "stop0": 563.0,
+   "stop": 563.0,
+   "lot": 21,
+   "maliyet": 12822.81,
+   "son": 568.0,
+   "armed": false,
+   "cikis_tarihi": "2026-11-25",
+   "cikis": 548.0,
+   "kz": -1326.32,
+   "R": -1.32
+  },
+  {
+   "sym": "SILVR",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-23",
+   "giris": 1.61,
+   "stop0": 1.48,
+   "stop": 1.48,
+   "lot": 7375,
+   "maliyet": 11885.62,
+   "son": 1.49,
+   "armed": false,
+   "cikis_tarihi": "2026-11-25",
+   "cikis": 1.42,
+   "kz": -1423.59,
+   "R": -1.46
   }
  ],
  "atlanan": [

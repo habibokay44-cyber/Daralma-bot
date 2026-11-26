@@ -1,18 +1,6 @@
 {
- "nakit": 64922.51329999999,
+ "nakit": 75402.98233999999,
  "acik": [
-  {
-   "sym": "SILVR",
-   "kaynak": "Base",
-   "tarih": "2026-11-23",
-   "giris": 1.61,
-   "stop0": 1.48,
-   "stop": 1.48,
-   "lot": 7388,
-   "maliyet": 11906.57,
-   "son": 1.49,
-   "armed": false
-  },
   {
    "sym": "ZRGYO",
    "kaynak": "Base",
@@ -22,7 +10,7 @@
    "stop": 18.1,
    "lot": 1012,
    "maliyet": 19216.84,
-   "son": 18.8,
+   "son": 18.73,
    "armed": false
   }
  ],
@@ -106,6 +94,22 @@
    "cikis": 310.25,
    "kz": -1276.35,
    "R": -1.24
+  },
+  {
+   "sym": "SILVR",
+   "kaynak": "Base",
+   "tarih": "2026-11-23",
+   "giris": 1.61,
+   "stop0": 1.48,
+   "stop": 1.48,
+   "lot": 7388,
+   "maliyet": 11906.57,
+   "son": 1.49,
+   "armed": false,
+   "cikis_tarihi": "2026-11-25",
+   "cikis": 1.42,
+   "kz": -1426.1,
+   "R": -1.46
   }
  ],
  "atlanan": [
