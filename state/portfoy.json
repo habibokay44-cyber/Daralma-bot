@@ -1,5 +1,5 @@
 {
- "nakit": 55759.006620000044,
+ "nakit": 7603.559280000045,
  "acik": [
   {
    "sym": "ZRGYO",
@@ -10,7 +10,7 @@
    "stop": 18.1,
    "lot": 1010,
    "maliyet": 19178.86,
-   "son": 18.73,
+   "son": 18.59,
    "armed": false
   },
   {
@@ -22,8 +22,44 @@
    "stop": 2.3,
    "lot": 8230,
    "maliyet": 18947.93,
-   "son": 2.32,
+   "son": 2.37,
    "armed": true
+  },
+  {
+   "sym": "AKSA",
+   "kaynak": "Base",
+   "tarih": "2026-11-26",
+   "giris": 11.5,
+   "stop0": 11.13,
+   "stop": 11.13,
+   "lot": 1635,
+   "maliyet": 18821.3,
+   "son": 11.5,
+   "armed": false
+  },
+  {
+   "sym": "CWENE",
+   "kaynak": "Base",
+   "tarih": "2026-11-26",
+   "giris": 18.6,
+   "stop0": 17.93,
+   "stop": 17.93,
+   "lot": 1011,
+   "maliyet": 18823.4,
+   "son": 18.6,
+   "armed": false
+  },
+  {
+   "sym": "KATMR",
+   "kaynak": "Base",
+   "tarih": "2026-11-26",
+   "giris": 1.34,
+   "stop0": 1.22,
+   "stop": 1.22,
+   "lot": 7836,
+   "maliyet": 10510.74,
+   "son": 1.34,
+   "armed": false
   }
  ],
  "kapali": [
@@ -266,6 +302,12 @@
    "kaynak": "Base",
    "tarih": "2026-11-23",
    "neden": "zaten elde"
+  },
+  {
+   "sym": "OYLUM",
+   "kaynak": "Base",
+   "tarih": "2026-11-26",
+   "neden": "5 işlem dolu"
   }
  ],
  "baslangic": "2026-11-09"

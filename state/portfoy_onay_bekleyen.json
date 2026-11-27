@@ -5,5 +5,33 @@
   "tarih": "2026-11-24",
   "kapanis": 2.3,
   "dip": 2.25
+ },
+ {
+  "sym": "AKSA",
+  "kaynak": "Base",
+  "tarih": "2026-11-26",
+  "kapanis": 11.5,
+  "dip": 11.13
+ },
+ {
+  "sym": "CWENE",
+  "kaynak": "Base",
+  "tarih": "2026-11-26",
+  "kapanis": 18.6,
+  "dip": 17.93
+ },
+ {
+  "sym": "KATMR",
+  "kaynak": "Base",
+  "tarih": "2026-11-26",
+  "kapanis": 1.34,
+  "dip": 1.22
+ },
+ {
+  "sym": "OYLUM",
+  "kaynak": "Base",
+  "tarih": "2026-11-26",
+  "kapanis": 6.57,
+  "dip": 5.96
  }
 ]
