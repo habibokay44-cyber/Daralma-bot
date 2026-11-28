@@ -1,18 +1,6 @@
 {
- "nakit": 27917.55044000003,
+ "nakit": 31218.094820000035,
  "acik": [
-  {
-   "sym": "ZRGYO",
-   "kaynak": "Base",
-   "tarih": "2026-11-23",
-   "giris": 18.97,
-   "stop0": 18.1,
-   "stop": 18.1,
-   "lot": 1008,
-   "maliyet": 19140.88,
-   "son": 18.59,
-   "armed": false
-  },
   {
    "sym": "FRIGO",
    "kaynak": "Base",
@@ -22,7 +10,7 @@
    "stop": 2.3,
    "lot": 8303,
    "maliyet": 19116.0,
-   "son": 2.37,
+   "son": 2.4,
    "armed": true
   },
   {
@@ -34,7 +22,7 @@
    "stop": 11.13,
    "lot": 1666,
    "maliyet": 19178.16,
-   "son": 11.5,
+   "son": 11.42,
    "armed": false
   },
   {
@@ -46,7 +34,19 @@
    "stop": 5.96,
    "lot": 1571,
    "maliyet": 10331.79,
-   "son": 6.57,
+   "son": 6.65,
+   "armed": false
+  },
+  {
+   "sym": "KRPLS",
+   "kaynak": "Giriş",
+   "tarih": "2026-11-27",
+   "giris": 11.23,
+   "stop0": 10.51,
+   "stop": 10.51,
+   "lot": 1326,
+   "maliyet": 14905.87,
+   "son": 11.23,
    "armed": false
   }
  ],
@@ -146,6 +146,22 @@
    "cikis": 337.0,
    "kz": -951.33,
    "R": -1.14
+  },
+  {
+   "sym": "ZRGYO",
+   "kaynak": "Base",
+   "tarih": "2026-11-23",
+   "giris": 18.97,
+   "stop0": 18.1,
+   "stop": 18.1,
+   "lot": 1008,
+   "maliyet": 19140.88,
+   "son": 18.59,
+   "armed": false,
+   "cikis_tarihi": "2026-11-27",
+   "cikis": 18.08,
+   "kz": -934.46,
+   "R": -1.02
   }
  ],
  "atlanan": [
@@ -208,6 +224,12 @@
    "kaynak": "Base",
    "tarih": "2026-11-20",
    "neden": "geç görüldü"
+  },
+  {
+   "sym": "KRPLS",
+   "kaynak": "Base",
+   "tarih": "2026-11-27",
+   "neden": "zaten elde"
   }
  ],
  "baslangic": "2026-11-11"

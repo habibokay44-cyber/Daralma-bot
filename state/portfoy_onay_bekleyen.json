@@ -33,5 +33,19 @@
   "tarih": "2026-11-26",
   "kapanis": 6.57,
   "dip": 5.96
+ },
+ {
+  "sym": "KRPLS",
+  "kaynak": "Giriş",
+  "tarih": "2026-11-27",
+  "kapanis": 11.23,
+  "dip": 10.51
+ },
+ {
+  "sym": "KRPLS",
+  "kaynak": "Base",
+  "tarih": "2026-11-27",
+  "kapanis": 11.23,
+  "dip": 10.51
  }
 ]

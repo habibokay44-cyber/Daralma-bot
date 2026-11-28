@@ -1,19 +1,6 @@
 {
- "nakit": 75402.98233999999,
- "acik": [
-  {
-   "sym": "ZRGYO",
-   "kaynak": "Base",
-   "tarih": "2026-11-23",
-   "giris": 18.97,
-   "stop0": 18.1,
-   "stop": 18.1,
-   "lot": 1012,
-   "maliyet": 19216.84,
-   "son": 18.59,
-   "armed": false
-  }
- ],
+ "nakit": 93681.64537999999,
+ "acik": [],
  "kapali": [
   {
    "sym": "HUBVC",
@@ -110,6 +97,22 @@
    "cikis": 1.42,
    "kz": -1426.1,
    "R": -1.46
+  },
+  {
+   "sym": "ZRGYO",
+   "kaynak": "Base",
+   "tarih": "2026-11-23",
+   "giris": 18.97,
+   "stop0": 18.1,
+   "stop": 18.1,
+   "lot": 1012,
+   "maliyet": 19216.84,
+   "son": 18.59,
+   "armed": false,
+   "cikis_tarihi": "2026-11-27",
+   "cikis": 18.08,
+   "kz": -938.18,
+   "R": -1.02
   }
  ],
  "atlanan": [
